@@ -191,6 +191,9 @@ export class RenderPipeline {
     } else {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageData)
     }
+
+    // IMPORTANT: reset the flip flag — it's global WebGL state and will corrupt 3D texture uploads (texImage3D)
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
@@ -203,11 +206,17 @@ export class RenderPipeline {
   loadLUT(data: Float32Array, size: number): void {
     const gl = this.gl
     if (this.lutTexture) gl.deleteTexture(this.lutTexture)
-    const ext = gl.getExtension('OES_texture_float_linear')
-    if (!ext) console.warn('[WebGL] OES_texture_float_linear not available — LUT may appear blocky')
+
+    // RGB32F requires EXT_color_buffer_float which isn't universally available.
+    // Convert float [0,1] values to Uint8 [0,255] — precision is more than enough for a LUT.
+    const uint8 = new Uint8Array(data.length)
+    for (let i = 0; i < data.length; i++) {
+      uint8[i] = Math.round(Math.min(1, Math.max(0, data[i])) * 255)
+    }
+
     const tex = gl.createTexture()!
     gl.bindTexture(gl.TEXTURE_3D, tex)
-    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB32F, size, size, size, 0, gl.RGB, gl.FLOAT, data)
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB, size, size, size, 0, gl.RGB, gl.UNSIGNED_BYTE, uint8)
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)

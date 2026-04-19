@@ -98,7 +98,7 @@ export default function ImageCanvas() {
       currentLUTRef.current = preset.lutFile
       requestRender()
     }).catch(e => {
-      console.warn('[Canvas] LUT load failed:', e)
+      console.error('[Canvas] LUT load failed:', e)
     })
   }, [params.presetId, getPresetById, showOriginal])
 

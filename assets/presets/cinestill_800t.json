@@ -2,11 +2,11 @@
   "id": "cinestill_800t",
   "name": "Cinestill 800T",
   "category": "film-stock",
-  "lutFile": "cinestill_800t.cube",
+  "lutFile": "cinestill_800t.CUBE",
   "thumbnailFile": null,
   "params": {
-    "grain": { "enabled": true, "type": "coarse", "intensity": 0.35, "size": 0.9 },
-    "vignette": { "enabled": true, "shape": "oval", "strength": 0.40, "feather": 0.55, "midpoint": 0.70 },
-    "halation": { "enabled": true, "color": "#FF3311", "radius": 60, "threshold": 0.72, "intensity": 0.55 }
+    "grain": { "enabled": false, "type": "coarse", "intensity": 0.35, "size": 0.9 },
+    "vignette": { "enabled": false, "shape": "oval", "strength": 0.40, "feather": 0.55, "midpoint": 0.70 },
+    "halation": { "enabled": false, "color": "#FF3311", "radius": 60, "threshold": 0.72, "intensity": 0.55 }
   }
 }

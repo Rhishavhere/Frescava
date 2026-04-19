@@ -4,7 +4,8 @@ import { readFileSync, readdirSync, existsSync } from 'fs'
 import type { Preset, LUTData } from '../../src/shared/types'
 
 // Assets root — relative to compiled main process (out/main/)
-const ASSETS_ROOT = join(__dirname, '../../..', 'assets')
+// In dev and prod, the bundle lives in out/main/index.js, so two levels up is the project root (where assets/ lives)
+const ASSETS_ROOT = join(__dirname, '../..', 'assets')
 
 export function registerAssetHandlers(): void {
   // ── Load a .cube LUT file  ──────────────────────────────────────────────────
