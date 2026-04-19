@@ -17,8 +17,8 @@ interface ToolbarProps {
 
 export default function Toolbar({ hasImage }: ToolbarProps) {
   const { params, setShowOriginal, showOriginal, resetAll, undo, redo, canUndo, canRedo, imagePath, imageWidth, imageHeight } = useEditStore()
-  const { isExporting, setIsExporting, setExportSuccess, showExportSuccess, setActiveTab } = useUIStore()
-  const { saveProject } = useProjectStore()
+  const { isExporting, setIsExporting, setExportSuccess, showExportSuccess } = useUIStore()
+  const { smartSave, saveAs: saveProjectAs } = useProjectStore()
   const { addToSession, getActiveBatch, getActiveSession } = useSessionStore()
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [exportMode, setExportMode] = useState<'canvas' | 'full-res'>('canvas')
@@ -96,21 +96,29 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
     }
   }
 
-  // ── Save project ──────────────────────────────────────────────────────────
-  const handleSave = async () => {
-    if (!imagePath) return
-    const previewDataURL = window.__frescavaGetCanvasDataURL?.() ?? ''
-    const name = imagePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') ?? 'Untitled'
-    await saveProject({
-      version: 1,
+  // ── Save project (smart: first save = dialog, subsequent = overwrite) ─────
+  const buildProjectFile = () => {
+    const name = imagePath!.split(/[\/]/).pop()?.replace(/\.[^.]+$/, '') ?? 'Untitled'
+    return {
+      version: 1 as const,
       name,
-      imagePath,
+      imagePath: imagePath!,
       imageWidth,
       imageHeight,
       editState: params,
-      previewDataURL,
+      previewDataURL: window.__frescavaGetCanvasDataURL?.() ?? '',
       savedAt: new Date().toISOString(),
-    })
+    }
+  }
+
+  const handleSave = async () => {
+    if (!imagePath) return
+    await smartSave(buildProjectFile())
+  }
+
+  const handleSaveAs = async () => {
+    if (!imagePath) return
+    await saveProjectAs(buildProjectFile())
   }
 
   const batch = getActiveBatch()
@@ -186,50 +194,44 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
       )}
 
       {/* Save */}
+      {/* Save — hover reveals Save As */}
       {hasImage && (
-        <Button variant="ghost" size="sm" onClick={handleSave} title="Save project (.frex)">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline strokeLinecap="round" strokeLinejoin="round" points="17 21 17 13 7 13 7 21"/>
-            <polyline strokeLinecap="round" strokeLinejoin="round" points="7 3 7 8 15 8"/>
-          </svg>
-          Save
-        </Button>
-      )}
-
-      {/* ── Export button with dropdown ── */}
-      <div className="relative">
-        <div className="flex">
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!hasImage || isExporting}
-            onClick={handleExportCurrent}
-            loading={isExporting}
-            style={{ borderRadius: '6px 0 0 6px' }}
-          >
-            {isBatch ? 'Export Current' : 'Export'}
+        <div className="relative group">
+          <Button variant="ghost" size="sm" onClick={handleSave} title="Save project (.frex)">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline strokeLinecap="round" strokeLinejoin="round" points="17 21 17 13 7 13 7 21"/>
+              <polyline strokeLinecap="round" strokeLinejoin="round" points="7 3 7 8 15 8"/>
+            </svg>
+            Save
           </Button>
           <button
-            disabled={!hasImage || isExporting}
-            onClick={() => setShowExportMenu(v => !v)}
-            className="flex items-center justify-center px-1.5 text-white disabled:opacity-40"
-            style={{ background: '#111', borderRadius: '0 6px 6px 0', borderLeft: '1px solid rgba(255,255,255,0.2)' }}
-            title="Export options"
+            onClick={handleSaveAs}
+            className="absolute right-0 top-full mt-0.5 whitespace-nowrap bg-white border border-border rounded shadow-md px-2.5 py-1.5 text-[11px] text-text-secondary hover:bg-surface-50 z-40 hidden group-hover:block"
           >
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-            </svg>
+            Save As…
           </button>
         </div>
+      )}
 
-        {/* Dropdown menu */}
+      {/* ── Export — click = open dropdown ── */}
+      <div className="relative">
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!hasImage || isExporting}
+          onClick={() => setShowExportMenu(v => !v)}
+          loading={isExporting}
+        >
+          {isBatch ? 'Export ▾' : 'Export ▾'}
+        </Button>
+
+        {/* Dropdown — opens BELOW the button */}
         {showExportMenu && (
           <div
-            className="absolute right-0 bottom-full mb-1 w-52 bg-white border border-border rounded-lg shadow-lg z-50 overflow-hidden py-1"
-            onMouseLeave={() => setShowExportMenu(false)}
+            className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-lg shadow-xl z-50 overflow-hidden py-1"
           >
-            {/* Export mode */}
+            {/* Resolution picker */}
             <div className="px-3 py-2 border-b border-border">
               <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Resolution</p>
               <div className="flex gap-1">
@@ -245,32 +247,54 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                   </button>
                 ))}
               </div>
-              {exportMode === 'canvas' && (
-                <p className="text-[9px] text-text-muted mt-1">Canvas quality · exact preview match</p>
-              )}
-              {exportMode === 'full-res' && (
-                <p className="text-[9px] text-text-muted mt-1">Full resolution from source file</p>
-              )}
+              <p className="text-[9px] text-text-muted mt-1">
+                {exportMode === 'canvas' ? 'Exact preview · canvas capture' : 'Full resolution from source file'}
+              </p>
             </div>
 
-            {/* Actions */}
-            <button onClick={handleExportCurrent}
-              className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0 0V8m0 4h4m-4 0H8m12 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" />
+            {/* Export current */}
+            <button
+              onClick={handleExportCurrent}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2"
+            >
+              <svg className="w-3.5 h-3.5 text-text-muted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1M4 12l8 8m0 0 8-8M12 3v16" />
               </svg>
               Export current image
             </button>
 
+            {/* Export all */}
             {isBatch && (
-              <button onClick={handleExportAll}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <button
+                onClick={handleExportAll}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5 text-text-muted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z" />
                 </svg>
                 Export all {batch.length} images
               </button>
             )}
+
+            {/* Save As in export menu too */}
+            <div className="border-t border-border mt-1 pt-1">
+              <button
+                onClick={() => { setShowExportMenu(false); handleSaveAs() }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2 text-text-muted"
+              >
+                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline strokeLinecap="round" strokeLinejoin="round" points="17 21 17 13 7 13 7 21"/>
+                </svg>
+                Save As… (browse location)
+              </button>
+            </div>
+
+            {/* Close on outside click */}
+            <div
+              className="fixed inset-0 -z-10"
+              onClick={() => setShowExportMenu(false)}
+            />
           </div>
         )}
       </div>

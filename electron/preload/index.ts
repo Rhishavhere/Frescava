@@ -22,6 +22,8 @@ const api = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     save: (project: any) => ipcRenderer.invoke('projects:save', project),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    saveAt: (filePath: string, project: any) => ipcRenderer.invoke('projects:saveAt', filePath, project),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     saveAs: (project: any) => ipcRenderer.invoke('projects:saveAs', project),
     list: () => ipcRenderer.invoke('projects:list'),
     load: (path: string) => ipcRenderer.invoke('projects:load', path),

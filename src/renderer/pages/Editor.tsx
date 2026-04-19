@@ -27,18 +27,17 @@ export default function Editor() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
 
-      {/* ── Session tabs (top) ─────────────────────────────────────────────── */}
-      {sessions.length > 0 && <EditorTabBar />}
-
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* ── Left: Preset + Templates strip ─────────────────────────────── */}
         <aside className="w-48 shrink-0 flex flex-col border-r border-border bg-surface-50 overflow-hidden">
           <PresetStrip />
         </aside>
 
-        {/* ── Center: Canvas + Batch Strip ───────────────────────────────── */}
+        {/* ── Center: Toolbar → Tabs → Canvas → Batch ────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <Toolbar hasImage={hasImage} />
+          {/* Session tabs — below toolbar, above canvas */}
+          {sessions.length > 0 && <EditorTabBar />}
           <div className="flex-1 canvas-container overflow-hidden min-h-0">
             {hasImage ? <ImageCanvas /> : <DropZone />}
           </div>

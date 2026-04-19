@@ -102,7 +102,11 @@ function SliderRow({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <label className={`text-xs font-medium transition-colors ${isModified ? 'text-text-primary' : 'text-text-secondary'}`}>
+        <label
+          className={`text-xs font-medium transition-colors cursor-pointer select-none ${isModified ? 'text-text-primary' : 'text-text-secondary'}`}
+          onDoubleClick={onReset}
+          title="Double-click to reset"
+        >
           {label}
         </label>
         <button
@@ -128,6 +132,7 @@ function SliderRow({
         onChange={e => onChange(parseFloat(e.target.value))}
         onMouseUp={onChangeEnd}
         onTouchEnd={onChangeEnd}
+        onDoubleClick={onReset}
       />
     </div>
   )

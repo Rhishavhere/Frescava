@@ -31,12 +31,18 @@ function readMeta(filePath: string): ProjectMeta | null {
 }
 
 export function registerProjectHandlers(): void {
-  // Save to default location (or overwrite existing path if known)
+  // Save to default location (auto-name)
   ipcMain.handle('projects:save', async (_event, project: ProjectFile) => {
     ensureDir()
     const safeName = project.name.replace(/[^a-z0-9_\- ]/gi, '_')
     const filename = `${safeName}_${Date.now()}.frex`
     const filePath = join(PROJECTS_DIR, filename)
+    writeFileSync(filePath, JSON.stringify(project, null, 2), 'utf-8')
+    return { path: filePath }
+  })
+
+  // Overwrite a specific known path (silent re-save)
+  ipcMain.handle('projects:saveAt', async (_event, filePath: string, project: ProjectFile) => {
     writeFileSync(filePath, JSON.stringify(project, null, 2), 'utf-8')
     return { path: filePath }
   })

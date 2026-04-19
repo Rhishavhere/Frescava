@@ -2,6 +2,13 @@ import { create } from 'zustand'
 import { useEditStore, DEFAULT_EDIT_STATE } from './editStore'
 import type { EditState } from '@shared/types'
 
+// Lazy import to avoid circular deps
+const resetSavePath = () => {
+  import('./projectStore').then(({ useProjectStore }) => {
+    useProjectStore.getState().setCurrentFilePath(null)
+  })
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type BatchAdjustments = Omit<EditState,
@@ -150,6 +157,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     set(s => ({ sessions: [...s.sessions, newSession], activeSessionId: sessionId }))
     syncEditStore(newSession)
+    resetSavePath()   // new image = no saved path yet, next Save will prompt Save As
   },
 
   addToSession: (results) => {
