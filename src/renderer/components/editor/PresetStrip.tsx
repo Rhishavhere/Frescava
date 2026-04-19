@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePresetStore } from '../../store/presetStore'
 import { useEditStore } from '../../store/editStore'
+import { useSessionStore } from '../../store/tabStore'
 import { Slider } from '../ui'
 import type { PresetCategory, Preset } from '@shared/types'
 
@@ -18,6 +19,8 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as PresetCategory[]
 export default function PresetStrip() {
   const { presets, favorites, selectedPresetId, selectPreset, toggleFavorite, isLoading } = usePresetStore()
   const { params, applyPreset, setPresetIntensity } = useEditStore()
+  const { applyPresetToAll, getActiveBatch } = useSessionStore()
+  const isBatch = getActiveBatch().length > 1
   const [activeCategory, setActiveCategory] = useState<PresetCategory | 'all'>('all')
   const [showFavOnly, setShowFavOnly] = useState(false)
 
@@ -30,11 +33,14 @@ export default function PresetStrip() {
   const handlePresetClick = (preset: Preset) => {
     selectPreset(preset.id)
     applyPreset(preset.id, preset.params)
+    // Apply to ALL images in the batch
+    if (isBatch) applyPresetToAll(preset.id, params.presetIntensity)
   }
 
   const handleClearPreset = () => {
     selectPreset(null)
     applyPreset('', { presetId: null })
+    if (isBatch) applyPresetToAll(null, 1)
   }
 
   return (

@@ -1,10 +1,10 @@
 import { useCallback } from 'react'
 import { useUIStore } from '../../store/uiStore'
-import { useTabStore } from '../../store/tabStore'
+import { useSessionStore } from '../../store/tabStore'
 
 export default function DropZone() {
   const { setIsLoadingImage } = useUIStore()
-  const { openTab } = useTabStore()
+  const { addToSession } = useSessionStore()
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return
@@ -14,7 +14,7 @@ export default function DropZone() {
       const filePath = (file as any).path
       if (filePath) {
         const result = await window.frame.file.load(filePath)
-        openTab({ path: result.path, dataURL: result.dataURL, width: result.width, height: result.height })
+        addToSession([{ path: result.path, dataURL: result.dataURL, width: result.width, height: result.height }])
       } else {
         console.error('File path not available')
       }
@@ -23,7 +23,7 @@ export default function DropZone() {
     } finally {
       setIsLoadingImage(false)
     }
-  }, [openTab, setIsLoadingImage])
+  }, [addToSession, setIsLoadingImage])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -42,10 +42,10 @@ export default function DropZone() {
   }
 
   const handleClick = async () => {
-    const result = await window.frame.file.open()
-    if (!result) return
+    const results = await window.frame.file.openMultiple()
+    if (!results.length) return
     setIsLoadingImage(true)
-    openTab({ path: result.path, dataURL: result.dataURL, width: result.width, height: result.height })
+    addToSession(results.map(r => ({ path: r.path, dataURL: r.dataURL, width: r.width, height: r.height })))
     setIsLoadingImage(false)
   }
 

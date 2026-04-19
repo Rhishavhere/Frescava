@@ -69,6 +69,54 @@ export function registerExportHandlers(): void {
       return { success: false, error: message }
     }
   })
+
+  // ── Batch export: export multiple images to a chosen folder ──────────────────
+  ipcMain.handle('export:exportBatch', async (_event, opts: {
+    images: ExportOptions[]
+    outputDir: string
+  }) => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (!win) return { success: false, error: 'No window' }
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: 'Choose Export Folder',
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (canceled || !filePaths[0]) return { success: false, error: 'Cancelled' }
+
+    const outDir = filePaths[0]
+    const sharp = require('sharp') as typeof import('sharp')
+    const exported: string[] = []
+
+    for (const imgOpts of opts.images) {
+      try {
+        let pipeline: ReturnType<typeof sharp>
+        if (imgOpts.canvasDataURL) {
+          const base64 = imgOpts.canvasDataURL.replace(/^data:image\/\w+;base64,/, '')
+          const buffer = Buffer.from(base64, 'base64')
+          pipeline = sharp(buffer)
+        } else {
+          pipeline = sharp(imgOpts.imagePath).rotate()
+          const brightness = exposureToBrightness(imgOpts.editState.exposure)
+          const satMult = saturationToMultiplier(imgOpts.editState.saturation)
+          const { alpha, beta } = contrastToLinear(imgOpts.editState.contrast)
+          pipeline = pipeline.modulate({ brightness, saturation: satMult }).linear(alpha, beta)
+          if (imgOpts.editState.sharpness > 0) {
+            pipeline = pipeline.sharpen({ sigma: 0.5 + (imgOpts.editState.sharpness / 100) * 1.5 })
+          }
+        }
+        const basename = imgOpts.imagePath.split(/[\\/]/).pop() ?? 'export'
+        const nameNoExt = basename.replace(/\.[^.]+$/, '')
+        const outPath = join(outDir, `frescava_${nameNoExt}.jpg`)
+        await pipeline.jpeg({ quality: imgOpts.quality, mozjpeg: true }).toFile(outPath)
+        exported.push(outPath)
+      } catch (e) {
+        console.error('[Batch Export] Failed for', imgOpts.imagePath, e)
+      }
+    }
+
+    return { success: true, exported, count: exported.length }
+  })
 }
 
 // ─── Conversion helpers ───────────────────────────────────────────────────────

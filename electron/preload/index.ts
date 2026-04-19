@@ -10,6 +10,8 @@ const api = {
   export: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     save: (opts: any) => ipcRenderer.invoke('export:save', opts),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    exportBatch: (opts: any) => ipcRenderer.invoke('export:exportBatch', opts),
   },
   assets: {
     loadLUT: (filename: string) => ipcRenderer.invoke('assets:loadLUT', filename),

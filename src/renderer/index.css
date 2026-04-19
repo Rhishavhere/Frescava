@@ -439,3 +439,113 @@ input[type='range']:focus::-webkit-slider-thumb {
   color: rgba(0,0,0,0.4);
   border-radius: 2px;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────── */
+/* BATCH STRIP                                                                   */
+/* ──────────────────────────────────────────────────────────────────────────── */
+
+.batch-strip {
+  height: 80px;
+  background: #F8F7F5;
+  border-top: 1px solid #E5E5E5;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.batch-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.batch-strip-inner::-webkit-scrollbar { display: none; }
+
+.batch-preset-badge {
+  flex-shrink: 0;
+  padding: 0 8px;
+  border-right: 1px solid #E5E5E5;
+  margin-right: 4px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.batch-thumb {
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.batch-thumb:hover { transform: translateY(-2px); }
+
+.batch-thumb-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1.5px solid transparent;
+  transition: border-color 0.15s;
+}
+.batch-thumb-active .batch-thumb-img {
+  border-color: #111;
+}
+
+.batch-thumb-ring {
+  position: absolute;
+  inset: -2px;
+  border: 2px solid #111;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.batch-thumb-idx {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #999;
+  white-space: nowrap;
+}
+
+.batch-thumb-remove {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 8px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.batch-thumb:hover .batch-thumb-remove { display: flex; }
+
+.batch-add-btn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border: 1.5px dashed rgba(0,0,0,0.2);
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0,0,0,0.35);
+  transition: border-color 0.15s, color 0.15s;
+}
+.batch-add-btn:hover {
+  border-color: #8B5C2A;
+  color: #8B5C2A;
+}

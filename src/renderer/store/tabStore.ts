@@ -2,124 +2,300 @@ import { create } from 'zustand'
 import { useEditStore, DEFAULT_EDIT_STATE } from './editStore'
 import type { EditState } from '@shared/types'
 
-// ─── Tab ─────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface EditorTab {
+export type BatchAdjustments = Omit<EditState,
+  'imagePath' | 'imageWidth' | 'imageHeight' | 'presetId' | 'presetIntensity'
+>
+
+const DEFAULT_ADJUSTMENTS: BatchAdjustments = {
+  exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
+  temperature: 0, tint: 0, vibrance: 0, saturation: 0,
+  sharpness: 0, noiseReduction: 0, clarity: 0, texture: 0,
+  grain: { enabled: false, type: 'fine', intensity: 0.3, size: 1.0 },
+  vignette: { enabled: false, shape: 'oval', strength: 0.5, feather: 0.5, midpoint: 0.7 },
+  halation: { enabled: false, color: '#FF4422', radius: 40, threshold: 0.75, intensity: 0.4 },
+  chromaticAberration: { enabled: false, amount: 3 },
+  bloom: { enabled: false, threshold: 0.75, intensity: 0.3, character: 'soft' },
+  lensDistortion: { enabled: false, amount: 0 },
+  lightLeak: { enabled: false, textureId: null, color: '#FFA050', position: [0, 0], intensity: 0.5 },
+  border: { enabled: false, type: null, color: '#FFFFFF', width: 40, cornerRadius: 0 },
+}
+
+export interface BatchImage {
   id: string
-  label: string            // filename (e.g. "sunlight.jpg")
+  label: string
   imagePath: string
   imageDataURL: string
   imageWidth: number
   imageHeight: number
-  params: Omit<EditState, 'imagePath' | 'imageWidth' | 'imageHeight'>
+  adjustments: BatchAdjustments
+}
+
+export interface EditorSession {
+  id: string
+  label: string               // first image name or "Session N"
+  activeImageId: string | null
+  images: BatchImage[]
+  sharedPresetId: string | null
+  sharedPresetIntensity: number
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-interface TabStore {
-  tabs: EditorTab[]
-  activeTabId: string | null
+interface SessionStore {
+  sessions: EditorSession[]
+  activeSessionId: string | null
 
-  openTab: (result: { path: string; dataURL: string; width: number; height: number }) => void
-  closeTab: (id: string) => void
-  switchTab: (id: string) => void
-  syncActiveTabParams: () => void  // call before switching to save current params
+  /** Create a brand-new session (from Home) with one or more images */
+  openSession: (results: Array<{ path: string; dataURL: string; width: number; height: number }>) => void
+  /** Add images to the currently active session batch */
+  addToSession: (results: Array<{ path: string; dataURL: string; width: number; height: number }>) => void
+  /** Close an entire session */
+  closeSession: (id: string) => void
+  /** Switch the active session */
+  switchSession: (id: string) => void
+
+  /** Switch the active image within the current session */
+  setActiveImage: (imageId: string) => void
+  /** Remove an image from the current batch */
+  removeImage: (imageId: string) => void
+
+  /** Apply a preset to ALL images in the current session */
+  applyPresetToAll: (presetId: string | null, intensity: number) => void
+
+  /** Get all images in the active session (for export) */
+  getActiveBatch: () => BatchImage[]
+  getActiveSession: () => EditorSession | null
 }
 
 let uid = 0
+const makeId = () => `s-${++uid}`
 
-export const useTabStore = create<TabStore>((set, get) => ({
-  tabs: [],
-  activeTabId: null,
+function makeImage(result: { path: string; dataURL: string; width: number; height: number }): BatchImage {
+  return {
+    id: makeId(),
+    label: result.path.split(/[\\/]/).pop() ?? 'Image',
+    imagePath: result.path,
+    imageDataURL: result.dataURL,
+    imageWidth: result.width,
+    imageHeight: result.height,
+    adjustments: { ...DEFAULT_ADJUSTMENTS },
+  }
+}
 
-  openTab: (result) => {
-    const { tabs, activeTabId } = get()
+function syncEditStore(session: EditorSession) {
+  const img = session.images.find(i => i.id === session.activeImageId)
+  if (!img) return
+  const es = useEditStore.getState()
+  es.loadImage(img.imagePath, img.imageWidth, img.imageHeight, img.imageDataURL)
+  es.resetAll()
+  // Restore per-image adjustments
+  Object.entries(img.adjustments).forEach(([k, v]) => {
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+      Object.entries(v as Record<string, unknown>).forEach(([sk, sv]) => {
+        es.setNestedParam(k as any, sk, sv)
+      })
+    } else {
+      es.setParam(k as any, v as any)
+    }
+  })
+  // Restore shared preset
+  es.setParam('presetId', session.sharedPresetId)
+  es.setParam('presetIntensity', session.sharedPresetIntensity)
+}
 
-    // Save current edit params into the current tab before opening new
-    if (activeTabId) {
-      const currentParams = useEditStore.getState().params
-      set((s) => ({
-        tabs: s.tabs.map(t => t.id === activeTabId ? { ...t, params: currentParams } : t),
-      }))
+function saveCurrentImageAdjustments(session: EditorSession): BatchAdjustments {
+  const { params } = useEditStore.getState()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { presetId: _p, presetIntensity: _i, ...adjustments } = params
+  return adjustments as BatchAdjustments
+}
+
+export const useSessionStore = create<SessionStore>((set, get) => ({
+  sessions: [],
+  activeSessionId: null,
+
+  openSession: (results) => {
+    const { sessions, activeSessionId } = get()
+
+    // Flush current image adjustments back into the current session
+    if (activeSessionId) {
+      const current = sessions.find(s => s.id === activeSessionId)
+      if (current?.activeImageId) {
+        const adj = saveCurrentImageAdjustments(current)
+        set(s => ({
+          sessions: s.sessions.map(sess =>
+            sess.id === activeSessionId ? {
+              ...sess,
+              images: sess.images.map(img =>
+                img.id === current.activeImageId ? { ...img, adjustments: adj } : img
+              ),
+            } : sess
+          ),
+        }))
+      }
     }
 
-    const id = `tab-${++uid}`
-    const label = result.path.split(/[\\/]/).pop() ?? 'Image'
-    const newTab: EditorTab = {
-      id,
-      label,
-      imagePath: result.path,
-      imageDataURL: result.dataURL,
-      imageWidth: result.width,
-      imageHeight: result.height,
-      params: { ...DEFAULT_EDIT_STATE },
+    const images = results.map(makeImage)
+    const sessionId = makeId()
+    const newSession: EditorSession = {
+      id: sessionId,
+      label: images[0]?.label ?? 'New Session',
+      activeImageId: images[0]?.id ?? null,
+      images,
+      sharedPresetId: null,
+      sharedPresetIntensity: 1,
     }
 
-    set((s) => ({ tabs: [...s.tabs, newTab], activeTabId: id }))
-
-    // Load into edit store
-    useEditStore.getState().loadImage(result.path, result.width, result.height, result.dataURL)
-    useEditStore.getState().resetAll()
+    set(s => ({ sessions: [...s.sessions, newSession], activeSessionId: sessionId }))
+    syncEditStore(newSession)
   },
 
-  closeTab: (id) => {
-    const { tabs, activeTabId } = get()
-    const idx = tabs.findIndex(t => t.id === id)
-    if (idx === -1) return
+  addToSession: (results) => {
+    const { sessions, activeSessionId } = get()
+    if (!activeSessionId) {
+      get().openSession(results)
+      return
+    }
 
-    const newTabs = tabs.filter(t => t.id !== id)
-    set({ tabs: newTabs })
+    const current = sessions.find(s => s.id === activeSessionId)
+    if (!current) return
 
-    if (activeTabId === id) {
-      // Switch to adjacent tab
-      const next = newTabs[Math.min(idx, newTabs.length - 1)]
+    const newImages = results.map(r => {
+      const img = makeImage(r)
+      // Inherit shared preset
+      return img
+    })
+
+    set(s => ({
+      sessions: s.sessions.map(sess =>
+        sess.id === activeSessionId
+          ? { ...sess, images: [...sess.images, ...newImages] }
+          : sess
+      ),
+    }))
+    // No auto-switch — user stays on current image
+  },
+
+  closeSession: (id) => {
+    const { sessions, activeSessionId } = get()
+    const idx = sessions.findIndex(s => s.id === id)
+    const newSessions = sessions.filter(s => s.id !== id)
+    set({ sessions: newSessions })
+
+    if (activeSessionId === id) {
+      const next = newSessions[Math.min(idx, newSessions.length - 1)]
       if (next) {
-        get().switchTab(next.id)
+        get().switchSession(next.id)
       } else {
-        // No more tabs — clear editor
-        set({ activeTabId: null })
+        set({ activeSessionId: null })
         useEditStore.getState().loadImage('', 0, 0, '')
       }
     }
   },
 
-  switchTab: (id) => {
-    const { tabs, activeTabId } = get()
+  switchSession: (id) => {
+    const { sessions, activeSessionId } = get()
+    if (activeSessionId === id) return
 
-    // Save current params back into the currently active tab
-    if (activeTabId && activeTabId !== id) {
-      const currentParams = useEditStore.getState().params
-      set((s) => ({
-        tabs: s.tabs.map(t => t.id === activeTabId ? { ...t, params: currentParams } : t),
+    // Save current adjustments
+    const current = sessions.find(s => s.id === activeSessionId)
+    if (current?.activeImageId) {
+      const adj = saveCurrentImageAdjustments(current)
+      set(s => ({
+        sessions: s.sessions.map(sess =>
+          sess.id === activeSessionId ? {
+            ...sess,
+            images: sess.images.map(img =>
+              img.id === current.activeImageId ? { ...img, adjustments: adj } : img
+            ),
+          } : sess
+        ),
       }))
     }
 
-    const tab = tabs.find(t => t.id === id)
-    if (!tab) return
-
-    set({ activeTabId: id })
-    // Restore the tab's image + params into editStore
-    const es = useEditStore.getState()
-    es.loadImage(tab.imagePath, tab.imageWidth, tab.imageHeight, tab.imageDataURL)
-    // Restore params — reset first then re-apply
-    es.resetAll()
-    Object.entries(tab.params).forEach(([k, v]) => {
-      if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-        Object.entries(v as Record<string, unknown>).forEach(([sk, sv]) => {
-          es.setNestedParam(k as any, sk, sv)
-        })
-      } else {
-        es.setParam(k as any, v as any)
-      }
-    })
+    const next = sessions.find(s => s.id === id)
+    if (!next) return
+    set({ activeSessionId: id })
+    syncEditStore(next)
   },
 
-  syncActiveTabParams: () => {
-    const { activeTabId } = get()
-    if (!activeTabId) return
-    const currentParams = useEditStore.getState().params
-    set((s) => ({
-      tabs: s.tabs.map(t => t.id === activeTabId ? { ...t, params: currentParams } : t),
+  setActiveImage: (imageId) => {
+    const { sessions, activeSessionId } = get()
+    const session = sessions.find(s => s.id === activeSessionId)
+    if (!session || session.activeImageId === imageId) return
+
+    // Save current adjustments
+    const adj = saveCurrentImageAdjustments(session)
+    set(s => ({
+      sessions: s.sessions.map(sess =>
+        sess.id === activeSessionId ? {
+          ...sess,
+          activeImageId: imageId,
+          images: sess.images.map(img =>
+            img.id === session.activeImageId ? { ...img, adjustments: adj } : img
+          ),
+        } : sess
+      ),
     }))
+
+    const updated = get().sessions.find(s => s.id === activeSessionId)!
+    syncEditStore(updated)
+  },
+
+  removeImage: (imageId) => {
+    const { sessions, activeSessionId } = get()
+    const session = sessions.find(s => s.id === activeSessionId)
+    if (!session) return
+
+    const newImages = session.images.filter(i => i.id !== imageId)
+    const wasActive = session.activeImageId === imageId
+    const newActiveId = wasActive
+      ? (newImages[0]?.id ?? null)
+      : session.activeImageId
+
+    set(s => ({
+      sessions: s.sessions.map(sess =>
+        sess.id === activeSessionId
+          ? { ...sess, images: newImages, activeImageId: newActiveId }
+          : sess
+      ),
+    }))
+
+    if (wasActive && newActiveId) {
+      const updated = get().sessions.find(s => s.id === activeSessionId)!
+      syncEditStore(updated)
+    } else if (!newImages.length) {
+      useEditStore.getState().loadImage('', 0, 0, '')
+    }
+  },
+
+  applyPresetToAll: (presetId, intensity) => {
+    const { activeSessionId } = get()
+    if (!activeSessionId) return
+    set(s => ({
+      sessions: s.sessions.map(sess =>
+        sess.id === activeSessionId
+          ? { ...sess, sharedPresetId: presetId, sharedPresetIntensity: intensity }
+          : sess
+      ),
+    }))
+    // Also update editStore for the current image
+    useEditStore.getState().setParam('presetId', presetId)
+    useEditStore.getState().setParam('presetIntensity', intensity)
+  },
+
+  getActiveBatch: () => {
+    const { sessions, activeSessionId } = get()
+    return sessions.find(s => s.id === activeSessionId)?.images ?? []
+  },
+
+  getActiveSession: () => {
+    const { sessions, activeSessionId } = get()
+    return sessions.find(s => s.id === activeSessionId) ?? null
   },
 }))
+
+// ─── Keep backward compat: export as useTabStore ──────────────────────────────
+export { useSessionStore as useTabStore }

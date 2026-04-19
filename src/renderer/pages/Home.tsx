@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useProjectStore } from '../store/projectStore'
-import { useEditStore } from '../store/editStore'
 import { usePresetStore } from '../store/presetStore'
 import { useUIStore } from '../store/uiStore'
+import { useSessionStore } from '../store/tabStore'
 import type { ProjectMeta } from '@shared/types'
 
 export default function Home() {
   const { projects, loadProjects, isLoading } = useProjectStore()
-  const { loadImage } = useEditStore()
   const { presets } = usePresetStore()
   const { setActiveTab } = useUIStore()
+  const { openSession } = useSessionStore()
   const [greeting, setGreeting] = useState('')
 
   useEffect(() => {
@@ -21,31 +21,19 @@ export default function Home() {
   }, [loadProjects])
 
   const handleOpenImage = async () => {
-    const result = await window.frame.file.open()
-    if (!result) return
-    loadImage(result.path, result.width, result.height, result.dataURL)
+    // Multi-select allowed → batch session
+    const results = await window.frame.file.openMultiple()
+    if (!results.length) return
+    openSession(results.map(r => ({ path: r.path, dataURL: r.dataURL, width: r.width, height: r.height })))
     setActiveTab('editor')
   }
 
   const handleOpenProject = async (project: ProjectMeta) => {
     try {
       const file = await window.frame.projects.load(project.path)
-      // Re-load the source image then restore edit state
       const imageResult = await window.frame.file.load(file.imagePath)
-      loadImage(imageResult.path, imageResult.width, imageResult.height, imageResult.dataURL)
-      // Restore edit params via store
-      const { setParam, setNestedParam } = useEditStore.getState()
-      const p = file.editState
-      // Restore flat params
-      const flatKeys = ['exposure','contrast','highlights','shadows','whites','blacks',
-        'temperature','tint','vibrance','saturation','sharpness','noiseReduction','clarity',
-        'texture','presetId','presetIntensity'] as const
-      flatKeys.forEach(k => { if (p[k] !== undefined) setParam(k as any, p[k] as any) })
-      // Restore nested effect params
-      const nestedKeys = ['grain','vignette','halation','chromaticAberration','bloom','lensDistortion','lightLeak','border'] as const
-      nestedKeys.forEach(k => {
-        if (p[k]) Object.entries(p[k] as any).forEach(([sk, v]) => setNestedParam(k as any, sk, v))
-      })
+      // Open as a new session
+      openSession([{ path: imageResult.path, dataURL: imageResult.dataURL, width: imageResult.width, height: imageResult.height }])
       setActiveTab('editor')
     } catch (e) {
       console.error('[Home] Failed to open project:', e)
