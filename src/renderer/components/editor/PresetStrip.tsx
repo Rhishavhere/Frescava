@@ -32,7 +32,7 @@ export default function PresetStrip() {
 
   const handlePresetClick = (preset: Preset) => {
     selectPreset(preset.id)
-    applyPreset(preset.id, preset.params)
+    applyPreset(preset.id, preset.defaults ?? {})
     markActiveImageDirty()
     // Apply to ALL images in the batch
     if (isBatch) applyPresetToAll(preset.id, params.presetIntensity)
@@ -222,7 +222,7 @@ function PresetCard({
         <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface-200 flex items-center justify-center">
           {preset.thumbnailFile ? (
             <img
-              src={`../assets/presets/thumbnails/${preset.thumbnailFile}`}
+              src={`../assets/presets/${preset.folderName}/${preset.thumbnailFile}`}
               alt={preset.name}
               className="w-full h-full object-cover"
               loading="lazy"

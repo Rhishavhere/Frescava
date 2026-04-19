@@ -5,6 +5,7 @@ import ImageCanvas from '../components/editor/ImageCanvas'
 import PresetStrip from '../components/editor/PresetStrip'
 import AdjustmentPanel from '../components/editor/AdjustmentPanel'
 import EffectsPanel from '../components/editor/EffectsPanel'
+import PresetSettingsPanel from '../components/editor/PresetSettingsPanel'
 import DropZone from '../components/editor/DropZone'
 import Toolbar from '../components/editor/Toolbar'
 import EditorTabBar from '../components/editor/EditorTabBar'
@@ -12,9 +13,9 @@ import BatchStrip from '../components/editor/BatchStrip'
 import ConfirmModal from '../components/ui/ConfirmModal'
 
 const PANEL_TABS = [
-  { id: 'light', label: 'Light' },
-  { id: 'color', label: 'Color' },
-  { id: 'detail', label: 'Detail' },
+  { id: 'light',   label: 'Light' },
+  { id: 'color',   label: 'Color' },
+  { id: 'detail',  label: 'Detail' },
   { id: 'effects', label: 'Effects' },
 ] as const
 
@@ -67,8 +68,12 @@ export default function Editor() {
                 </div>
               ) : (
                 <>
-                  {rightPanelTab !== 'effects' && <AdjustmentPanel activeSection={rightPanelTab as 'light' | 'color' | 'detail'} />}
+                  {rightPanelTab !== 'effects' && (
+                    <AdjustmentPanel activeSection={rightPanelTab as 'light' | 'color' | 'detail'} />
+                  )}
                   {rightPanelTab === 'effects' && <EffectsPanel />}
+                  {/* Preset settings live below the adjustment area, not in a separate tab */}
+                  <PresetSettingsPanel />
                 </>
               )}
             </div>

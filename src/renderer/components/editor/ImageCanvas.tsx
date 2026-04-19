@@ -112,6 +112,55 @@ export default function ImageCanvas() {
     })
   }, [params.presetId, getPresetById, showOriginal])
 
+  // ── Load Textures when preset changes ──────────────────────────────────────
+  const currentTexturePresetRef = useRef<string | null>(null)
+  useEffect(() => {
+    const presetId = params.presetId
+    if (!pipelineRef.current) return
+
+    if (!presetId || showOriginal) {
+      pipelineRef.current.clearOverlayTextures()
+      currentTexturePresetRef.current = null
+      requestRender()
+      return
+    }
+
+    if (currentTexturePresetRef.current === presetId) return // already loaded
+
+    const preset = getPresetById(presetId)
+    if (!preset) return
+
+    pipelineRef.current.clearOverlayTextures()
+    currentTexturePresetRef.current = presetId
+
+    const loadTex = async (id: string, filename: string) => {
+      try {
+        const buffer = await window.frame.assets.loadTexture(`presets/${preset.folderName}/${filename}`)
+        const blob = new Blob([buffer])
+        const url = URL.createObjectURL(blob)
+        const img = new Image()
+        img.onload = () => {
+          pipelineRef.current?.loadOverlayTexture(id, img)
+          URL.revokeObjectURL(url)
+          requestRender()
+        }
+        img.src = url
+      } catch (e) {
+        console.error(`[Canvas] Failed to load overlay texture ${filename}:`, e)
+      }
+    }
+
+    if (preset.defaults.lightLeak?.textureFile) {
+      loadTex('lightLeak', preset.defaults.lightLeak.textureFile)
+    }
+    if (preset.defaults.dustScratches?.textureFile) {
+      loadTex('dustScratches', preset.defaults.dustScratches.textureFile)
+    }
+    if (preset.defaults.border?.textureFile) {
+      loadTex('border', preset.defaults.border.textureFile)
+    }
+  }, [params.presetId, getPresetById, showOriginal])
+
   // ── Re-render whenever params change ──────────────────────────────────────
   const requestRender = useCallback(() => {
     cancelAnimationFrame(rafRef.current)

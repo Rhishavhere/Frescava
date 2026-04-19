@@ -1,5 +1,6 @@
 import {
   VERT_SHADER,
+  FADE_FRAG,
   ADJUSTMENTS_FRAG,
   LUT_FRAG,
   GRAIN_FRAG,
@@ -11,6 +12,7 @@ import {
   CA_FRAG,
   LENS_DIST_FRAG,
   PASSTHROUGH_FRAG,
+  OVERLAY_FRAG,
 } from './shaders'
 import type { EditState } from '@shared/types'
 
@@ -83,6 +85,7 @@ export class RenderPipeline {
   private pingPong: number = 0
 
   // Programs
+  private progFade: WebGLProgram
   private progAdjust: WebGLProgram
   private progLUT: WebGLProgram
   private progGrain: WebGLProgram
@@ -94,6 +97,7 @@ export class RenderPipeline {
   private progCA: WebGLProgram
   private progLensDist: WebGLProgram
   private progPassthrough: WebGLProgram
+  private progOverlay: WebGLProgram
 
   // VAOs
   private vaos: Map<WebGLProgram, WebGLVertexArrayObject> = new Map()
@@ -104,6 +108,9 @@ export class RenderPipeline {
   // LUT 3D texture
   private lutTexture: WebGLTexture | null = null
   private lutSize: number = 33
+
+  // Overlay textures
+  private overlayTextures: Map<string, WebGLTexture> = new Map()
 
   // Halation intermediate texture/FBO
   private halFBO: WebGLFramebuffer | null = null
@@ -127,6 +134,7 @@ export class RenderPipeline {
     this.height = canvas.height
 
     // Create programs
+    this.progFade = createProgram(gl, FADE_FRAG)
     this.progAdjust = createProgram(gl, ADJUSTMENTS_FRAG)
     this.progLUT = createProgram(gl, LUT_FRAG)
     this.progGrain = createProgram(gl, GRAIN_FRAG)
@@ -138,12 +146,14 @@ export class RenderPipeline {
     this.progCA = createProgram(gl, CA_FRAG)
     this.progLensDist = createProgram(gl, LENS_DIST_FRAG)
     this.progPassthrough = createProgram(gl, PASSTHROUGH_FRAG)
+    this.progOverlay = createProgram(gl, OVERLAY_FRAG)
 
     // Setup VAOs for each program
     const programs = [
+      this.progFade,
       this.progAdjust, this.progLUT, this.progGrain, this.progVignette,
       this.progHalExtract, this.progBlurH, this.progBlurV, this.progHalComposite,
-      this.progCA, this.progLensDist, this.progPassthrough,
+      this.progCA, this.progLensDist, this.progPassthrough, this.progOverlay,
     ]
     for (const prog of programs) {
       this.vaos.set(prog, setupQuad(gl, prog))
@@ -233,6 +243,36 @@ export class RenderPipeline {
     }
   }
 
+  // ── Load Overlay Texture ───────────────────────────────────────────────────
+
+  loadOverlayTexture(id: string, image: HTMLImageElement): void {
+    const gl = this.gl
+    if (this.overlayTextures.has(id)) {
+      gl.deleteTexture(this.overlayTextures.get(id)!)
+    }
+    
+    const tex = gl.createTexture()!
+    gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false)
+    
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+    
+    this.overlayTextures.set(id, tex)
+  }
+
+  clearOverlayTextures(): void {
+    const gl = this.gl
+    for (const tex of this.overlayTextures.values()) {
+      gl.deleteTexture(tex)
+    }
+    this.overlayTextures.clear()
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   render(state: EditState): void {
@@ -252,29 +292,67 @@ export class RenderPipeline {
     // 2. Adjustments pass
     current = this.runAdjustments(current, state)
 
-    // 3. Halation (3-pass)
+    // 3. Fade / Matte (runs after adjustments, before effects)
+    if (state.fade?.enabled && (state.fade.blackLift > 0 || state.fade.whiteCeiling < 1)) {
+      current = this.runFade(current, state)
+    }
+
+    // 4. Halation (3-pass)
     if (state.halation.enabled && state.halation.intensity > 0) {
       current = this.runHalation(current, state)
     }
 
-    // 4. Chromatic Aberration
+    // 5. Chromatic Aberration
     if (state.chromaticAberration.enabled && state.chromaticAberration.amount > 0) {
-      current = this.runCA(current, state.chromaticAberration.amount)
+      current = this.runCA(current, state.chromaticAberration)
     }
 
-    // 5. Lens Distortion
+    // 6. Lens Distortion
     if (state.lensDistortion.enabled && state.lensDistortion.amount !== 0) {
       current = this.runLensDist(current, state)
     }
 
-    // 6. Vignette
+    // 7. Light Leak
+    if (state.lightLeak.enabled && state.lightLeak.opacity > 0 && this.overlayTextures.has('lightLeak')) {
+      current = this.runOverlay(current, this.overlayTextures.get('lightLeak')!, {
+        opacity: state.lightLeak.opacity,
+        blendMode: state.lightLeak.blendMode ?? 'screen',
+        tintColor: state.lightLeak.color,
+        tintStrength: state.lightLeak.colorStrength ?? 0.5,
+        offset: state.lightLeak.position ?? [0, 0]
+      })
+    }
+
+    // 8. Vignette
     if (state.vignette.enabled && state.vignette.strength > 0) {
       current = this.runVignette(current, state)
     }
 
-    // 7. Grain
+    // 9. Dust & Scratches
+    if (state.dustScratches?.enabled && (state.dustScratches.opacity ?? 0) > 0 && this.overlayTextures.has('dustScratches')) {
+      current = this.runOverlay(current, this.overlayTextures.get('dustScratches')!, {
+        opacity: state.dustScratches.opacity ?? 0.3,
+        blendMode: state.dustScratches.blendMode ?? 'screen',
+        tintColor: '#FFFFFF',
+        tintStrength: 0,
+        offset: [0, 0]
+      })
+    }
+
+    // 10. Grain
     if (state.grain.enabled && state.grain.intensity > 0) {
       current = this.runGrain(current, state)
+    }
+
+    // 11. Border
+    if (state.border.enabled && this.overlayTextures.has('border')) {
+      current = this.runOverlay(current, this.overlayTextures.get('border')!, {
+        opacity: 1.0, // Borders are fully opaque; they just map the image underneath
+        blendMode: 'normal',
+        tintColor: '#FFFFFF',
+        tintStrength: 0,
+        offset: [0, 0]
+      })
     }
 
     // Final: display to screen
@@ -303,6 +381,17 @@ export class RenderPipeline {
   private draw(): void {
     this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4)
     this.gl.bindVertexArray(null)
+  }
+
+  private runFade(input: WebGLTexture, s: EditState): WebGLTexture {
+    const gl = this.gl
+    const { fbo, tex } = this.getNextFBO()
+    this.bindProgram(this.progFade, input, fbo)
+    const u = (n: string) => gl.getUniformLocation(this.progFade, n)
+    gl.uniform1f(u('u_blackLift'), s.fade.blackLift)
+    gl.uniform1f(u('u_whiteCeiling'), s.fade.whiteCeiling)
+    this.draw()
+    return tex
   }
 
   private runLUT(input: WebGLTexture, intensity: number): WebGLTexture {
@@ -351,8 +440,11 @@ export class RenderPipeline {
     const u = (n: string) => gl.getUniformLocation(prog, n)
     gl.uniform1f(u('u_intensity'), s.grain.intensity)
     gl.uniform1f(u('u_size'), s.grain.size)
-    gl.uniform1f(u('u_seed'), (Math.random() * 1000) | 0) // static seed per frame
+    gl.uniform1f(u('u_seed'), (Math.random() * 1000) | 0)
     gl.uniform1i(u('u_type'), ['fine','medium','coarse','film'].indexOf(s.grain.type))
+    gl.uniform1f(u('u_roughness'), s.grain.roughness ?? 0.5)
+    gl.uniform1i(u('u_luminosityMode'), (s.grain.luminosityMode ?? true) ? 1 : 0)
+    gl.uniform1f(u('u_highlightReduction'), s.grain.highlightReduction ?? 0.4)
     this.draw()
     return tex
   }
@@ -368,6 +460,7 @@ export class RenderPipeline {
     gl.uniform1f(u('u_midpoint'), s.vignette.midpoint)
     gl.uniform1i(u('u_shape'), s.vignette.shape === 'oval' ? 0 : 1)
     gl.uniform1f(u('u_aspectRatio'), this.width / this.height)
+    gl.uniform1f(u('u_exposureShift'), s.vignette.exposure ?? 0)
     this.draw()
     return tex
   }
@@ -438,12 +531,52 @@ export class RenderPipeline {
     return tex
   }
 
-  private runCA(input: WebGLTexture, amount: number): WebGLTexture {
+  private runCA(input: WebGLTexture, ca: EditState['chromaticAberration']): WebGLTexture {
     const gl = this.gl
     const { fbo, tex } = this.getNextFBO()
     this.bindProgram(this.progCA, input, fbo)
-    gl.uniform1f(gl.getUniformLocation(this.progCA, 'u_amount'), amount)
+    gl.uniform1f(gl.getUniformLocation(this.progCA, 'u_amount'), ca.amount)
+    gl.uniform1i(gl.getUniformLocation(this.progCA, 'u_radialFalloff'), (ca.radialFalloff ?? true) ? 1 : 0)
     this.draw()
+    return tex
+  }
+
+  private runOverlay(
+    input: WebGLTexture,
+    overlayTex: WebGLTexture,
+    params: { opacity: number; blendMode: string; tintColor: string; tintStrength: number; offset: [number, number] }
+  ): WebGLTexture {
+    const gl = this.gl
+    const { fbo, tex } = this.getNextFBO()
+    this.bindProgram(this.progOverlay, input, fbo)
+    const prog = this.progOverlay
+
+    // Bind overlay texture to unit 1
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, overlayTex)
+    gl.uniform1i(gl.getUniformLocation(prog, 'u_overlay'), 1)
+
+    const u = (n: string) => gl.getUniformLocation(prog, n)
+    gl.uniform1f(u('u_opacity'), params.opacity)
+    
+    let blendIndex = 0 // screen
+    if (params.blendMode === 'multiply') blendIndex = 1
+    if (params.blendMode === 'overlay') blendIndex = 2
+    if (params.blendMode === 'add') blendIndex = 3
+    if (params.blendMode === 'normal') blendIndex = 4
+    gl.uniform1i(u('u_blendMode'), blendIndex)
+
+    const r = parseInt(params.tintColor.slice(1,3), 16)/255 || 0
+    const g = parseInt(params.tintColor.slice(3,5), 16)/255 || 0
+    const b = parseInt(params.tintColor.slice(5,7), 16)/255 || 0
+    gl.uniform3f(u('u_tintColor'), r, g, b)
+    gl.uniform1f(u('u_tintStrength'), params.tintStrength)
+    gl.uniform2f(u('u_offset'), params.offset[0] ?? 0, params.offset[1] ?? 0)
+
+    this.draw()
+
+    // reset active texture for sanity
+    gl.activeTexture(gl.TEXTURE0)
     return tex
   }
 

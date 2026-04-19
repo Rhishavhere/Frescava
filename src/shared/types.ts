@@ -30,6 +30,7 @@ export interface EditState {
   texture: number        // -100 to 100
 
   // Effects
+  fade: FadeParams
   grain: GrainParams
   vignette: VignetteParams
   halation: HalationParams
@@ -37,14 +38,26 @@ export interface EditState {
   bloom: BloomParams
   lensDistortion: LensDistortionParams
   lightLeak: LightLeakParams
+  dustScratches: DustScratchesParams
   border: BorderParams
+}
+
+// ── Effect param types ──────────────────────────────────────────────────────
+
+export interface FadeParams {
+  enabled: boolean
+  blackLift: number    // 0–0.3  lifts blacks for matte/film look
+  whiteCeiling: number // 0.7–1  compresses whites
 }
 
 export interface GrainParams {
   enabled: boolean
   type: 'fine' | 'medium' | 'coarse' | 'film'
-  intensity: number  // 0–1
-  size: number       // 0–1
+  intensity: number        // 0–1
+  size: number             // 0–2
+  roughness: number        // 0–1  uneven organic character
+  luminosityMode: boolean  // grain affects luminosity only (preserves chroma)
+  highlightReduction: number // 0–1  reduce grain in bright areas
 }
 
 export interface VignetteParams {
@@ -53,58 +66,142 @@ export interface VignetteParams {
   strength: number   // 0–1
   feather: number    // 0–1
   midpoint: number   // 0.3–1
+  exposure: number   // -1–0  optional darkening at vignette center
 }
 
 export interface HalationParams {
   enabled: boolean
   color: string      // hex, default warm red '#FF4422'
-  radius: number     // 0–200 (blur px)
+  radius: number     // 0–200 (blur px at preview res)
   threshold: number  // 0.5–1.0
   intensity: number  // 0–1
+  blendMode: 'screen' | 'add' | 'overlay'
 }
 
 export interface CaParams {
   enabled: boolean
   amount: number     // 0–20
+  radialFalloff: boolean // stronger at corners, less at center
 }
 
 export interface BloomParams {
   enabled: boolean
   threshold: number  // 0.5–1.0
   intensity: number  // 0–1
+  radius: number     // 5–50 px
   character: 'soft' | 'hard'
 }
 
 export interface LensDistortionParams {
   enabled: boolean
-  amount: number     // -1 to 1, negative=barrel, positive=pincushion
+  amount: number     // -1 (barrel) to +1 (pincushion)
 }
 
 export interface LightLeakParams {
   enabled: boolean
-  textureId: string | null
-  color: string
-  position: [number, number]
-  intensity: number
+  /** Filename relative to the preset's folder, e.g. "light_leak.png" */
+  textureFile: string | null
+  color: string        // hex tint
+  colorStrength: number // 0–1 how much the tint overrides the texture
+  position: [number, number] // UV offset [x, y]
+  opacity: number      // 0–1
+  blendMode: 'screen' | 'add' | 'overlay'
+}
+
+export interface DustScratchesParams {
+  enabled: boolean
+  /** Filename relative to the preset's folder, e.g. "dust.png" */
+  textureFile: string | null
+  opacity: number      // 0–1
+  blendMode: 'screen' | 'multiply' | 'overlay'
 }
 
 export interface BorderParams {
   enabled: boolean
-  type: string | null  // 'polaroid' | 'filmstrip' | 'thin' | 'rounded' | null
-  color: string
-  width: number
-  cornerRadius: number
+  /** 'solid' | 'polaroid' | 'filmstrip' | null for texture-based */
+  type: 'solid' | 'polaroid' | 'filmstrip' | null
+  /** Filename relative to the preset's folder if type=null */
+  textureFile: string | null
+  color: string        // hex, used in solid mode
+  width: number        // 0–0.15 (fraction of image dimension)
+  bottomWeight: number // 1–3 how much heavier the bottom border is vs sides
+  cornerRadius: number // 0–1
+  expandCanvas: boolean
 }
 
-// ─── Preset ──────────────────────────────────────────────────────────────────
+// ─── Preset Definition (new rich schema) ─────────────────────────────────────
 
+/**
+ * PresetDef is the full rich preset as read from preset.json in each
+ * assets/presets/{preset-id}/ folder.
+ */
+export interface PresetDef {
+  id: string
+  name: string
+  category: PresetCategory
+  pack: 'free' | 'pro' | 'community'
+  tags: string[]
+
+  /** LUT config. file is relative to assets/luts/free/ */
+  lut: {
+    file: string | null
+    intensity: number
+  }
+
+  // Per-effect overrides (applied when the preset is loaded)
+  fade: Partial<FadeParams>
+  grain: Partial<GrainParams>
+  vignette: Partial<VignetteParams>
+  halation: Partial<HalationParams>
+  chromaticAberration: Partial<CaParams>
+  bloom: Partial<BloomParams>
+  lensDistortion: Partial<LensDistortionParams>
+  lightLeak: Partial<LightLeakParams>
+  dustScratches: Partial<DustScratchesParams>
+  border: Partial<BorderParams>
+
+  /** UI-only metadata */
+  ui: {
+    accentColor: string
+    thumbnailCropHint: number
+    intensityDefault: number
+    intensityMin: number
+    intensityMax: number
+    pairsWith: string[]
+    moodTags: string[]
+    bestFor: string[]
+  }
+}
+
+/**
+ * Preset is the normalized object sent to the renderer.
+ * Includes the folder name for resolving preset-relative textures.
+ */
 export interface Preset {
   id: string
   name: string
   category: PresetCategory
-  lutFile: string | null          // filename inside assets/luts/free/ (e.g. "kodak_portra.cube")
-  thumbnailFile: string | null    // filename inside assets/presets/thumbnails/
-  params: Partial<Omit<EditState, 'imagePath' | 'imageWidth' | 'imageHeight' | 'presetId' | 'presetIntensity'>>
+  pack: 'free' | 'pro' | 'community'
+  tags: string[]
+
+  /** Subfolder name inside assets/presets/ (usually = id) */
+  folderName: string
+
+  /** LUT filename in assets/luts/free/, or null if no LUT */
+  lutFile: string | null
+  /** LUT intensity baked into preset (can be overridden by user) */
+  lutIntensity: number
+
+  /** Thumbnail filename relative to preset folder (e.g. "thumbnail.png") */
+  thumbnailFile: string | null
+
+  /** Full effect defaults to apply when this preset is selected */
+  defaults: Partial<Omit<EditState,
+    'imagePath' | 'imageWidth' | 'imageHeight' | 'presetId' | 'presetIntensity'
+  >>
+
+  /** UI metadata */
+  ui: PresetDef['ui']
 }
 
 export type PresetCategory =
@@ -121,19 +218,19 @@ export interface ExportOptions {
   imagePath: string
   outputPath: string
   editState: EditState
-  quality: number       // 1–100
-  maxDimension?: number // optional cap for free tier
-  canvasDataURL?: string // Option A: WebGL canvas capture for 1:1 export parity
+  quality: number        // 1–100
+  maxDimension?: number
+  canvasDataURL?: string // WebGL canvas capture for 1:1 export parity
 }
 
 // ─── Projects (.frex session files) ──────────────────────────────────────────
 
 export interface ProjectMeta {
-  path: string              // absolute path to .frex file on disk
+  path: string
   name: string
   presetId: string | null
-  savedAt: string           // ISO date string
-  previewDataURL: string | null  // base64 thumbnail for home screen card
+  savedAt: string
+  previewDataURL: string | null
   imageWidth: number
   imageHeight: number
 }
@@ -145,28 +242,33 @@ export interface ProjectFile {
   imageWidth: number
   imageHeight: number
   editState: Omit<EditState, 'imagePath' | 'imageWidth' | 'imageHeight'>
-  previewDataURL: string    // 300px wide JPEG thumbnail
+  previewDataURL: string
   savedAt: string
 }
 
-// ─── IPC API surface (matches preload contextBridge) ─────────────────────────
+// ─── IPC API surface ──────────────────────────────────────────────────────────
 
 export interface FrescavaAPI {
   file: {
     open: () => Promise<FileOpenResult | null>
     openMultiple: () => Promise<FileOpenResult[]>
     load: (path: string) => Promise<FileOpenResult>
+    loadFull: (path: string) => Promise<FileOpenResult>
   }
   export: {
     save: (opts: ExportOptions) => Promise<ExportResult>
+    exportBatch: (opts: { images: ExportOptions[]; outputDir: string }) => Promise<ExportResult>
   }
   assets: {
     loadLUT: (filename: string) => Promise<LUTData>
-    loadTexture: (filename: string) => Promise<ArrayBuffer>
+    /** Load a texture by path relative to assets root.
+     *  e.g. "presets/kodak-portra-400/dust.png" */
+    loadTexture: (relativePath: string) => Promise<ArrayBuffer>
     listPresets: () => Promise<Preset[]>
   }
   projects: {
     save: (project: ProjectFile) => Promise<{ path: string }>
+    saveAt: (filePath: string, project: ProjectFile) => Promise<{ path: string }>
     saveAs: (project: ProjectFile) => Promise<{ path: string } | null>
     list: () => Promise<ProjectMeta[]>
     load: (path: string) => Promise<ProjectFile>
@@ -194,7 +296,7 @@ export interface ExportResult {
 
 export interface LUTData {
   filename: string
-  data: number[]   // Float32Array serialized as plain array for IPC
+  data: number[]
   size: number
 }
 

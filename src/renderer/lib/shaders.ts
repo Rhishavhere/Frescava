@@ -23,6 +23,93 @@ void main() {
 }
 `
 
+// ─── Overlay (Dust & Scratches, Light Leaks, Borders) ───────────────────────────
+
+export const OVERLAY_FRAG = /* glsl */`#version 300 es
+precision mediump float;
+uniform sampler2D u_image;
+uniform sampler2D u_overlay;
+in vec2 v_texCoord;
+out vec4 fragColor;
+
+uniform float u_opacity;     // 0..1
+uniform int   u_blendMode;   // 0=screen, 1=multiply, 2=overlay, 3=add, 4=normal
+uniform vec3  u_tintColor;   // RGB
+uniform float u_tintStrength;// 0..1
+uniform vec2  u_offset;      // UV scroll
+
+// Branchless blending helpers
+vec3 blendScreen(vec3 base, vec3 blend) {
+  return 1.0 - (1.0 - base) * (1.0 - blend);
+}
+vec3 blendMultiply(vec3 base, vec3 blend) {
+  return base * blend;
+}
+vec3 blendOverlay(vec3 base, vec3 blend) {
+  vec3 res;
+  res.r = base.r < 0.5 ? (2.0 * base.r * blend.r) : (1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r));
+  res.g = base.g < 0.5 ? (2.0 * base.g * blend.g) : (1.0 - 2.0 * (1.0 - base.g) * (1.0 - blend.g));
+  res.b = base.b < 0.5 ? (2.0 * base.b * blend.b) : (1.0 - 2.0 * (1.0 - base.b) * (1.0 - blend.b));
+  return res;
+}
+vec3 blendAdd(vec3 base, vec3 blend) {
+  return min(base + blend, vec3(1.0));
+}
+
+void main() {
+  vec4 baseColor = texture(u_image, v_texCoord);
+  vec2 uvO = fract(v_texCoord + u_offset);
+  vec4 overlayColor = texture(u_overlay, uvO);
+  
+  if (overlayColor.a < 0.001 || u_opacity < 0.001) {
+    fragColor = baseColor;
+    return;
+  }
+
+  // Tinting
+  vec3 oColor = mix(overlayColor.rgb, u_tintColor * overlayColor.rgb, u_tintStrength);
+
+  // Blending
+  vec3 blended;
+  if (u_blendMode == 0) {
+    blended = blendScreen(baseColor.rgb, oColor);
+  } else if (u_blendMode == 1) {
+    blended = blendMultiply(baseColor.rgb, oColor);
+  } else if (u_blendMode == 2) {
+    blended = blendOverlay(baseColor.rgb, oColor);
+  } else if (u_blendMode == 3) {
+    blended = blendAdd(baseColor.rgb, oColor);
+  } else {
+    blended = mix(baseColor.rgb, oColor, overlayColor.a);
+  }
+
+  // Master opacity
+  vec3 finalColor = mix(baseColor.rgb, blended, u_opacity * overlayColor.a);
+  
+  fragColor = vec4(finalColor, baseColor.a);
+}
+`
+
+// ─── Fade / Matte ──────────────────────────────────────────────────────────────────
+// Maps [0,1] pixel range to [blackLift, whiteCeiling] to create a filmic matte.
+
+export const FADE_FRAG = /* glsl */`#version 300 es
+precision mediump float;
+uniform sampler2D u_image;
+in vec2 v_texCoord;
+out vec4 fragColor;
+
+uniform float u_blackLift;    // 0..0.3
+uniform float u_whiteCeiling; // 0.7..1.0
+
+void main() {
+  vec4 color = texture(u_image, v_texCoord);
+  // Remap each channel: output = blackLift + input * (whiteCeiling - blackLift)
+  vec3 faded = u_blackLift + color.rgb * (u_whiteCeiling - u_blackLift);
+  fragColor = vec4(faded, color.a);
+}
+`
+
 // ─── Adjustments pass ────────────────────────────────────────────────────────
 // Exposure, contrast, highlights, shadows, whites, blacks, temp, tint, vibrance, saturation
 
@@ -274,10 +361,13 @@ uniform sampler2D u_image;
 in vec2 v_texCoord;
 out vec4 fragColor;
 
-uniform float u_intensity;   // 0..1
-uniform float u_size;        // 0..1
-uniform float u_seed;        // jitter seed (change per frame for animated grain)
-uniform int u_type;          // 0=fine, 1=medium, 2=coarse, 3=film
+uniform float u_intensity;          // 0..1
+uniform float u_size;               // 0..2
+uniform float u_seed;               // per-frame jitter
+uniform int   u_type;               // 0=fine, 1=medium, 2=coarse, 3=film
+uniform float u_roughness;          // 0..1  uneven amplitude variation
+uniform int   u_luminosityMode;     // 1=luminosity only (preserve chroma)
+uniform float u_highlightReduction; // 0..1  reduce grain in bright areas
 
 // Smooth value noise helpers
 vec2 hash2(vec2 p) {
@@ -329,23 +419,35 @@ void main() {
     noise = multiOctaveNoise(noiseUV);
   }
 
-  // ── Luminosity mask: grain is stronger in shadows & midtones, fades in highlights ──
-  // (models real film silver halide behaviour)
+  // ── Luminosity mask ───────────────────────────────────────────────────────
   float lum = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
-  float lumMask = smoothstep(0.9, 0.5, lum) * 0.6  // reduce in brights
-                + smoothstep(0.0, 0.3, lum) * 0.4;  // reduce in extreme shadows
-  lumMask = clamp(lumMask, 0.2, 1.0);
+  float lumMask = smoothstep(0.9, 0.5, lum) * 0.6
+                + smoothstep(0.0, 0.3, lum) * 0.4;
+  // Highlight reduction: scale the mask down sharply in bright areas
+  lumMask *= mix(1.0, smoothstep(1.0, 0.5, lum), u_highlightReduction);
+  lumMask = clamp(lumMask, 0.1, 1.0);
 
-  float grainAmount = noise * u_intensity * 0.22 * lumMask;
+  // ── Roughness: spatially modulate amplitude via low-freq noise ────────────
+  float roughNoise = multiOctaveNoise(v_texCoord * 3.0 + vec2(77.3, 33.1)) * 0.5 + 0.5;
+  float amplitudeScale = mix(1.0, roughNoise, u_roughness);
 
-  // Apply in luminosity — affects value only, preserves hue/sat
-  // Optionally: add a very subtle warm tint to grain (film character)
-  vec3 grainColor = vec3(1.0);
-  if (u_type == 3) {
-    grainColor = vec3(1.02, 0.99, 0.97); // slightly warm, like Kodak
+  float grainAmount = noise * u_intensity * 0.22 * lumMask * amplitudeScale;
+
+  // ── Apply ────────────────────────────────────────────────────────────────
+  vec3 result;
+  if (u_luminosityMode == 1) {
+    // Luminosity blend: add grain to the Y channel in YCbCr space,
+    // then convert back. Approximated via equal-weight shift then reproject.
+    float Y = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    float newY = clamp(Y + grainAmount, 0.0, 1.0);
+    float scale = (Y > 0.001) ? newY / Y : 1.0;
+    result = clamp(color.rgb * scale, 0.0, 1.0);
+  } else {
+    vec3 grainColor = vec3(1.0);
+    if (u_type == 3) grainColor = vec3(1.02, 0.99, 0.97); // warm Kodak tint
+    result = clamp(color.rgb + grainAmount * grainColor, 0.0, 1.0);
   }
 
-  vec3 result = clamp(color.rgb + grainAmount * grainColor, 0.0, 1.0);
   fragColor = vec4(result, color.a);
 }
 `
@@ -358,11 +460,12 @@ uniform sampler2D u_image;
 in vec2 v_texCoord;
 out vec4 fragColor;
 
-uniform float u_strength;    // 0..1
-uniform float u_feather;     // 0..1
-uniform float u_midpoint;    // 0.3..1.0
-uniform int u_shape;         // 0=oval, 1=rect
-uniform float u_aspectRatio; // width/height
+uniform float u_strength;      // 0..1
+uniform float u_feather;       // 0..1
+uniform float u_midpoint;      // 0.3..1.0
+uniform int   u_shape;         // 0=oval, 1=rect
+uniform float u_aspectRatio;   // width/height
+uniform float u_exposureShift; // -1..0  optional extra darkening at edges
 
 void main() {
   vec4 color = texture(u_image, v_texCoord);
@@ -379,7 +482,9 @@ void main() {
   float edge0 = u_midpoint * 0.5;
   float edge1 = edge0 + u_feather * 0.4 + 0.05;
   float vgn = smoothstep(edge0, edge1, dist);
-  float exposure = 1.0 - vgn * u_strength;
+  // Exposure-based darkening (more physically accurate than linear multiply)
+  float stops = vgn * u_strength * (1.0 + u_exposureShift * (-1.0));
+  float exposure = pow(2.0, -stops * 2.0);
 
   fragColor = vec4(color.rgb * exposure, color.a);
 }
@@ -478,14 +583,17 @@ uniform sampler2D u_image;
 in vec2 v_texCoord;
 out vec4 fragColor;
 
-uniform float u_amount;
+uniform float u_amount;       // 0..20
+uniform int   u_radialFalloff; // 1=stronger at corners
 
 void main() {
   vec2 uv = v_texCoord;
   vec2 center = vec2(0.5);
   vec2 direction = uv - center;
   float dist = length(direction);
-  vec2 offset = direction * u_amount * 0.008 * dist;
+  // With radialFalloff, aberration is proportional to distance^1.5 (more realistic)
+  float power = (u_radialFalloff == 1) ? dist * dist : dist;
+  vec2 offset = direction * u_amount * 0.008 * power;
 
   float r = texture(u_image, uv + offset).r;
   float g = texture(u_image, uv).g;
@@ -523,36 +631,3 @@ void main() {
 }
 `
 
-// ─── Overlay (light leaks, dust, borders) ────────────────────────────────────
-
-export const OVERLAY_FRAG = /* glsl */`#version 300 es
-precision mediump float;
-uniform sampler2D u_image;
-uniform sampler2D u_overlay;
-in vec2 v_texCoord;
-out vec4 fragColor;
-
-uniform float u_opacity;
-uniform int u_blendMode;  // 0=screen, 1=multiply, 2=overlay, 3=add
-uniform vec3 u_tint;
-uniform vec2 u_offset;
-
-vec3 blendScreen(vec3 a, vec3 b)    { return 1.0 - (1.0 - a) * (1.0 - b); }
-vec3 blendMultiply(vec3 a, vec3 b)  { return a * b; }
-vec3 blendOverlay(vec3 a, vec3 b)   { return mix(2.0*a*b, 1.0-2.0*(1.0-a)*(1.0-b), step(0.5, a)); }
-
-void main() {
-  vec4 base = texture(u_image, v_texCoord);
-  vec4 ov = texture(u_overlay, fract(v_texCoord + u_offset));
-  vec3 tinted = ov.rgb * u_tint;
-
-  vec3 blended;
-  if (u_blendMode == 0) blended = blendScreen(base.rgb, tinted);
-  else if (u_blendMode == 1) blended = blendMultiply(base.rgb, tinted);
-  else if (u_blendMode == 2) blended = blendOverlay(base.rgb, tinted);
-  else blended = base.rgb + tinted;
-
-  float finalAlpha = ov.a * u_opacity;
-  fragColor = vec4(mix(base.rgb, blended, finalAlpha), base.a);
-}
-`

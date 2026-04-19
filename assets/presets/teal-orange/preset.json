@@ -1,0 +1,104 @@
+{
+  "id": "teal-orange",
+  "name": "Teal & Orange",
+  "category": "cinematic",
+  "pack": "free",
+  "tags": ["cinematic", "moody", "blockbuster", "contrast"],
+
+  "lut": {
+    "file": "teal_orange.cube",
+    "intensity": 0.85
+  },
+
+  "fade": {
+    "enabled": false,
+    "blackLift": 0.0,
+    "whiteCeiling": 1.0
+  },
+
+  "grain": {
+    "enabled": true,
+    "type": "fine",
+    "intensity": 0.14,
+    "size": 0.9,
+    "roughness": 0.4,
+    "luminosityMode": true,
+    "highlightReduction": 0.5
+  },
+
+  "vignette": {
+    "enabled": true,
+    "shape": "oval",
+    "strength": 0.3,
+    "feather": 0.9,
+    "midpoint": 0.7,
+    "exposure": -0.1
+  },
+
+  "halation": {
+    "enabled": false,
+    "color": "#FF6B00",
+    "radius": 15,
+    "threshold": 0.82,
+    "intensity": 0.1,
+    "blendMode": "screen"
+  },
+
+  "chromaticAberration": {
+    "enabled": false,
+    "amount": 0.0,
+    "radialFalloff": true
+  },
+
+  "bloom": {
+    "enabled": false,
+    "threshold": 0.88,
+    "intensity": 0.0,
+    "radius": 12,
+    "character": "soft"
+  },
+
+  "lensDistortion": {
+    "enabled": false,
+    "amount": 0.0
+  },
+
+  "lightLeak": {
+    "enabled": false,
+    "textureFile": null,
+    "color": "#FF6600",
+    "colorStrength": 0.4,
+    "position": [0.0, 0.0],
+    "opacity": 0.0,
+    "blendMode": "screen"
+  },
+
+  "dustScratches": {
+    "enabled": false,
+    "textureFile": null,
+    "opacity": 0.0,
+    "blendMode": "screen"
+  },
+
+  "border": {
+    "enabled": false,
+    "type": null,
+    "textureFile": null,
+    "color": "#FFFFFF",
+    "width": 0.04,
+    "bottomWeight": 1.0,
+    "cornerRadius": 0.0,
+    "expandCanvas": false
+  },
+
+  "ui": {
+    "accentColor": "#00CED9",
+    "thumbnailCropHint": 0.5,
+    "intensityDefault": 1.0,
+    "intensityMin": 0.2,
+    "intensityMax": 1.0,
+    "pairsWith": [],
+    "moodTags": ["cinematic", "blockbuster", "moody"],
+    "bestFor": ["landscape", "portrait", "cinema"]
+  }
+}

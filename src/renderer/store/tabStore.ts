@@ -25,14 +25,16 @@ const DEFAULT_ADJUSTMENTS: BatchAdjustments = {
   exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
   temperature: 0, tint: 0, vibrance: 0, saturation: 0,
   sharpness: 0, noiseReduction: 0, clarity: 0, texture: 0,
-  grain: { enabled: false, type: 'fine', intensity: 0.3, size: 1.0 },
-  vignette: { enabled: false, shape: 'oval', strength: 0.5, feather: 0.5, midpoint: 0.7 },
-  halation: { enabled: false, color: '#FF4422', radius: 40, threshold: 0.75, intensity: 0.4 },
-  chromaticAberration: { enabled: false, amount: 3 },
-  bloom: { enabled: false, threshold: 0.75, intensity: 0.3, character: 'soft' },
+  fade: { enabled: false, blackLift: 0.05, whiteCeiling: 0.97 },
+  grain: { enabled: false, type: 'fine', intensity: 0.3, size: 1.0, roughness: 0.5, luminosityMode: true, highlightReduction: 0.4 },
+  vignette: { enabled: false, shape: 'oval', strength: 0.5, feather: 0.5, midpoint: 0.7, exposure: 0 },
+  halation: { enabled: false, color: '#FF4422', radius: 40, threshold: 0.75, intensity: 0.4, blendMode: 'screen' },
+  chromaticAberration: { enabled: false, amount: 3, radialFalloff: true },
+  bloom: { enabled: false, threshold: 0.75, intensity: 0.3, radius: 15, character: 'soft' },
   lensDistortion: { enabled: false, amount: 0 },
-  lightLeak: { enabled: false, textureId: null, color: '#FFA050', position: [0, 0], intensity: 0.5 },
-  border: { enabled: false, type: null, color: '#FFFFFF', width: 40, cornerRadius: 0 },
+  lightLeak: { enabled: false, textureFile: null, color: '#FFA050', colorStrength: 0.5, position: [0, 0], opacity: 0.5, blendMode: 'screen' },
+  dustScratches: { enabled: false, textureFile: null, opacity: 0.3, blendMode: 'screen' },
+  border: { enabled: false, type: null, textureFile: null, color: '#FFFFFF', width: 0.04, bottomWeight: 1, cornerRadius: 0, expandCanvas: false },
 }
 
 export interface BatchImage {
