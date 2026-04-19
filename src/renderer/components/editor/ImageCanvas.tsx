@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react'
-import { useEditStore } from '../../store/editStore'
+import { useEditStore, DEFAULT_EDIT_STATE } from '../../store/editStore'
 import { RenderPipeline } from '../../lib/RenderPipeline'
 import { usePresetStore } from '../../store/presetStore'
 
@@ -74,7 +74,7 @@ export default function ImageCanvas() {
     const presetId = params.presetId
     if (!pipelineRef.current) return
 
-    if (!presetId) {
+    if (!presetId || showOriginal) {
       pipelineRef.current.clearLUT()
       currentLUTRef.current = null
       requestRender()
@@ -100,7 +100,7 @@ export default function ImageCanvas() {
     }).catch(e => {
       console.warn('[Canvas] LUT load failed:', e)
     })
-  }, [params.presetId, getPresetById])
+  }, [params.presetId, getPresetById, showOriginal])
 
   // ── Re-render whenever params change ──────────────────────────────────────
   const requestRender = useCallback(() => {
@@ -112,7 +112,7 @@ export default function ImageCanvas() {
 
       const editState = useEditStore.getState()
       const state = showOriginal
-        ? { ...editState.params, presetId: null, presetIntensity: 1 }
+        ? { ...DEFAULT_EDIT_STATE, presetId: null, presetIntensity: 1 }
         : editState.params
 
       pipeline.render({
