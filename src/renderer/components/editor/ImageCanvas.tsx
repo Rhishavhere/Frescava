@@ -156,6 +156,9 @@ export default function ImageCanvas() {
     if (preset.defaults.dustScratches?.textureFile) {
       loadTex('dustScratches', preset.defaults.dustScratches.textureFile)
     }
+    if (preset.defaults.grain?.textureFile) {
+      loadTex('presetGrain', preset.defaults.grain.textureFile)
+    }
     if (preset.defaults.border?.textureFile) {
       loadTex('border', preset.defaults.border.textureFile)
     }

@@ -8,6 +8,7 @@ export interface EditState {
   // Preset
   presetId: string | null
   presetIntensity: number // 0–1
+  presetFilters: PresetEffectState // The embedded active effects supplied by the preset, tracked separately from user generic effects.
 
   // Light
   exposure: number       // -5 to 5
@@ -40,6 +41,21 @@ export interface EditState {
   lightLeak: LightLeakParams
   dustScratches: DustScratchesParams
   border: BorderParams
+}
+
+// ── Shared Preset Effect block (Layer 1) ────────────────────────────────────
+
+export interface PresetEffectState {
+  fade?: FadeParams
+  grain?: DustScratchesParams // Presets use texture-based grain
+  vignette?: VignetteParams
+  halation?: HalationParams
+  chromaticAberration?: CaParams
+  bloom?: BloomParams
+  lensDistortion?: LensDistortionParams
+  lightLeak?: LightLeakParams
+  dustScratches?: DustScratchesParams
+  border?: BorderParams
 }
 
 // ── Effect param types ──────────────────────────────────────────────────────
@@ -150,7 +166,7 @@ export interface PresetDef {
 
   // Per-effect overrides (applied when the preset is loaded)
   fade: Partial<FadeParams>
-  grain: Partial<GrainParams>
+  grain: Partial<DustScratchesParams> // Presets use texture-based grain
   vignette: Partial<VignetteParams>
   halation: Partial<HalationParams>
   chromaticAberration: Partial<CaParams>

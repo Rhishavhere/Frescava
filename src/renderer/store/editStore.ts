@@ -7,6 +7,7 @@ import type { EditState } from '@shared/types'
 export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'imageHeight'> = {
   presetId: null,
   presetIntensity: 1.0,
+  presetFilters: {},
 
   // Light
   exposure: 0,
@@ -72,6 +73,11 @@ interface EditStore {
     subKey: string,
     value: unknown
   ) => void
+  setPresetFilterParam: (
+    effectKey: keyof EditStore['params']['presetFilters'],
+    paramKey: string,
+    value: unknown
+  ) => void
   applyPreset: (presetId: string, presetParams: Partial<EditStore['params']>) => void
   setPresetIntensity: (intensity: number) => void
   resetAll: () => void
@@ -124,6 +130,16 @@ export const useEditStore = create<EditStore>()(
       })
     },
 
+    setPresetFilterParam: (effectKey, paramKey, value) => {
+      set(state => {
+        const filter = state.params.presetFilters[effectKey]
+        if (filter) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(filter as any)[paramKey] = value
+        }
+      })
+    },
+
     applyPreset: (presetId, presetParams) => {
       set(state => {
         // Save current state to history before applying preset
@@ -134,27 +150,22 @@ export const useEditStore = create<EditStore>()(
         state.history.push(entry)
         state.historyIndex = state.history.length - 1
 
-        // ── Only copy EFFECT params — never touch user adjustment params ──────
-        // User adjustments (exposure, contrast, temperature, etc.) are independent
-        // from the preset and must survive a preset switch unchanged.
+        // ── Map effects ONLY into 'presetFilters' (Layer 1) ───────────────────
+        // The root-level effect objects (state.params.grain, vignette, etc.)
+        // are now purely for user adjustments (Layer 2).
+        
         const EFFECT_KEYS = [
           'fade', 'grain', 'vignette', 'halation', 'chromaticAberration',
           'bloom', 'lensDistortion', 'lightLeak', 'dustScratches', 'border',
         ] as const
 
         state.params.presetId = presetId
+        state.params.presetFilters = {}
 
         for (const key of EFFECT_KEYS) {
           if (key in presetParams && presetParams[key] !== undefined) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ;(state.params as any)[key] = (presetParams as any)[key]
-          } else {
-            // Effect not in preset → disable it (user can't turn it on via PresetSettings)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ;(state.params as any)[key] = {
-              ...(DEFAULT_EDIT_STATE as any)[key],
-              enabled: false,
-            }
+            ;(state.params.presetFilters as any)[key] = JSON.parse(JSON.stringify((presetParams as any)[key]))
           }
         }
       })

@@ -58,7 +58,7 @@ function EffectRow({
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 export default function PresetSettingsPanel() {
-  const { params, setNestedParam, setPresetIntensity } = useEditStore()
+  const { params, setPresetFilterParam, setPresetIntensity } = useEditStore()
   const { markActiveImageDirty } = useSessionStore()
   const { getPresetById } = usePresetStore()
 
@@ -68,16 +68,16 @@ export default function PresetSettingsPanel() {
   if (!preset) return null
 
   const accent = preset.ui.accentColor ?? '#555'
-  const d = preset.defaults  // shorthand
+  const filterParams = params.presetFilters
 
-  const set = (effectKey: keyof typeof params, subKey: string, value: unknown) => {
-    setNestedParam(effectKey, subKey, value)
+  const set = (effectKey: keyof typeof filterParams, paramKey: string, value: unknown) => {
+    setPresetFilterParam(effectKey, paramKey, value)
     markActiveImageDirty()
   }
 
-  const toggle = (effectKey: keyof typeof params) => {
+  const toggle = (effectKey: keyof typeof filterParams) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const current = (params as any)[effectKey]?.enabled ?? false
+    const current = (filterParams as any)[effectKey]?.enabled ?? false
     set(effectKey, 'enabled', !current)
   }
 
@@ -91,7 +91,7 @@ export default function PresetSettingsPanel() {
           style={{ background: accent }}
         />
         <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-          Preset Effects
+          Preset Modifiers
         </span>
         <span className="ml-auto text-[9px] text-text-muted font-mono truncate max-w-[96px]">
           {preset.name}
@@ -115,108 +115,111 @@ export default function PresetSettingsPanel() {
 
       {/*
         ── Effect rows ──────────────────────────────────────────────────────────
-        Each block ONLY renders if preset.defaults has that effect.
-        Controls are INTENSITY-ONLY — no structural params (no type, shape, color,
-        blendMode, radius, threshold — those are preset-defined and read-only).
+        Controls are INTENSITY-ONLY. It edits the presetFilters object.
       */}
 
       {/* Fade */}
-      {d.fade && (
-        <EffectRow label="Fade / Matte" enabled={params.fade.enabled} onToggle={() => toggle('fade')} accent={accent}>
-          <Slider label="Black Lift" value={Math.round(params.fade.blackLift * 100)} min={0} max={30}
+      {filterParams.fade && (
+        <EffectRow label="Fade / Matte" enabled={filterParams.fade.enabled} onToggle={() => toggle('fade')} accent={accent}>
+          <Slider label="Black Lift" value={Math.round(filterParams.fade.blackLift * 100)} min={0} max={30}
             onChange={v => set('fade', 'blackLift', v / 100)} unit="%" />
-          <Slider label="White Ceiling" value={Math.round(params.fade.whiteCeiling * 100)} min={70} max={100}
+          <Slider label="White Ceiling" value={Math.round(filterParams.fade.whiteCeiling * 100)} min={70} max={100}
             onChange={v => set('fade', 'whiteCeiling', v / 100)} unit="%" />
         </EffectRow>
       )}
 
-      {/* Grain — intensity + size only */}
-      {d.grain && (
-        <EffectRow label="Grain" enabled={params.grain.enabled} onToggle={() => toggle('grain')} accent={accent}>
-          <Slider label="Intensity" value={Math.round(params.grain.intensity * 100)} min={0} max={100}
-            onChange={v => set('grain', 'intensity', v / 100)} unit="%" />
-          <Slider label="Size" value={Math.round(params.grain.size * 100)} min={50} max={200}
-            onChange={v => set('grain', 'size', v / 100)} />
+      {/* Grain — Texture opacity/blend only */}
+      {filterParams.grain && (
+        <EffectRow label="Film Grain" enabled={filterParams.grain.enabled} onToggle={() => toggle('grain')} accent={accent}>
+          {filterParams.grain.textureFile ? (
+            <p className="text-[10px] font-mono text-text-muted bg-surface-100 px-2 py-0.5 rounded truncate">
+              {filterParams.grain.textureFile}
+            </p>
+          ) : (
+            <p className="text-[10px] text-text-muted italic">No texture file in preset folder</p>
+          )}
+          <Slider label="Opacity" value={Math.round((filterParams.grain.opacity ?? 0) * 100)} min={0} max={100}
+            onChange={v => set('grain', 'opacity', v / 100)} unit="%" />
         </EffectRow>
       )}
 
       {/* Vignette — strength only */}
-      {d.vignette && (
-        <EffectRow label="Vignette" enabled={params.vignette.enabled} onToggle={() => toggle('vignette')} accent={accent}>
-          <Slider label="Strength" value={Math.round(params.vignette.strength * 100)} min={0} max={100}
+      {filterParams.vignette && (
+        <EffectRow label="Vignette" enabled={filterParams.vignette.enabled} onToggle={() => toggle('vignette')} accent={accent}>
+          <Slider label="Strength" value={Math.round(filterParams.vignette.strength * 100)} min={0} max={100}
             onChange={v => set('vignette', 'strength', v / 100)} unit="%" />
         </EffectRow>
       )}
 
       {/* Halation — intensity only */}
-      {d.halation && (
-        <EffectRow label="Halation" enabled={params.halation.enabled} onToggle={() => toggle('halation')} accent={accent}>
-          <Slider label="Intensity" value={Math.round(params.halation.intensity * 100)} min={0} max={100}
+      {filterParams.halation && (
+        <EffectRow label="Halation" enabled={filterParams.halation.enabled} onToggle={() => toggle('halation')} accent={accent}>
+          <Slider label="Intensity" value={Math.round(filterParams.halation.intensity * 100)} min={0} max={100}
             onChange={v => set('halation', 'intensity', v / 100)} unit="%" />
         </EffectRow>
       )}
 
       {/* Chromatic Aberration — amount only */}
-      {d.chromaticAberration && (
-        <EffectRow label="Chromatic Aberration" enabled={params.chromaticAberration.enabled}
+      {filterParams.chromaticAberration && (
+        <EffectRow label="Chromatic Aberration" enabled={filterParams.chromaticAberration.enabled}
           onToggle={() => toggle('chromaticAberration')} accent={accent}>
-          <Slider label="Amount" value={Math.round(params.chromaticAberration.amount)} min={0} max={20}
+          <Slider label="Amount" value={Math.round(filterParams.chromaticAberration.amount)} min={0} max={20}
             onChange={v => set('chromaticAberration', 'amount', v)} />
         </EffectRow>
       )}
 
       {/* Bloom — intensity only */}
-      {d.bloom && (
-        <EffectRow label="Bloom" enabled={params.bloom.enabled} onToggle={() => toggle('bloom')} accent={accent}>
-          <Slider label="Intensity" value={Math.round(params.bloom.intensity * 100)} min={0} max={100}
+      {filterParams.bloom && (
+        <EffectRow label="Bloom" enabled={filterParams.bloom.enabled} onToggle={() => toggle('bloom')} accent={accent}>
+          <Slider label="Intensity" value={Math.round(filterParams.bloom.intensity * 100)} min={0} max={100}
             onChange={v => set('bloom', 'intensity', v / 100)} unit="%" />
         </EffectRow>
       )}
 
       {/* Lens Distortion — amount only */}
-      {d.lensDistortion && (
-        <EffectRow label="Lens Distortion" enabled={params.lensDistortion.enabled}
+      {filterParams.lensDistortion && (
+        <EffectRow label="Lens Distortion" enabled={filterParams.lensDistortion.enabled}
           onToggle={() => toggle('lensDistortion')} accent={accent}>
-          <Slider label="Amount" value={Math.round(params.lensDistortion.amount * 100)} min={-100} max={100}
+          <Slider label="Amount" value={Math.round(filterParams.lensDistortion.amount * 100)} min={-100} max={100}
             onChange={v => set('lensDistortion', 'amount', v / 100)} />
         </EffectRow>
       )}
 
       {/* Light Leak — opacity only */}
-      {d.lightLeak && (
-        <EffectRow label="Light Leak" enabled={params.lightLeak.enabled} onToggle={() => toggle('lightLeak')} accent={accent}>
-          {params.lightLeak.textureFile ? (
+      {filterParams.lightLeak && (
+        <EffectRow label="Light Leak" enabled={filterParams.lightLeak.enabled} onToggle={() => toggle('lightLeak')} accent={accent}>
+          {filterParams.lightLeak.textureFile ? (
             <p className="text-[10px] font-mono text-text-muted bg-surface-100 px-2 py-0.5 rounded truncate">
-              {params.lightLeak.textureFile}
+              {filterParams.lightLeak.textureFile}
             </p>
           ) : (
             <p className="text-[10px] text-text-muted italic">No texture file in preset folder</p>
           )}
-          <Slider label="Opacity" value={Math.round(params.lightLeak.opacity * 100)} min={0} max={100}
+          <Slider label="Opacity" value={Math.round(filterParams.lightLeak.opacity * 100)} min={0} max={100}
             onChange={v => set('lightLeak', 'opacity', v / 100)} unit="%" />
         </EffectRow>
       )}
 
       {/* Dust & Scratches — opacity only */}
-      {d.dustScratches && (
-        <EffectRow label="Dust & Scratches" enabled={params.dustScratches?.enabled ?? false}
+      {filterParams.dustScratches && (
+        <EffectRow label="Dust & Scratches" enabled={filterParams.dustScratches?.enabled ?? false}
           onToggle={() => toggle('dustScratches')} accent={accent}>
-          {params.dustScratches?.textureFile ? (
+          {filterParams.dustScratches?.textureFile ? (
             <p className="text-[10px] font-mono text-text-muted bg-surface-100 px-2 py-0.5 rounded truncate">
-              {params.dustScratches.textureFile}
+              {filterParams.dustScratches.textureFile}
             </p>
           ) : (
             <p className="text-[10px] text-text-muted italic">No texture file in preset folder</p>
           )}
-          <Slider label="Opacity" value={Math.round((params.dustScratches?.opacity ?? 0) * 100)} min={0} max={100}
+          <Slider label="Opacity" value={Math.round((filterParams.dustScratches?.opacity ?? 0) * 100)} min={0} max={100}
             onChange={v => set('dustScratches', 'opacity', v / 100)} unit="%" />
         </EffectRow>
       )}
 
-      {/* Border — just on/off (structural params are preset-defined) */}
-      {d.border && (
-        <EffectRow label="Border" enabled={params.border.enabled} onToggle={() => toggle('border')} accent={accent}>
-          <Slider label="Width" value={Math.round((params.border.width ?? 0.04) * 200)} min={0} max={60}
+      {/* Border — just on/off */}
+      {filterParams.border && (
+        <EffectRow label="Border" enabled={filterParams.border.enabled} onToggle={() => toggle('border')} accent={accent}>
+          <Slider label="Width" value={Math.round((filterParams.border.width ?? 0.04) * 200)} min={0} max={60}
             onChange={v => set('border', 'width', v / 200)} />
         </EffectRow>
       )}

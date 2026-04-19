@@ -284,75 +284,125 @@ export class RenderPipeline {
 
     let current = this.sourceTexture
 
-    // 1. LUT pass (if preset active and LUT loaded)
-    if (state.presetId && this.lutTexture && state.presetIntensity > 0) {
-      current = this.runLUT(current, state.presetIntensity)
+    // ─────────────────────────────────────────────────────────────────────────────
+    // LAYER 1: PRESET BASE
+    // ─────────────────────────────────────────────────────────────────────────────
+    const pf = state.presetFilters
+
+    if (state.presetId) {
+      // 1. LUT
+      if (this.lutTexture && state.presetIntensity > 0) {
+        current = this.runLUT(current, state.presetIntensity)
+      }
+
+      // 2. Preset Fade
+      if (pf.fade?.enabled && ((pf.fade.blackLift ?? 0) > 0 || (pf.fade.whiteCeiling ?? 1) < 1)) {
+        current = this.runFade(current, { fade: pf.fade } as EditState)
+      }
+
+      // 3. Preset Halation
+      if (pf.halation?.enabled && (pf.halation.intensity ?? 0) > 0) {
+        current = this.runHalation(current, { halation: pf.halation } as EditState)
+      }
+
+      // 4. Preset Chromatic Aberration
+      if (pf.chromaticAberration?.enabled && (pf.chromaticAberration.amount ?? 0) > 0) {
+        // runCA takes the object directly
+        current = this.runCA(current, pf.chromaticAberration as EditState['chromaticAberration'])
+      }
+
+      // 5. Preset Lens Distortion
+      if (pf.lensDistortion?.enabled && (pf.lensDistortion.amount ?? 0) !== 0) {
+        current = this.runLensDist(current, { lensDistortion: pf.lensDistortion } as EditState)
+      }
+
+      // 6. Preset Light Leaks
+      if (pf.lightLeak?.enabled && (pf.lightLeak.opacity ?? 0) > 0 && this.overlayTextures.has('lightLeak')) {
+        current = this.runOverlay(current, this.overlayTextures.get('lightLeak')!, {
+          opacity: pf.lightLeak.opacity ?? 1,
+          blendMode: pf.lightLeak.blendMode ?? 'screen',
+          tintColor: pf.lightLeak.color ?? '#FFFFFF',
+          tintStrength: pf.lightLeak.colorStrength ?? 0,
+          offset: pf.lightLeak.position ?? [0, 0]
+        })
+      }
+
+      // 7. Preset Vignette
+      if (pf.vignette?.enabled && (pf.vignette.strength ?? 0) > 0) {
+        current = this.runVignette(current, { vignette: pf.vignette } as EditState)
+      }
+
+      // 8. Preset Dust & Scratches
+      if (pf.dustScratches?.enabled && (pf.dustScratches.opacity ?? 0) > 0 && this.overlayTextures.has('dustScratches')) {
+        current = this.runOverlay(current, this.overlayTextures.get('dustScratches')!, {
+          opacity: pf.dustScratches.opacity ?? 0.3,
+          blendMode: pf.dustScratches.blendMode ?? 'screen',
+          tintColor: '#FFFFFF',
+          tintStrength: 0,
+          offset: [0, 0]
+        })
+      }
+
+      // 9. Preset Grain (TEXTURE OVERLAY)
+      if (pf.grain?.enabled && (pf.grain.opacity ?? 0) > 0 && this.overlayTextures.has('presetGrain')) {
+        current = this.runOverlay(current, this.overlayTextures.get('presetGrain')!, {
+          opacity: pf.grain.opacity ?? 0.5,
+          blendMode: pf.grain.blendMode ?? 'overlay',
+          tintColor: '#FFFFFF',
+          tintStrength: 0,
+          offset: [0, 0]
+        })
+      }
+
+      // 10. Preset Border
+      if (pf.border?.enabled && this.overlayTextures.has('border')) {
+        current = this.runOverlay(current, this.overlayTextures.get('border')!, {
+          opacity: 1.0, 
+          blendMode: 'normal',
+          tintColor: '#FFFFFF',
+          tintStrength: 0,
+          offset: [0, 0]
+        })
+      }
     }
 
-    // 2. Adjustments pass
+    // ─────────────────────────────────────────────────────────────────────────────
+    // LAYER 2: USER ADJUSTMENTS (Exposure, Contrast, Temp, Tint)
+    // ─────────────────────────────────────────────────────────────────────────────
     current = this.runAdjustments(current, state)
 
-    // 3. Fade / Matte (runs after adjustments, before effects)
+    // ─────────────────────────────────────────────────────────────────────────────
+    // LAYER 3: USER CUSTOM EFFECTS (Mathematical pass on top of everything)
+    // ─────────────────────────────────────────────────────────────────────────────
+    
+    // User Fade
     if (state.fade?.enabled && (state.fade.blackLift > 0 || state.fade.whiteCeiling < 1)) {
       current = this.runFade(current, state)
     }
 
-    // 4. Halation (3-pass)
+    // User Halation
     if (state.halation.enabled && state.halation.intensity > 0) {
       current = this.runHalation(current, state)
     }
 
-    // 5. Chromatic Aberration
+    // User Chromatic Aberration
     if (state.chromaticAberration.enabled && state.chromaticAberration.amount > 0) {
       current = this.runCA(current, state.chromaticAberration)
     }
 
-    // 6. Lens Distortion
+    // User Lens Distortion
     if (state.lensDistortion.enabled && state.lensDistortion.amount !== 0) {
       current = this.runLensDist(current, state)
     }
 
-    // 7. Light Leak
-    if (state.lightLeak.enabled && state.lightLeak.opacity > 0 && this.overlayTextures.has('lightLeak')) {
-      current = this.runOverlay(current, this.overlayTextures.get('lightLeak')!, {
-        opacity: state.lightLeak.opacity,
-        blendMode: state.lightLeak.blendMode ?? 'screen',
-        tintColor: state.lightLeak.color,
-        tintStrength: state.lightLeak.colorStrength ?? 0.5,
-        offset: state.lightLeak.position ?? [0, 0]
-      })
-    }
-
-    // 8. Vignette
+    // User Vignette
     if (state.vignette.enabled && state.vignette.strength > 0) {
       current = this.runVignette(current, state)
     }
 
-    // 9. Dust & Scratches
-    if (state.dustScratches?.enabled && (state.dustScratches.opacity ?? 0) > 0 && this.overlayTextures.has('dustScratches')) {
-      current = this.runOverlay(current, this.overlayTextures.get('dustScratches')!, {
-        opacity: state.dustScratches.opacity ?? 0.3,
-        blendMode: state.dustScratches.blendMode ?? 'screen',
-        tintColor: '#FFFFFF',
-        tintStrength: 0,
-        offset: [0, 0]
-      })
-    }
-
-    // 10. Grain
+    // User Grain (Mathematical noise algorithm)
     if (state.grain.enabled && state.grain.intensity > 0) {
       current = this.runGrain(current, state)
-    }
-
-    // 11. Border
-    if (state.border.enabled && this.overlayTextures.has('border')) {
-      current = this.runOverlay(current, this.overlayTextures.get('border')!, {
-        opacity: 1.0, // Borders are fully opaque; they just map the image underneath
-        blendMode: 'normal',
-        tintColor: '#FFFFFF',
-        tintStrength: 0,
-        offset: [0, 0]
-      })
     }
 
     // Final: display to screen
