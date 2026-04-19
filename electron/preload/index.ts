@@ -6,6 +6,7 @@ const api = {
     open: () => ipcRenderer.invoke('file:open'),
     openMultiple: () => ipcRenderer.invoke('file:openMultiple'),
     load: (path: string) => ipcRenderer.invoke('file:load', path),
+    loadFull: (path: string) => ipcRenderer.invoke('file:loadFull', path),
   },
   export: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

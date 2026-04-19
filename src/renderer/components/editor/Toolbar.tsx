@@ -3,11 +3,13 @@ import { useEditStore } from '../../store/editStore'
 import { useUIStore } from '../../store/uiStore'
 import { useProjectStore } from '../../store/projectStore'
 import { useSessionStore } from '../../store/tabStore'
+import { renderFullRes } from '../../lib/fullResRender'
 import { Button } from '../ui'
 
 declare global {
   interface Window {
     __frescavaGetCanvasDataURL?: () => string
+    __frescavaGetCurrentLUT?: () => { data: Float32Array; size: number } | null
   }
 }
 
@@ -19,7 +21,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
   const { params, setShowOriginal, showOriginal, resetAll, undo, redo, canUndo, canRedo, imagePath, imageWidth, imageHeight } = useEditStore()
   const { isExporting, setIsExporting, setExportSuccess, showExportSuccess } = useUIStore()
   const { smartSave, saveAs: saveProjectAs } = useProjectStore()
-  const { addToSession, getActiveBatch, getActiveSession } = useSessionStore()
+  const { addToSession, getActiveBatch, getActiveSession, markActiveImageClean } = useSessionStore()
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [exportMode, setExportMode] = useState<'canvas' | 'full-res'>('canvas')
 
@@ -47,13 +49,36 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
     }
   }
 
-  // ── Export current image ──────────────────────────────────────────────────
+  // ── Export current image ───────────────────────────────────────────────────
   const handleExportCurrent = async () => {
     if (!imagePath) return
     setIsExporting(true)
     setShowExportMenu(false)
     try {
-      const result = await window.frame.export.save(buildExportPayload())
+      let canvasDataURL: string | undefined
+
+      if (exportMode === 'full-res') {
+        // Offscreen WebGL at original resolution — identical to preview pipeline
+        const lut = window.__frescavaGetCurrentLUT?.()
+        const result = await renderFullRes({
+          imagePath,
+          params,
+          lut,
+          quality: 95,
+        })
+        canvasDataURL = result.dataURL
+      } else {
+        // Canvas-capture: exact preview match at display resolution
+        canvasDataURL = window.__frescavaGetCanvasDataURL?.()
+      }
+
+      const result = await window.frame.export.save({
+        imagePath,
+        outputPath: '',
+        editState: { imagePath, imageWidth, imageHeight, ...params },
+        quality: 95,
+        canvasDataURL,
+      })
       if (result.success && result.outputPath) {
         setExportSuccess(result.outputPath)
         setTimeout(() => setExportSuccess(null), 4000)
@@ -63,30 +88,48 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
     }
   }
 
-  // ── Export all images in batch ────────────────────────────────────────────
+  // ── Export all images in batch ────────────────────────────────────────────────
   const handleExportAll = async () => {
     const batch = getActiveBatch()
     if (!batch.length) return
     setIsExporting(true)
     setShowExportMenu(false)
     try {
-      const result = await window.frame.export.exportBatch({
-        images: batch.map(img => ({
+      // For each image: do an offscreen WebGL render then save
+      const lut = window.__frescavaGetCurrentLUT?.()
+      const images = await Promise.all(batch.map(async img => {
+        const sessionPresetId = getActiveSession()?.sharedPresetId ?? null
+        const sessionPresetIntensity = getActiveSession()?.sharedPresetIntensity ?? 1
+        const imgParams = {
+          ...img.adjustments,
+          presetId: sessionPresetId,
+          presetIntensity: sessionPresetIntensity,
+        }
+        let canvasDataURL: string | undefined
+        if (exportMode === 'full-res') {
+          const result = await renderFullRes({
+            imagePath: img.imagePath,
+            params: imgParams as typeof params,
+            lut,
+            quality: 95,
+          })
+          canvasDataURL = result.dataURL
+        }
+        return {
           imagePath: img.imagePath,
           outputPath: '',
           editState: {
             imagePath: img.imagePath,
             imageWidth: img.imageWidth,
             imageHeight: img.imageHeight,
-            presetId: getActiveSession()?.sharedPresetId ?? null,
-            presetIntensity: getActiveSession()?.sharedPresetIntensity ?? 1,
-            ...img.adjustments,
+            ...imgParams,
           },
           quality: 95,
-          canvasDataURL: undefined, // full-res mode for batch (source file)
-        })),
-        outputDir: '',
-      })
+          canvasDataURL,
+        }
+      }))
+
+      const result = await window.frame.export.exportBatch({ images, outputDir: '' })
       if (result.success) {
         setExportSuccess(`Exported ${batch.length} images`)
         setTimeout(() => setExportSuccess(null), 5000)
@@ -113,12 +156,14 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
 
   const handleSave = async () => {
     if (!imagePath) return
-    await smartSave(buildProjectFile())
+    const path = await smartSave(buildProjectFile())
+    if (path) markActiveImageClean()
   }
 
   const handleSaveAs = async () => {
     if (!imagePath) return
-    await saveProjectAs(buildProjectFile())
+    const path = await saveProjectAs(buildProjectFile())
+    if (path) markActiveImageClean()
   }
 
   const batch = getActiveBatch()

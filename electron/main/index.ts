@@ -84,6 +84,11 @@ function createWindow(): void {
     return await loadImageFile(filePath)
   })
 
+  // Load image at FULL resolution (no resize) — used for full-res WebGL export
+  ipcMain.handle('file:loadFull', async (_event, filePath: string) => {
+    return await loadImageFileFull(filePath)
+  })
+
   // Load dev or production URL
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -112,6 +117,26 @@ async function loadImageFile(filePath: string): Promise<{
 
   const dataURL = `data:image/jpeg;base64,${data.toString('base64')}`
 
+  return {
+    path: filePath,
+    width: info.width ?? 0,
+    height: info.height ?? 0,
+    dataURL,
+  }
+}
+
+/** Same as loadImageFile but NO size cap — returns original dimensions */
+async function loadImageFileFull(filePath: string): Promise<{
+  path: string; width: number; height: number; dataURL: string
+}> {
+  const sharp = require('sharp')
+  // Only apply EXIF rotation, no resize
+  const { data, info } = await sharp(filePath)
+    .rotate()
+    .jpeg({ quality: 95, mozjpeg: true })
+    .toBuffer({ resolveWithObject: true })
+
+  const dataURL = `data:image/jpeg;base64,${data.toString('base64')}`
   return {
     path: filePath,
     width: info.width ?? 0,

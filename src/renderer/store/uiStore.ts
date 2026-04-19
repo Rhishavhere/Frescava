@@ -3,6 +3,13 @@ import { create } from 'zustand'
 type AppTab = 'home' | 'editor' | 'templates' | 'canvas'
 type RightPanelTab = 'light' | 'color' | 'detail' | 'effects'
 
+interface ConfirmOptions {
+  title: string
+  message: string
+  confirmLabel?: string
+  onConfirm: () => void
+}
+
 interface UIStore {
   // Navigation
   activeTab: AppTab
@@ -23,10 +30,15 @@ interface UIStore {
   isLoadingImage: boolean
   setIsLoadingImage: (v: boolean) => void
 
-  // Modals
+  // Export success toast
   showExportSuccess: boolean
   exportedPath: string | null
   setExportSuccess: (path: string | null) => void
+
+  // Confirmation modal
+  confirm: ConfirmOptions | null
+  openConfirm: (opts: ConfirmOptions) => void
+  closeConfirm: () => void
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -48,4 +60,9 @@ export const useUIStore = create<UIStore>((set) => ({
   showExportSuccess: false,
   exportedPath: null,
   setExportSuccess: (path) => set({ showExportSuccess: !!path, exportedPath: path }),
+
+  // Confirmation modal
+  confirm: null,
+  openConfirm: (opts) => set({ confirm: opts }),
+  closeConfirm: () => set({ confirm: null }),
 }))

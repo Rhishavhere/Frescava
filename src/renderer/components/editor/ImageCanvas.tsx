@@ -11,6 +11,8 @@ export default function ImageCanvas() {
   const lastEditRef = useRef<string>('')
   const currentImageRef = useRef<HTMLImageElement | null>(null)
   const currentLUTRef = useRef<string | null>(null)
+  // Store the raw LUT float data so it can be reused by full-res export
+  const currentLUTDataRef = useRef<{ data: Float32Array; size: number } | null>(null)
 
   const { imagePath, imageDataURL, params, showOriginal } = useEditStore()
   const { getPresetById } = usePresetStore()
@@ -26,12 +28,15 @@ export default function ImageCanvas() {
 
       // Expose canvas capture method globally so Toolbar can access it without prop-drilling
       window.__frescavaGetCanvasDataURL = () => pipeline.getCanvasDataURL()
+      // Expose current LUT for full-res export reuse
+      window.__frescavaGetCurrentLUT = () => currentLUTDataRef.current
     } catch (e) {
       console.error('[Canvas] WebGL init failed:', e)
     }
 
     return () => {
       window.__frescavaGetCanvasDataURL = undefined
+      window.__frescavaGetCurrentLUT = undefined
       if (pipelineRef.current) {
         pipelineRef.current.destroy()
         pipelineRef.current = null
@@ -100,6 +105,7 @@ export default function ImageCanvas() {
       const float32 = new Float32Array(lutData.data)
       pipelineRef.current.loadLUT(float32, lutData.size)
       currentLUTRef.current = preset.lutFile
+      currentLUTDataRef.current = { data: float32, size: lutData.size }
       requestRender()
     }).catch(e => {
       console.error('[Canvas] LUT load failed:', e)

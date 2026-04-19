@@ -1,4 +1,5 @@
 import { useEditStore } from '../../store/editStore'
+import { useSessionStore } from '../../store/tabStore'
 import { Slider, PanelSection } from '../ui'
 
 type Section = 'light' | 'color' | 'detail'
@@ -34,6 +35,7 @@ const DETAIL_SLIDERS = [
 
 export default function AdjustmentPanel({ activeSection }: AdjustmentPanelProps) {
   const { params, setParam, resetParam, pushHistory } = useEditStore()
+  const { markActiveImageDirty } = useSessionStore()
 
   const sliders =
     activeSection === 'light'  ? LIGHT_SLIDERS  :
@@ -54,9 +56,15 @@ export default function AdjustmentPanel({ activeSection }: AdjustmentPanelProps)
                 min={slider.min}
                 max={slider.max}
                 step={slider.step}
-                onChange={(v) => setParam(slider.key as keyof typeof params, v as never)}
+                onChange={(v) => {
+                  setParam(slider.key as keyof typeof params, v as never)
+                  markActiveImageDirty()
+                }}
                 onChangeEnd={() => pushHistory()}
-                onReset={() => resetParam(slider.key as keyof typeof params)}
+                onReset={() => {
+                  resetParam(slider.key as keyof typeof params)
+                  markActiveImageDirty()
+                }}
               />
             )
           })}

@@ -2,10 +2,16 @@ import { create } from 'zustand'
 import { useEditStore, DEFAULT_EDIT_STATE } from './editStore'
 import type { EditState } from '@shared/types'
 
-// Lazy import to avoid circular deps
+// Lazy imports to avoid circular deps
 const resetSavePath = () => {
   import('./projectStore').then(({ useProjectStore }) => {
     useProjectStore.getState().setCurrentFilePath(null)
+  })
+}
+
+const openConfirm = (title: string, message: string, onConfirm: () => void) => {
+  import('./uiStore').then(({ useUIStore }) => {
+    useUIStore.getState().openConfirm({ title, message, confirmLabel: 'Discard', onConfirm })
   })
 }
 
@@ -37,6 +43,8 @@ export interface BatchImage {
   imageWidth: number
   imageHeight: number
   adjustments: BatchAdjustments
+  /** True if the image has been edited since last save */
+  isDirty: boolean
 }
 
 export interface EditorSession {
@@ -58,15 +66,19 @@ interface SessionStore {
   openSession: (results: Array<{ path: string; dataURL: string; width: number; height: number }>) => void
   /** Add images to the currently active session batch */
   addToSession: (results: Array<{ path: string; dataURL: string; width: number; height: number }>) => void
-  /** Close an entire session */
+  /** Close an entire session (shows confirm if dirty) */
   closeSession: (id: string) => void
+  /** Force-close without dirty check (used after confirm) */
+  forceCloseSession: (id: string) => void
   /** Switch the active session */
   switchSession: (id: string) => void
 
   /** Switch the active image within the current session */
   setActiveImage: (imageId: string) => void
-  /** Remove an image from the current batch */
+  /** Remove an image from the current batch (shows confirm if dirty) */
   removeImage: (imageId: string) => void
+  /** Force-remove without dirty check */
+  forceRemoveImage: (imageId: string) => void
 
   /** Apply a preset to ALL images in the current session */
   applyPresetToAll: (presetId: string | null, intensity: number) => void
@@ -74,6 +86,11 @@ interface SessionStore {
   /** Get all images in the active session (for export) */
   getActiveBatch: () => BatchImage[]
   getActiveSession: () => EditorSession | null
+
+  /** Mark the active image as having unsaved edits */
+  markActiveImageDirty: () => void
+  /** Mark the active image as clean (just saved) */
+  markActiveImageClean: () => void
 }
 
 let uid = 0
@@ -88,6 +105,7 @@ function makeImage(result: { path: string; dataURL: string; width: number; heigh
     imageWidth: result.width,
     imageHeight: result.height,
     adjustments: { ...DEFAULT_ADJUSTMENTS },
+    isDirty: false,
   }
 }
 
@@ -187,6 +205,23 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   closeSession: (id) => {
+    const { sessions } = get()
+    const session = sessions.find(s => s.id === id)
+    const hasDirty = session?.images.some(img => img.isDirty) ?? false
+
+    if (hasDirty) {
+      const dirtyCount = session!.images.filter(i => i.isDirty).length
+      openConfirm(
+        'Unsaved Changes',
+        `${dirtyCount} image${dirtyCount > 1 ? 's have' : ' has'} unsaved edits. Closing this session will discard them.`,
+        () => get().forceCloseSession(id),
+      )
+      return
+    }
+    get().forceCloseSession(id)
+  },
+
+  forceCloseSession: (id) => {
     const { sessions, activeSessionId } = get()
     const idx = sessions.findIndex(s => s.id === id)
     const newSessions = sessions.filter(s => s.id !== id)
@@ -257,6 +292,23 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const session = sessions.find(s => s.id === activeSessionId)
     if (!session) return
 
+    const img = session.images.find(i => i.id === imageId)
+    if (img?.isDirty) {
+      openConfirm(
+        'Unsaved Changes',
+        `"${img.label}" has unsaved edits. Remove it anyway?`,
+        () => get().forceRemoveImage(imageId),
+      )
+      return
+    }
+    get().forceRemoveImage(imageId)
+  },
+
+  forceRemoveImage: (imageId) => {
+    const { sessions, activeSessionId } = get()
+    const session = sessions.find(s => s.id === activeSessionId)
+    if (!session) return
+
     const newImages = session.images.filter(i => i.id !== imageId)
     const wasActive = session.activeImageId === imageId
     const newActiveId = wasActive
@@ -302,6 +354,42 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   getActiveSession: () => {
     const { sessions, activeSessionId } = get()
     return sessions.find(s => s.id === activeSessionId) ?? null
+  },
+
+  markActiveImageDirty: () => {
+    const { sessions, activeSessionId } = get()
+    const session = sessions.find(s => s.id === activeSessionId)
+    if (!session?.activeImageId) return
+    set(s => ({
+      sessions: s.sessions.map(sess =>
+        sess.id === activeSessionId
+          ? {
+              ...sess,
+              images: sess.images.map(img =>
+                img.id === session.activeImageId ? { ...img, isDirty: true } : img
+              ),
+            }
+          : sess
+      ),
+    }))
+  },
+
+  markActiveImageClean: () => {
+    const { sessions, activeSessionId } = get()
+    const session = sessions.find(s => s.id === activeSessionId)
+    if (!session?.activeImageId) return
+    set(s => ({
+      sessions: s.sessions.map(sess =>
+        sess.id === activeSessionId
+          ? {
+              ...sess,
+              images: sess.images.map(img =>
+                img.id === session.activeImageId ? { ...img, isDirty: false } : img
+              ),
+            }
+          : sess
+      ),
+    }))
   },
 }))
 

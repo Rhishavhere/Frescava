@@ -56,10 +56,17 @@ export default function EditorTabBar() {
             )}
 
             {/* Session label */}
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 4 }}>
               {session.label}
               {session.images.length > 1 && (
-                <span style={{ color: '#999', fontWeight: 400, marginLeft: 4 }}>+{session.images.length - 1}</span>
+                <span style={{ color: '#999', fontWeight: 400, marginLeft: 2 }}>+{session.images.length - 1}</span>
+              )}
+              {/* Dirty indicator — amber dot when any image has unsaved edits */}
+              {session.images.some(img => img.isDirty) && (
+                <span
+                  title="Unsaved edits"
+                  style={{ width: 5, height: 5, borderRadius: '50%', background: '#C4873A', flexShrink: 0, display: 'inline-block', marginLeft: 2 }}
+                />
               )}
             </span>
 
