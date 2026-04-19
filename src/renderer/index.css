@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300;1,14..32,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base resets ─────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FFFFFF;
+  color: #111111;
+  user-select: none;
+}
+
+/* ─── Custom scrollbar ────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #E0E0E0;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CACACA;
+}
+
+/* ─── Selection ───────────────────────────────────────────────────────────── */
+
+::selection {
+  background-color: rgba(37, 99, 235, 0.15);
+  color: #111111;
+}
+
+/* ─── Focus ring ──────────────────────────────────────────────────────────── */
+
+*:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Electron drag region (title bar) ───────────────────────────────────── */
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ─── Slider input range ──────────────────────────────────────────────────── */
+
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 99px;
+  background: #E8E8E8;
+  outline: none;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #111111;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  cursor: grab;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+}
+input[type='range']::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+input[type='range']:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+/* ─── Canvas container ────────────────────────────────────────────────────── */
+
+.canvas-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F2F2F2;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ─── Panel transitions ───────────────────────────────────────────────────── */
+
+.panel-slide-left {
+  animation: slideFromLeft 0.22s ease-out;
+}
+@keyframes slideFromLeft {
+  from { transform: translateX(-12px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.panel-slide-right {
+  animation: slideFromRight 0.22s ease-out;
+}
+@keyframes slideFromRight {
+  from { transform: translateX(12px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ─── Preset card ─────────────────────────────────────────────────────────── */
+
+.preset-card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.preset-card:hover {
+  transform: translateY(-1px);
+}
+.preset-card.active::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid #2563eb;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+/* ─── Utility: glass card ─────────────────────────────────────────────────── */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn-primary {
+  @apply inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-text-primary text-white text-sm font-medium;
+  @apply hover:bg-opacity-85 active:scale-95 transition-all duration-100;
+  @apply disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.btn-secondary {
+  @apply inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-100 text-text-primary text-sm font-medium;
+  @apply border border-border hover:bg-surface-200 active:scale-95 transition-all duration-100;
+  @apply disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.btn-ghost {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-text-secondary text-sm font-medium;
+  @apply hover:bg-surface-100 hover:text-text-primary active:scale-95 transition-all duration-100;
+}
+.btn-icon {
+  @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary;
+  @apply hover:bg-surface-100 hover:text-text-primary transition-all duration-100;
+}
+
+/* ─── Tab bar ─────────────────────────────────────────────────────────────── */
+
+.tab-item {
+  @apply relative px-4 py-2 text-sm font-medium text-text-muted cursor-pointer transition-colors duration-150;
+  @apply hover:text-text-primary;
+}
+.tab-item.active {
+  @apply text-text-primary;
+}
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0; right: 0;
+  height: 2px;
+  background: #111111;
+  border-radius: 2px 2px 0 0;
+}
+
+/* ─── Separator ───────────────────────────────────────────────────────────── */
+
+.sep {
+  @apply border-b border-border;
+}

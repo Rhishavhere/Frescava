@@ -1,0 +1,78 @@
+{
+  "name": "frescava",
+  "version": "0.1.0",
+  "description": "A modern desktop photo studio for creators",
+  "main": "./out/main/index.js",
+  "author": "Frescava",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "electron-updater": "^6.1.7",
+    "framer-motion": "^11.0.0",
+    "immer": "^10.0.3",
+    "konva": "^9.3.0",
+    "node-machine-id": "^1.1.12",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-konva": "^18.2.10",
+    "sharp": "^0.33.2",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "electron-vite": "^2.0.0",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.12"
+  },
+  "build": {
+    "appId": "co.frescava.desktop",
+    "productName": "Frescava",
+    "copyright": "Copyright © 2025 Frescava",
+    "directories": {
+      "output": "dist-app"
+    },
+    "files": [
+      "out/**/*",
+      "assets/**/*"
+    ],
+    "asarUnpack": [
+      "assets/models/**/*"
+    ],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] }
+      ],
+      "category": "public.app-category.photography",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "frame": false
+    },
+    "win": {
+      "target": ["nsis"],
+      "frame": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "your-username",
+      "repo": "frescava-releases"
+    }
+  }
+}

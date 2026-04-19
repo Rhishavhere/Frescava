@@ -1,0 +1,91 @@
+import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { join } from 'path'
+import type { ExportOptions } from '../../src/shared/types'
+
+export function registerExportHandlers(): void {
+  ipcMain.handle('export:save', async (_event, opts: ExportOptions) => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (!win) return { success: false, error: 'No window' }
+
+    // Show save dialog
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Export Photo',
+      defaultPath: `frescava_export_${Date.now()}.jpg`,
+      filters: [
+        { name: 'JPEG', extensions: ['jpg', 'jpeg'] },
+        { name: 'PNG', extensions: ['png'] },
+      ],
+    })
+
+    if (canceled || !filePath) return { success: false, error: 'Cancelled' }
+
+    try {
+      const sharp = require('sharp') as typeof import('sharp')
+
+      // Start pipeline from source file
+      let pipeline = sharp(opts.imagePath)
+
+      // Apply basic adjustments via Sharp modulate + linear
+      const brightness = exposureToBrightness(opts.editState.exposure)
+      const satMult = saturationToMultiplier(opts.editState.saturation)
+      const { alpha: contrastAlpha, beta: contrastBeta } = contrastToLinear(opts.editState.contrast)
+
+      pipeline = pipeline.modulate({ brightness, saturation: satMult })
+      pipeline = pipeline.linear(contrastAlpha, contrastBeta)
+
+      // Apply temperature shift (approximate via modulate hue shift)
+      if (opts.editState.temperature !== 0) {
+        const tempSat = 1 + (Math.abs(opts.editState.temperature) / 100) * 0.1
+        pipeline = pipeline.modulate({ saturation: tempSat })
+      }
+
+      // Sharpen if requested
+      if (opts.editState.sharpness > 0) {
+        const sigma = 0.5 + (opts.editState.sharpness / 100) * 1.5
+        pipeline = pipeline.sharpen({ sigma })
+      }
+
+      // Optional max dimension cap (free tier)
+      if (opts.maxDimension) {
+        pipeline = pipeline.resize(opts.maxDimension, opts.maxDimension, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+      }
+
+      // Output format
+      if (filePath.endsWith('.png')) {
+        await pipeline.png({ compressionLevel: 8 }).toFile(filePath)
+      } else {
+        await pipeline.jpeg({ quality: opts.quality, mozjpeg: true }).toFile(filePath)
+      }
+
+      return { success: true, outputPath: filePath }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[Frescava Export]', err)
+      return { success: false, error: message }
+    }
+  })
+}
+
+// ─── Conversion helpers ───────────────────────────────────────────────────────
+
+function exposureToBrightness(exposure: number): number {
+  // exposure: -5 to 5 EV → brightness multiplier
+  return Math.pow(2, exposure / 2)
+}
+
+function saturationToMultiplier(saturation: number): number {
+  // saturation: -100 to 100 → 0.0 to 2.0 multiplier (1.0 = no change)
+  return 1 + saturation / 100
+}
+
+function contrastToLinear(contrast: number): { alpha: number; beta: number } {
+  // contrast: -100 to 100 → linear transform y = alpha*x + beta
+  // At contrast 0: alpha=1, beta=0
+  // At contrast 100: alpha≈1.5, beta≈-40 (mid-grey preserved)
+  const alpha = 1 + (contrast / 100) * 0.6
+  const beta = -(alpha - 1) * 128  // keep mid-grey (128) stable
+  return { alpha, beta }
+}

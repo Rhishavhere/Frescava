@@ -1,0 +1,12 @@
+{
+  "id": "teal_orange",
+  "name": "Teal & Orange",
+  "category": "cinematic",
+  "lutFile": "teal_orange.cube",
+  "thumbnailFile": null,
+  "params": {
+    "grain": { "enabled": true, "type": "fine", "intensity": 0.12, "size": 0.5 },
+    "vignette": { "enabled": true, "shape": "oval", "strength": 0.35, "feather": 0.70, "midpoint": 0.75 },
+    "halation": { "enabled": false, "color": "#FF4422", "radius": 30, "threshold": 0.82, "intensity": 0.2 }
+  }
+}

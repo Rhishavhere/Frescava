@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frescava — Product Vision & Feature Specification</title>
+    <style>
+        :root {
+            --bg-dark: #09090b;
+            --bg-card: #18181b;
+            --bg-card-hover: #27272a;
+            --text-main: #e4e4e7;
+            --text-muted: #a1a1aa;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.2);
+            --border: #3f3f46;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            text-align: center;
+            padding: 6rem 2rem;
+            background: radial-gradient(circle at center, var(--bg-card) 0%, var(--bg-dark) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin: 0 0 1rem 0;
+            background: linear-gradient(to right, #fff, #a1a1aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.05em;
+        }
+
+        .quote {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+            font-style: italic;
+            border-left: 4px solid var(--accent);
+            padding-left: 1.5rem;
+            text-align: left;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #fff;
+            margin-top: 4rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #e4e4e7;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #27272a;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-muted);
+        }
+
+        pre {
+            background-color: #000;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            color: #a1a1aa;
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: 0.9rem;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            color: #818cf8;
+        }
+
+        .citation {
+            font-size: 0.75rem;
+            color: #52525b;
+            vertical-align: super;
+            margin-left: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Frescava</h1>
+        <p style="color: #a1a1aa; font-size: 1.2rem; margin-top: -10px; margin-bottom: 2rem;">Product Vision & Feature Specification <span class="citation"></span></p>
+        <div class="quote">
+            "A modern desktop photo studio for creators. <span class="citation"></span> Aesthetic-first editing, pro-level controls, and light AI assistance — without the complexity of traditional tools." <span class="citation"></span>
+        </div>
+    </header>
+
+    <main>
+        <section id="the-big-idea">
+            <h2>The Big Idea</h2>
+            <p>Most photo editors are built by engineers for photographers. <span class="citation"></span> Frescava is built by a creator for creators. <span class="citation"></span></p>
+            <p>The reference points: what Canva did for design, VSCO did for mobile photo aesthetics, and Figma did for collaborative creative work — Frescava does for desktop photo editing. <span class="citation"></span> It targets Gen Z creators, Instagrammers, content creators, and anyone who wants their photos to look intentional and beautiful without spending hours in Lightroom. <span class="citation"></span></p>
+            <p>The core philosophy: <strong>aesthetic first, controls second, complexity optional.</strong> <span class="citation"></span> One-click presets that produce genuinely cinematic results. <span class="citation"></span> Pro tools always accessible but never in the way. <span class="citation"></span> AI that assists without taking over. <span class="citation"></span></p>
+            <p>The Prequel reference: a single tap going from a flat photo to a fully graded, grained, glowing cinematic image — with halation, lifted blacks, film grain, vignette, all perfectly balanced. <span class="citation"></span> Complex results at ease. <span class="citation"></span> That is the standard Frescava presets must meet. <span class="citation"></span></p>
+        </section>
+
+        <section id="target-audience">
+            <h2>Target Audience</h2>
+            <ul>
+                <li>Gen Z creators and content makers <span class="citation"></span></li>
+                <li>Instagram / TikTok / Pinterest power users <span class="citation"></span></li>
+                <li>Photographers who want a faster, more aesthetic workflow <span class="citation"></span></li>
+                <li>Anyone who uses VSCO or Prequel on mobile and wants a desktop equivalent <span class="citation"></span></li>
+                <li>Small creators, bloggers, visual storytellers <span class="citation"></span></li>
+            </ul>
+        </section>
+
+        <section id="the-five-zones">
+            <h2>The Five Zones</h2>
+            <p>Frescava is organized into five distinct product zones: <span class="citation"></span></p>
+            <div class="zone-grid">
+                <div class="card">
+                    <strong>Zone 1 — The Editor:</strong> Single image editing. <span class="citation"></span> Presets, adjustments, effects, text, export. <span class="citation"></span> Core of the product. <span class="citation"></span>
+                </div>
+                <div class="card">
+                    <strong>Zone 2 — Text & Graphics:</strong> Layered text system with real effects. <span class="citation"></span> Caption templates, style presets, graphic overlays. <span class="citation"></span>
+                </div>
+                <div class="card">
+                    <strong>Zone 3 — AI Assistance:</strong> Smart features that assist — background removal, upscaling, captions, style matching. <span class="citation"></span>
+                </div>
+                <div class="card">
+                    <strong>Zone 4 — Templates:</strong> Pre-designed poster/layout composer. <span class="citation"></span> Pick a template, drop in your photo, edit text live. <span class="citation"></span> Done. <span class="citation"></span>
+                </div>
+                <div class="card">
+                    <strong>Zone 5 — The Canvas (v2):</strong> Infinite creative workspace. <span class="citation"></span> Multiple images, nodes, inspo, AI generation, moodboarding. <span class="citation"></span>
+                </div>
+            </div>
+        </section>
+
+        <section id="zone-1-the-editor">
+            <h2>Zone 1 — The Editor</h2>
+            
+            <h3>Import & File Handling</h3>
+            <ul>
+                <li>Drag and drop JPEG / PNG onto the app window <span class="citation"></span></li>
+                <li>Recent files panel with thumbnail previews <span class="citation"></span></li>
+                <li>Batch import — select multiple photos, apply a preset to all in one click <span class="citation"></span></li>
+                <li>Before / After toggle (hold spacebar or dedicated button) <span class="citation"></span></li>
+                <li>Split view — left half original, right half edited <span class="citation"></span></li>
+                <li>Non-destructive editing — all edits stored as parameters, original never modified <span class="citation"></span></li>
+                <li>Edit history as a visual timeline scrubber — drag the handle back to any point <span class="citation"></span></li>
+                <li>Duplicate & diverge — copy current edit state, try a different direction, compare both <span class="citation"></span></li>
+                <li>No RAW support — JPEG and PNG only (intentional scope decision) <span class="citation"></span></li>
+            </ul>
+
+            <h3>The Preset System (Hero Feature)</h3>
+            <p>The preset is the first thing a user interacts with. <span class="citation"></span> It must feel premium, fast, and beautiful. <span class="citation"></span></p>
+            <p><strong>How presets work technically:</strong> Each preset is a complete bundle: <span class="citation"></span></p>
+            <ul>
+                <li>A <code>.cube</code> LUT file — captures the full color transformation (designed in Photoshop/Lightroom, exported as .cube) <span class="citation"></span></li>
+                <li>A grain texture PNG — film grain type and character <span class="citation"></span></li>
+                <li>A JSON parameter file — vignette, halation, lifted blacks, border, temperature offset, everything <span class="citation"></span></li>
+            </ul>
+            <p>This means every preset is a complete cinematic look — not just a color filter, but a full aesthetic treatment including grain, glow, contrast character, and optional border. <span class="citation"></span> The LUT is designed manually in Photoshop or Lightroom by the developer, then exported as .cube. <span class="citation"></span> No ML needed for presets. <span class="citation"></span></p>
+            
+            <p><strong>Live preview on your photo:</strong> Before clicking a preset, its thumbnail shows a miniature version of your actual photo with that preset applied. <span class="citation"></span> Users see exactly what they're getting before committing. <span class="citation"></span> This is non-negotiable UX. <span class="citation"></span></p>
+            
+            <p><strong>Preset intensity slider:</strong> Every preset has a master intensity slider. <span class="citation"></span> "Kodak Portra" at 40% vs 100% are genuinely different looks. <span class="citation"></span> Users blend presets with their original. <span class="citation"></span></p>
+
+            <table>
+                <tr>
+                    <th>Category</th>
+                    <th>Examples</th>
+                </tr>
+                <tr>
+                    <td>Film Stock</td>
+                    <td>Kodak Portra, Kodak Gold, Fuji Velvia, Ilford HP5, Cinestill 800T <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Mood</td>
+                    <td>Moody, Clean, Hazy, Dark, Airy, Muted <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Era</td>
+                    <td>70s Warm, 90s Faded, Y2K Digital, VHS, 2010s Vintage <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Cinematic</td>
+                    <td>Teal & Orange, Film Noir, Blade Runner, Summer Blockbuster <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Editorial</td>
+                    <td>Clean White, Desaturated, High Contrast, Magazine <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Aesthetic</td>
+                    <td>Dark Academia, Cottagecore, Coastal, Brat, Minimal <span class="citation"></span></td>
+                </tr>
+            </table>
+
+            <p><strong>Additional preset features:</strong></p>
+            <ul>
+                <li>Favorites — star any preset to pin it at the top <span class="citation"></span></li>
+                <li>Custom preset saving — edit a photo, save the entire look as a named preset <span class="citation"></span></li>
+                <li>Import <code>.cube</code> files — power users bring their own LUT packs <span class="citation"></span></li>
+                <li>Seasonal drops — new curated packs released monthly tied to trending aesthetics <span class="citation"></span></li>
+                <li>"Steal this look" — right-click any preset to see exactly what settings it applies, listed plainly <span class="citation"></span></li>
+                <li>Comparison grid — apply 6 different presets to the same photo simultaneously in a grid view (unique feature, nobody does this on desktop) <span class="citation"></span></li>
+            </ul>
+
+            <h3>Core Adjustment Panel</h3>
+            <p>Always visible, organized clearly. <span class="citation"></span> Every control has a number display and is keyboard-accessible. <span class="citation"></span></p>
+<pre>
+LIGHT                   COLOR                   DETAIL
+─────                   ─────                   ──────
+Exposure                Temperature             Sharpness
+Contrast                Tint                    Noise Reduction
+Highlights              Vibrance                Clarity
+Shadows                 Saturation              Texture
+Whites
+Blacks
+</pre>
+            <p>Keyboard-first: press E to focus Exposure, arrow keys to increment, shift+arrow for large steps. <span class="citation"></span> Every slider controllable without mouse. <span class="citation"></span></p>
+
+            <h3>Pro Controls (Collapsed by Default, One Tap to Expand)</h3>
+            <ul>
+                <li><strong>Curves:</strong> RGB master + individual R/G/B channel curves. <span class="citation"></span> Click to add anchor points. <span class="citation"></span> Visual histogram overlay. <span class="citation"></span></li>
+                <li><strong>HSL (Hue / Saturation / Luminance):</strong> Per-color-range sliders across Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta. <span class="citation"></span> Click a color in the photo to auto-select that range. <span class="citation"></span></li>
+                <li><strong>Color Grading:</strong> Three color wheels — Shadows, Midtones, Highlights — with blending and balance controls. <span class="citation"></span> Same system as Lightroom / DaVinci Resolve. <span class="citation"></span></li>
+                <li><strong>Tone Mapping:</strong> Point curve editor with white point / black point control. <span class="citation"></span></li>
+                <li><strong>Split Toning:</strong> Shadow color + hue + saturation, highlight color + hue + saturation, balance slider. <span class="citation"></span></li>
+            </ul>
+
+            <h3>Effects Layer</h3>
+            <p>Applied on top of the base edit. <span class="citation"></span> Non-destructive. <span class="citation"></span> Each effect has its own opacity/intensity. <span class="citation"></span> Built as a WebGL shader pipeline — each effect is a GLSL shader pass. <span class="citation"></span></p>
+            <table>
+                <tr>
+                    <th>Effect</th>
+                    <th>Controls</th>
+                    <th>Implementation</th>
+                </tr>
+                <tr>
+                    <td>Film Grain</td>
+                    <td>Type (fine/medium/coarse/film), intensity, size, luminosity mode <span class="citation"></span></td>
+                    <td>Procedural GLSL noise shader <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Vignette</td>
+                    <td>Shape (oval/rect), strength, feather, midpoint <span class="citation"></span></td>
+                    <td>Radial distance shader <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Halation / Glow</td>
+                    <td>Color, radius, threshold, intensity <span class="citation"></span></td>
+                    <td>3-pass: extract highlights → blur → screen composite <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Chromatic Aberration</td>
+                    <td>Amount, radial falloff <span class="citation"></span></td>
+                    <td>RGB channel offset shader <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Bloom</td>
+                    <td>Threshold, intensity, soft vs hard <span class="citation"></span></td>
+                    <td>3-pass same as halation, wider spread <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Lens Distortion</td>
+                    <td>Barrel/pincushion amount <span class="citation"></span></td>
+                    <td>Brown-Conrady distortion model shader <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Light Leaks</td>
+                    <td>Texture selection, color, position, intensity <span class="citation"></span></td>
+                    <td>PNG overlay with screen blend mode <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Dust & Scratches</td>
+                    <td>Texture selection, density, opacity <span class="citation"></span></td>
+                    <td>PNG overlay with screen/lighten blend <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Borders & Frames</td>
+                    <td>Polaroid, film strip, thin border, rounded corners <span class="citation"></span></td>
+                    <td>PNG overlay + programmatic shader <span class="citation"></span></td>
+                </tr>
+            </table>
+            <p><strong>Shader pipeline order (matters — order affects output):</strong> LUT → Adjustments → Curves → HSL → Color Grading → Halation → Bloom → Chromatic Aberration → Lens Distortion → Vignette → Grain → Overlays → Border → Output <span class="citation"></span></p>
+
+            <h3>Local Adjustments (v1.5)</h3>
+            <p>Apply any adjustment to a specific region only. <span class="citation"></span> Pattern: generate a grayscale mask → run adjustments on full image → composite using mask. <span class="citation"></span></p>
+            <ul>
+                <li><strong>Radial filter</strong> — draw oval/circle, apply adjustments inside or outside, multiple per image <span class="citation"></span></li>
+                <li><strong>Gradient filter</strong> — linear gradient mask, classic sky/foreground separation, drag start/end points <span class="citation"></span></li>
+                <li><strong>AI Brush Masking</strong> — paint rough strokes, MobileSAM refines mask to precise subject edges (debounced 200ms) <span class="citation"></span></li>
+                <li><strong>Subject Mask (auto)</strong> — one-click subject isolation via MobileSAM center-point prompt <span class="citation"></span></li>
+                <li><strong>Sky Mask (auto)</strong> — one-click sky selection via MediaPipe segmentation class <span class="citation"></span></li>
+            </ul>
+            <p>All ML runs locally — no upload, no internet required. <span class="citation"></span> SAM image embeddings are cached per image so multiple mask operations on the same photo are fast. <span class="citation"></span></p>
+        </section>
+
+        <section id="zone-2-text-graphics">
+            <h2>Zone 2 — Text & Graphics</h2>
+            <p>This is where Frescava significantly beats every photo editor for creators. <span class="citation"></span> Text effects matching what you see in Adobe Premiere or DaVinci Resolve — accessible without learning a complex app. <span class="citation"></span></p>
+
+            <h3>Text System</h3>
+            <p><strong>Font library:</strong> Google Fonts built in (~1000 fonts, searchable). <span class="citation"></span> User font import (.ttf / .otf). <span class="citation"></span> Font pairing suggestions. <span class="citation"></span></p>
+            
+            <p><strong>Text style presets — each is a complete layered look (defined as JSON, rendered via Konva.js):</strong> <span class="citation"></span></p>
+            <table>
+                <tr>
+                    <th>Style</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Film Credits</td>
+                    <td>Thin white, wide tracking, soft shadow, serif <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Y2K Chrome</td>
+                    <td>Metallic gradient fill, thick stroke <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Handwritten Caption</td>
+                    <td>Script font, slight rotation, drop shadow <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Editorial Bold</td>
+                    <td>Massive compressed sans-serif <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Neon Glow</td>
+                    <td>Colored outer glow, semi-transparent pill background <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Burned In</td>
+                    <td>Looks physically stamped onto the photo surface <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Subtitle Bar</td>
+                    <td>Semi-transparent pill, small caps sans-serif <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Grunge Stamp</td>
+                    <td>Distressed texture fill, irregular edges <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Minimal Line</td>
+                    <td>Ultra-thin serif, single underline, wide tracking <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Gradient Pop</td>
+                    <td>Bright gradient fill, no stroke, large display <span class="citation"></span></td>
+                </tr>
+            </table>
+
+            <p><strong>Every text property tweakable:</strong> Fill (solid/gradient/texture/transparent), Stroke (color/width/position), Drop Shadow (angle/distance/blur/spread/color), Inner Shadow, Outer Glow (color/size/blend mode), Inner Glow, Background (pill/rectangle/custom padding/corner radius), Blur, Chromatic Aberration offset, Blend Mode, Opacity, Letter Spacing, Line Height, Rotation, Curve text along a path. <span class="citation"></span></p>
+            <p><strong>Text is NOT designed in Photoshop and imported</strong> — it is defined as a JSON parameter system and rendered live in the app via Konva.js. <span class="citation"></span> New text style presets are just new JSON configs, no code changes needed. <span class="citation"></span></p>
+
+            <h3>Graphics & Overlays</h3>
+            <ul>
+                <li>Built-in minimal element library: arrows, lines, shapes, dots, dividers <span class="citation"></span></li>
+                <li>Import SVG files <span class="citation"></span></li>
+                <li>Film metadata stamps: "ISO 400 · 35mm · f/1.8" style overlays (major aesthetic trend) <span class="citation"></span></li>
+                <li>Date stamps (film style and digital style) <span class="citation"></span></li>
+                <li>Noise/grain as a graphic element <span class="citation"></span></li>
+                <li>Editorial marks and film leader elements <span class="citation"></span></li>
+            </ul>
+        </section>
+
+        <section id="zone-3-ai-features">
+            <h2>Zone 3 — AI Features</h2>
+            <p>Positioned as a creative assistant, not the main feature. <span class="citation"></span> Gen Z creators want to feel in control — AI assists without taking over. <span class="citation"></span></p>
+
+            <h3>Local AI (Runs On-Device — No Upload, Works Offline)</h3>
+            <p>All local models run via ONNX Runtime. <span class="citation"></span> GPU-accelerated automatically: CoreML on Apple Silicon, CUDA on Nvidia, DirectML on Windows, CPU fallback always available. <span class="citation"></span></p>
+            <ul>
+                <li><strong>Background Removal:</strong> RMBG-1.4 model. <span class="citation"></span> One click → PNG with transparent background. <span class="citation"></span> ~170MB, lazy loaded on first use. <span class="citation"></span></li>
+                <li><strong>AI Upscale:</strong> Real-ESRGAN x4plus. <span class="citation"></span> Small/low-quality JPEG → 4x resolution with recovered detail. <span class="citation"></span> Tiled processing for large inputs. <span class="citation"></span> ~65MB, lazy loaded. <span class="citation"></span></li>
+                <li><strong>Face Enhancement:</strong> GFPGAN v1.4. <span class="citation"></span> Restores facial detail, removes compression artifacts. <span class="citation"></span> Offered automatically when a face is detected. <span class="citation"></span> ~350MB, lazy loaded. <span class="citation"></span></li>
+                <li><strong>Subject & Sky Masking:</strong> MediaPipe (~8MB, eager loaded) for automatic person/sky detection. <span class="citation"></span> MobileSAM (~40MB, lazy) for user-directed click-to-select. <span class="citation"></span></li>
+                <li><strong>Style Match:</strong> Upload a reference photo → app applies matching color grade via Reinhard color transfer algorithm. <span class="citation"></span> No ML — pure statistics. <span class="citation"></span> Result saveable as a new preset. <span class="citation"></span></li>
+                <li><strong>Smart Auto-Enhance:</strong> v1 rule-based (histogram analysis → tasteful corrections). <span class="citation"></span> v2 ML regression model trained on user editing patterns post-launch. <span class="citation"></span></li>
+            </ul>
+
+            <h3>API-Based AI (Requires Internet — Proxied via Supabase Edge Functions)</h3>
+            <p>API keys never ship in the app. <span class="citation"></span> All calls go through Supabase Edge Functions which handle auth verification and rate limiting. <span class="citation"></span></p>
+            <ul>
+                <li><strong>Caption Generator:</strong> Claude API with vision. <span class="citation"></span> Analyzes actual photo content. <span class="citation"></span> Choose tone (witty/poetic/minimal/descriptive/chaotic), get 5 options. <span class="citation"></span> Best-in-class for this use case. <span class="citation"></span></li>
+                <li><strong>Hashtag Suggestions:</strong> Based on preset used, edit style, image content. <span class="citation"></span> Returns 15-20 hashtags grouped by reach (niche/medium/broad). <span class="citation"></span></li>
+                <li><strong>AI Image Generation:</strong> Text prompt → Replicate API (SDXL). <span class="citation"></span> Drag result into canvas. <span class="citation"></span> Curated prompt gallery with pre-engineered prompts users remix without needing to know prompt engineering. <span class="citation"></span></li>
+                <li><strong>Usage limits:</strong> Free tier: 3 uses/day per feature. <span class="citation"></span> Pro: unlimited. <span class="citation"></span> Tracked in Supabase ai_usage table. <span class="citation"></span></li>
+            </ul>
+        </section>
+
+        <section id="zone-4-templates">
+            <h2>Zone 4 — Templates</h2>
+            <p>A dedicated tab alongside the Editor. <span class="citation"></span> Pre-designed poster and layout composer. <span class="citation"></span> Template handles all design decisions — user brings the photo and text content. <span class="citation"></span></p>
+
+            <h3>The Concept</h3>
+            <p>Not photo editing and not freeform canvas — this is <strong>template-first</strong> layout composition. <span class="citation"></span> Fast, structured, beautiful output in seconds. <span class="citation"></span> Think: the "Eyes" editorial layout — three horizontal strips of the same photo at different crop positions, mixed serif/sans title, multilingual subtitle, justified body text. <span class="citation"></span> One click on the template, drop in your photo, edit the text live. <span class="citation"></span> Done. <span class="citation"></span></p>
+
+            <h3>How Templates Work</h3>
+            <p>Each template is a <strong>JSON definition file</strong> describing every element — its type, position (as % of canvas), size, typography, and which parts are user-editable. <span class="citation"></span></p>
+<pre>
+Template JSON defines:
+  background color
+  image slots (position, size, which vertical crop of photo to show)
+  text blocks (font, size, color, alignment, default text, editable: true/false)
+  graphic elements (lines, shapes, decorations)
+</pre>
+            <p>The rendering engine (Konva.js) is built once and reads any template JSON. <span class="citation"></span> New templates are just new JSON files — no code changes ever needed for new templates. <span class="citation"></span></p>
+
+            <h3>How Templates Are Created</h3>
+            <p><strong>Designer workflow (you):</strong> <span class="citation"></span></p>
+            <ol>
+                <li>Design the layout in Figma at 1080x1920 (9:16) or 1080x1080 (1:1) <span class="citation"></span></li>
+                <li>Use real Google Fonts (available in the app) <span class="citation"></span></li>
+                <li>Name layers clearly: <code>strip-top</code>, <code>title-text</code>, <code>body-text</code> etc. <span class="citation"></span></li>
+                <li>Export as PNG reference <span class="citation"></span></li>
+            </ol>
+            <p><strong>Developer workflow (Claude Code):</strong> <span class="citation"></span></p>
+            <ol>
+                <li>Read the PNG + Figma file <span class="citation"></span></li>
+                <li>Generate the complete JSON template definition <span class="citation"></span></li>
+                <li>Template is live in the app <span class="citation"></span></li>
+            </ol>
+            <p>Time per template after engine is built: ~15 minutes. <span class="citation"></span> Design time is the only ongoing cost. <span class="citation"></span></p>
+
+            <h3>Template Interaction</h3>
+            <ul>
+                <li>Image slots: user drops their photo, it fills all image slots <span class="citation"></span></li>
+                <li>Crop repositioning: click any image strip, drag up/down to reposition which part of the photo shows through (like Instagram crop) <span class="citation"></span></li>
+                <li>Text editing: click any text element → inline editor appears over it, typed changes update live <span class="citation"></span></li>
+                <li>Color overrides: change background color, text color per template <span class="citation"></span></li>
+                <li>Optional filter: apply a preset to the image strips <span class="citation"></span></li>
+                <li>Export: full resolution PNG <span class="citation"></span></li>
+            </ul>
+
+            <h3>Template Categories (20 at launch)</h3>
+            <table>
+                <tr>
+                    <th>Category</th>
+                    <th>Vibe</th>
+                    <th>Count</th>
+                </tr>
+                <tr>
+                    <td>Portrait / Editorial</td>
+                    <td>Strips, split panels, overlapping crops <span class="citation"></span></td>
+                    <td>5 <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Minimal Text-First</td>
+                    <td>Large typography, small image inset, negative space <span class="citation"></span></td>
+                    <td>4 <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Film / Analog</td>
+                    <td>Contact sheet, film strip border, polaroid stack <span class="citation"></span></td>
+                    <td>4 <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Bold / Magazine</td>
+                    <td>Full bleed, overlaid text, geometric blocks <span class="citation"></span></td>
+                    <td>3 <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Quote Card</td>
+                    <td>Minimal background, styled quote, small attribution <span class="citation"></span></td>
+                    <td>2 <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Aesthetic / Mood</td>
+                    <td>Soft vignette, centered portrait, poetic caption <span class="citation"></span></td>
+                    <td>2 <span class="citation"></span></td>
+                </tr>
+            </table>
+
+            <h3>Template Data Structure</h3>
+<pre>
+interface PosterTemplate {
+  id: string
+  name: string
+  category: string
+  aspectRatio: '9:16' | '4:5' | '1:1' | 'A4'
+  backgroundColor: string
+  elements: (ImageElement | TextElement | ShapeElement)[]
+}
+
+interface ImageElement {
+  type: 'image'
+  id: string
+  x: number; y: number        // % of canvas
+  width: number; height: number
+  cropY: number               // vertical slice start (0-1)
+  cropHeight: number          // vertical slice height (0-1)
+  editable: true
+}
+
+interface TextElement {
+  type: 'text'
+  id: string
+  x: number; y: number
+  width: number
+  defaultText: string
+  fontFamily: string
+  fontSize: number            // relative units
+  fontWeight: number
+  letterSpacing: number
+  textAlign: 'left' | 'center' | 'right' | 'justify'
+  color: string
+  editable: true
+  placeholder: string
+  multiFont?: {               // for mixed serif/sans like "Eyes"
+    firstChar: FontConfig
+    rest: FontConfig
+  }
+}
+</pre>
+        </section>
+
+        <section id="zone-5-the-canvas">
+            <h2>Zone 5 — The Canvas (v2)</h2>
+            <p>Everything Frescava gives you, at once. <span class="citation"></span> Multiple images, multiple edit versions, AI generation, caption writing, inspo pinning — a full creator workspace. <span class="citation"></span></p>
+
+            <h3>Core Concept</h3>
+            <p>An infinite scroll canvas (like Figma / Miro) where creators can pin photos in different edit states, compare versions side by side, build moodboards, write captions, generate AI images, and connect edit effects as nodes. <span class="citation"></span></p>
+
+            <h3>Node System</h3>
+            <p>Every element on the canvas is a node. <span class="citation"></span> Effects connect as nodes via drag-and-drop — like DaVinci Resolve's node compositor or Blender's shader nodes, but visual and approachable for creators. <span class="citation"></span> Built with React Flow. <span class="citation"></span></p>
+
+<pre>
+SOURCE NODES          EFFECT NODES              OUTPUT NODES
+────────────          ────────────              ────────────
+Image Node            LUT / Preset Node         Export Node
+AI Gen Node           Brightness Node           Canvas Pin Node
+Text Node             Curves Node               Compare Node
+Inspo Node            Vignette Node
+                      Grain Node
+                      Color Grade Node
+                      Mask Node
+</pre>
+            <p>Drag Effect Node from sidebar → connect to Image Node → effect applies live. <span class="citation"></span> Parameters appear inline on the node. <span class="citation"></span> Disconnect to remove. <span class="citation"></span></p>
+
+            <h3>Canvas Features</h3>
+            <ul>
+                <li>Infinite scroll with zoom in/out <span class="citation"></span></li>
+                <li>Pin images, text notes, edit versions, AI generations, inspo screenshots <span class="citation"></span></li>
+                <li>Pinterest URL import <span class="citation"></span></li>
+                <li>Caption nodes — write, store, test multiple caption options per image <span class="citation"></span></li>
+                <li>Export board as single image or PDF moodboard <span class="citation"></span></li>
+                <li>Share canvas as link (v3) <span class="citation"></span></li>
+            </ul>
+        </section>
+
+        <section id="post-preview">
+            <h2>Post Preview</h2>
+            <p>See exactly how your photo will look posted before you export. <span class="citation"></span></p>
+            <ul>
+                <li><strong>Instagram Feed Preview:</strong> Pixel-perfect UI chrome, your actual profile photo + username, live caption editing with "more" cutoff rendered correctly, hashtags in blue, 3-post grid view to check aesthetic flow with existing posts. <span class="citation"></span></li>
+                <li><strong>Instagram Story Preview:</strong> 9:16 canvas with Stories chrome, progress bar, username, text overlay positioning check. <span class="citation"></span></li>
+                <li><strong>Multi-platform tabs:</strong> Instagram Feed, Instagram Story, Twitter/X, LinkedIn, Pinterest — each with correct crop dimensions and UI chrome. <span class="citation"></span></li>
+                <li><strong>Grid Continuity (killer feature):</strong> Connect Instagram via read-only API. <span class="citation"></span> See your last 9 posts as a live grid. <span class="citation"></span> New photo slots into position 1. <span class="citation"></span> Creators obsess over grid continuity and no desktop tool solves this. <span class="citation"></span></li>
+            </ul>
+        </section>
+
+        <section id="unique-differentiating-features">
+            <h2>Unique Differentiating Features</h2>
+            <ul>
+                <li><strong>Comparison Grid:</strong> Apply 6 different presets simultaneously as a grid. <span class="citation"></span> Pick the one that feels right. <span class="citation"></span> Nobody does this on desktop. <span class="citation"></span></li>
+                <li><strong>Recipe Card:</strong> After editing, a shareable summary card — "Preset: Kodak Summer · Grain: 30% · Temp: +200." <span class="citation"></span> Free marketing for Frescava. <span class="citation"></span></li>
+                <li><strong>Film Simulation Mode:</strong> Choose "shoot this on Kodak Portra 400" instead of using sliders. <span class="citation"></span> Full film character applied including grain profile, highlight rolloff, shadow lift. <span class="citation"></span></li>
+                <li><strong>Speed Edit Mode:</strong> Minimal UI — just the image, preset strip, intensity slider. <span class="citation"></span> Toggle from normal mode. <span class="citation"></span></li>
+                <li><strong>Export Card:</strong> Beautiful before/after summary renders at export. <span class="citation"></span> Optional to save and share. <span class="citation"></span></li>
+                <li><strong>Edit History Timeline:</strong> Visual timeline scrubber, not just undo/redo. <span class="citation"></span> Drag to any point. <span class="citation"></span></li>
+                <li><strong>Keyboard-First Editing:</strong> Every adjustment has a shortcut key. <span class="citation"></span> Serious creators will live here. <span class="citation"></span></li>
+                <li><strong>Seasonal Preset Drops:</strong> Monthly new pack tied to aesthetic trends. <span class="citation"></span> Push notification. <span class="citation"></span> Creates a reason to return. <span class="citation"></span></li>
+            </ul>
+        </section>
+
+        <section id="monetization">
+            <h2>Monetization</h2>
+            <h3>Model: Try Everything, Pay to Export (Prequel model)</h3>
+            <p>All editing, all presets, all text tools, all templates, all AI (within daily limits) — free to use and experience. <span class="citation"></span> Pay only when you want to export. <span class="citation"></span> User invests time → emotional attachment to result → paying feels worth it because they've already seen exactly what they're getting. <span class="citation"></span></p>
+
+            <table>
+                <tr>
+                    <th>Tier</th>
+                    <th>Price</th>
+                    <th>Includes</th>
+                </tr>
+                <tr>
+                    <td>Free</td>
+                    <td>-</td>
+                    <td>Full editing access, watermarked export, 720p preview cap, 3 AI uses/day <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Pro</td>
+                    <td>-</td>
+                    <td>Clean full-res export, batch export, unlimited AI, all packs, Canvas <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Preset Packs</td>
+                    <td>-</td>
+                    <td>Thematic curated collections, downloaded post-purchase <span class="citation"></span></td>
+                </tr>
+                <tr>
+                    <td>Creator Bundle</td>
+                    <td>Annual deal</td>
+                    <td>Pro + all packs <span class="citation"></span></td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="app-security">
+            <h2>App Security</h2>
+            
+            <h3>Export Gate (Primary Monetization Protection)</h3>
+            <ul>
+                <li>Export requires server-verified license via Supabase Edge Function <span class="citation"></span></li>
+                <li>24-hour validation cache in app — first call hits network, subsequent exports within 24h use cache (prevents cold-start latency feeling broken) <span class="citation"></span></li>
+                <li>No internet and cache expired = no export <span class="citation"></span></li>
+            </ul>
+
+            <h3>Screenshot Deterrence</h3>
+            <ul>
+                <li><code>setContentProtection(true)</code> in Electron — blacks out window in macOS screen recordings <span class="citation"></span></li>
+                <li>720p max preview on free tier (screenshots are low quality, not usable for posting) <span class="citation"></span></li>
+                <li>Visible subtle watermark on free tier previews <span class="citation"></span></li>
+                <li>Invisible steganographic watermark embedded in preview (encodes user ID — if screenshot and posted, traceable back to account) <span class="citation"></span></li>
+            </ul>
+
+            <h3>Asset Protection</h3>
+            <ul>
+                <li>Premium LUT packs NOT bundled in app — downloaded post-purchase only <span class="citation"></span></li>
+                <li>Stored encrypted on device (AES-256-CBC) <span class="citation"></span></li>
+                <li>Decryption key derived from machine fingerprint + valid license key via HMAC <span class="citation"></span></li>
+                <li>Decrypted LUT exists in memory only, never written to disk unencrypted <span class="citation"></span></li>
+                <li>Free LUTs ship openly in the bundle — accepted, they're the top-of-funnel <span class="citation"></span></li>
+            </ul>
+
+            <h3>Code Protection</h3>
+            <ul>
+                <li>JavaScript obfuscation pre-build (control flow flattening, string encryption, dead code injection) <span class="citation"></span></li>
+                <li>ASAR integrity check on startup — detects extraction and repacking <span class="citation"></span></li>
+                <li>Machine fingerprinting for license binding (CPU ID + MAC address + disk serial hashed) <span class="citation"></span></li>
+                <li>Critical validation and decryption logic in compiled Rust native module (napi-rs) <span class="citation"></span></li>
+                <li>Webhook signature verification on all Lemon Squeezy webhooks (HMAC-SHA256) <span class="citation"></span></li>
+            </ul>
+
+            <h3>Distribution (Early Stage — No Code Signing Yet)</h3>
+            <ul>
+                <li>Ship unsigned .dmg and .exe for v0.1-v0.x <span class="citation"></span></li>
+                <li>Include bypass instructions in README and onboarding screen <span class="citation"></span></li>
+                <li>macOS: right-click &gt; Open, or <code>xattr -cr /Applications/Frescava.app</code> <span class="citation"></span></li>
+                <li>Windows: More info &gt; Run anyway in SmartScreen dialog <span class="citation"></span></li>
+                <li>Apple Developer cert ($99/yr) acquired at ~100-200 paying users <span class="citation"></span></li>
+                <li>Windows signing acquired when Windows user base justifies it <span class="citation"></span></li>
+            </ul>
+        </section>
+
+        <section id="backend-infrastructure">
+            <h2>Backend Infrastructure</h2>
+            
+            <h3>What Supabase Handles (Everything)</h3>
+            <p>User photos never leave the device. <span class="citation"></span> Only auth, license state, and pack entitlements live in the backend. <span class="citation"></span></p>
+            <ul>
+                <li><strong>Auth:</strong> Email + password, Google OAuth, Apple Sign In (Supabase Auth) <span class="citation"></span></li>
+                <li><strong>Database:</strong> subscriptions, machine_activations, pack_entitlements, ai_usage, announcements <span class="citation"></span></li>
+                <li><strong>Edge Functions:</strong> validate-license, activate-machine, download-pack, ai-proxy, webhook-payment <span class="citation"></span></li>
+                <li><strong>Storage:</strong> Encrypted .clut premium pack files, served via signed 60-second URLs post-entitlement check <span class="citation"></span></li>
+            </ul>
+
+            <h3>Payment Flow</h3>
+            <p>Lemon Squeezy handles payments → fires signed webhook → Supabase Edge Function verifies HMAC signature → writes to subscriptions table. <span class="citation"></span> Never trust unsigned webhooks. <span class="citation"></span></p>
+
+            <h3>Distribution</h3>
+            <p>GitHub Releases + electron-builder. <span class="citation"></span> Auto-updates via electron-updater checking GitHub Releases on launch. <span class="citation"></span> No file hosting infrastructure needed. <span class="citation"></span></p>
+
+            <h3>Crash Reporting</h3>
+            <p>Sentry — one-line Electron setup, free tier sufficient for early stage. <span class="citation"></span></p>
+        </section>
+
+        <section id="build-order">
+            <h2>Build Order</h2>
+<pre>
+v0.1 — Proof of Concept
+  Electron + Vite + React scaffold
+  WebGL shader pipeline working
+  One LUT loading and applying in real time
+  Basic exposure/contrast sliders
+  JPEG export (no paywall yet)
+
+v0.2 — Real Editor
+  Full adjustment panel (light/color/detail)
+  20 presets with live thumbnails on your photo
+  Before/after toggle
+  Effects layer (grain, vignette, halation, borders)
+  Basic text layer
+
+v1.0 — Launch
+  50 presets across 5 aesthetic packs
+  Full text system with 15 style presets
+  All effects (CA, bloom, lens distortion, light leaks, dust)
+  Templates tab with 20 templates
+  AI: background removal + captions + upscale
+  Post preview (Instagram feed + story)
+  Supabase auth + Lemon Squeezy payments
+  Export gate + watermark + 720p cap
+  App protection layer
+  GitHub Releases distribution
+
+v1.5
+  Pro controls (curves, HSL, color grading wheels)
+  Local adjustments (radial, gradient, brush, subject mask, sky mask)
+  Style match
+  Face enhancement
+  Grid continuity (Instagram API)
+  Comparison grid feature
+
+v2.0
+  Canvas workspace + React Flow node system
+  Pinterest integration + moodboard export
+  Figma plugin for template generation
+</pre>
+        </section>
+
+        <section id="competitive-positioning">
+            <h2>Competitive Positioning</h2>
+            <table>
+                <tr>
+                    <th>App</th>
+                    <th>Platform</th>
+                    <th>Presets</th>
+                    <th>Pro Controls</th>
+                    <th>Text Effects</th>
+                    <th>Templates</th>
+                    <th>Canvas</th>
+                    <th>AI</th>
+                </tr>
+                <tr>
+                    <td>Lightroom</td>
+                    <td>Desktop</td>
+                    <td>Limited</td>
+                    <td>Excellent</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>Basic</td>
+                </tr>
+                <tr>
+                    <td>VSCO</td>
+                    <td>Mobile</td>
+                    <td>Excellent</td>
+                    <td>Good</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>Prequel</td>
+                    <td>Mobile</td>
+                    <td>Excellent</td>
+                    <td>Limited</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>Photoshop</td>
+                    <td>Desktop</td>
+                    <td>None</td>
+                    <td>Excellent</td>
+                    <td>Excellent</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>Good</td>
+                </tr>
+                <tr>
+                    <td>Canva</td>
+                    <td>Web</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>Good</td>
+                    <td>Excellent</td>
+                    <td>Basic</td>
+                    <td>Basic</td>
+                </tr>
+                <tr>
+                    <td><strong>Frescava</strong></td>
+                    <td><strong>Desktop</strong></td>
+                    <td><strong>Excellent</strong></td>
+                    <td><strong>Excellent</strong></td>
+                    <td><strong>Excellent</strong></td>
+                    <td><strong>Good</strong></td>
+                    <td><strong>Excellent</strong></td>
+                    <td><strong>Good</strong></td>
+                </tr>
+            </table>
+            <p>The gap Frescava fills: desktop software with aesthetic-first presets, real pro controls, creator-focused text tools, poster templates, and a canvas workspace. <span class="citation"></span> This combination does not exist. <span class="citation"></span></p>
+        </section>
+    </main>
+</body>
+</html>

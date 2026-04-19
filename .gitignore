@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-app/
+out/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.cube.enc
+*.clut
+
+# Models (large, download separately)
+assets/models/
+
+# User generated presets (v0.2)
+assets/presets/user/

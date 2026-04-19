@@ -1,0 +1,12 @@
+{
+  "id": "kodak_portra",
+  "name": "Kodak Portra",
+  "category": "film-stock",
+  "lutFile": "kodak_portra.cube",
+  "thumbnailFile": null,
+  "params": {
+    "grain": { "enabled": true, "type": "film", "intensity": 0.22, "size": 0.7 },
+    "vignette": { "enabled": true, "shape": "oval", "strength": 0.28, "feather": 0.65, "midpoint": 0.78 },
+    "halation": { "enabled": true, "color": "#FF5533", "radius": 35, "threshold": 0.80, "intensity": 0.25 }
+  }
+}
