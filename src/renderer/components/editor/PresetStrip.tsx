@@ -132,9 +132,42 @@ export default function PresetStrip() {
           />
         </div>
       )}
+
+      {/* ── Templates section ──────────────────────────────────────────────────── */}
+      <div className="border-t border-border shrink-0">
+        <div className="px-3 pt-3 pb-2 flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Templates</span>
+          <span className="text-[9px] font-mono text-text-muted bg-surface-100 px-1.5 py-0.5 rounded">v0.3</span>
+        </div>
+        <div className="px-2 pb-3 flex flex-col gap-1">
+          {TEMPLATE_STUBS.map(t => (
+            <div
+              key={t.id}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg opacity-50 cursor-not-allowed"
+              title="Coming in v0.3"
+            >
+              <div className="w-10 h-10 rounded-md shrink-0 flex items-center justify-center text-sm"
+                style={{ background: t.color }}>
+                {t.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-text-secondary truncate">{t.name}</p>
+                <p className="text-[9px] text-text-muted">Coming soon</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
+
+const TEMPLATE_STUBS = [
+  { id: 'editorial', name: 'Editorial', icon: '◫', color: '#E8D8C4' },
+  { id: 'filmstrip', name: 'Film Strip', icon: '▤', color: '#D8C8B4' },
+  { id: 'polaroid', name: 'Polaroid', icon: '⬜', color: '#E0D8D0' },
+  { id: 'poster', name: 'Poster', icon: '▭', color: '#D4CCC4' },
+]
 
 // ─── Category Pill ────────────────────────────────────────────────────────────
 

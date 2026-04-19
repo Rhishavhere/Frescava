@@ -123,6 +123,30 @@ export interface ExportOptions {
   editState: EditState
   quality: number       // 1–100
   maxDimension?: number // optional cap for free tier
+  canvasDataURL?: string // Option A: WebGL canvas capture for 1:1 export parity
+}
+
+// ─── Projects (.frex session files) ──────────────────────────────────────────
+
+export interface ProjectMeta {
+  path: string              // absolute path to .frex file on disk
+  name: string
+  presetId: string | null
+  savedAt: string           // ISO date string
+  previewDataURL: string | null  // base64 thumbnail for home screen card
+  imageWidth: number
+  imageHeight: number
+}
+
+export interface ProjectFile {
+  version: 1
+  name: string
+  imagePath: string
+  imageWidth: number
+  imageHeight: number
+  editState: Omit<EditState, 'imagePath' | 'imageWidth' | 'imageHeight'>
+  previewDataURL: string    // 300px wide JPEG thumbnail
+  savedAt: string
 }
 
 // ─── IPC API surface (matches preload contextBridge) ─────────────────────────
@@ -140,6 +164,12 @@ export interface FrescavaAPI {
     loadLUT: (filename: string) => Promise<LUTData>
     loadTexture: (filename: string) => Promise<ArrayBuffer>
     listPresets: () => Promise<Preset[]>
+  }
+  projects: {
+    save: (project: ProjectFile) => Promise<{ path: string }>
+    saveAs: (project: ProjectFile) => Promise<{ path: string } | null>
+    list: () => Promise<ProjectMeta[]>
+    load: (path: string) => Promise<ProjectFile>
   }
   app: {
     minimize: () => void

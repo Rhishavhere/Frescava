@@ -21,31 +21,34 @@ export function registerExportHandlers(): void {
 
     try {
       const sharp = require('sharp') as typeof import('sharp')
+      let pipeline: ReturnType<typeof sharp>
 
-      // Start pipeline from source file
-      let pipeline = sharp(opts.imagePath)
+      if (opts.canvasDataURL) {
+        // Option A: use the WebGL canvas capture directly — perfect parity with preview
+        const base64 = opts.canvasDataURL.replace(/^data:image\/\w+;base64,/, '')
+        const buffer = Buffer.from(base64, 'base64')
+        pipeline = sharp(buffer)
+      } else {
+        // Option B: full-res Sharp re-render from original file (no preview parity but full resolution)
+        pipeline = sharp(opts.imagePath).rotate()
 
-      // Apply basic adjustments via Sharp modulate + linear
-      const brightness = exposureToBrightness(opts.editState.exposure)
-      const satMult = saturationToMultiplier(opts.editState.saturation)
-      const { alpha: contrastAlpha, beta: contrastBeta } = contrastToLinear(opts.editState.contrast)
+        const brightness = exposureToBrightness(opts.editState.exposure)
+        const satMult = saturationToMultiplier(opts.editState.saturation)
+        const { alpha: contrastAlpha, beta: contrastBeta } = contrastToLinear(opts.editState.contrast)
 
-      pipeline = pipeline.modulate({ brightness, saturation: satMult })
-      pipeline = pipeline.linear(contrastAlpha, contrastBeta)
+        pipeline = pipeline.modulate({ brightness, saturation: satMult })
+        pipeline = pipeline.linear(contrastAlpha, contrastBeta)
 
-      // Apply temperature shift (approximate via modulate hue shift)
-      if (opts.editState.temperature !== 0) {
-        const tempSat = 1 + (Math.abs(opts.editState.temperature) / 100) * 0.1
-        pipeline = pipeline.modulate({ saturation: tempSat })
+        if (opts.editState.temperature !== 0) {
+          const tempSat = 1 + (Math.abs(opts.editState.temperature) / 100) * 0.1
+          pipeline = pipeline.modulate({ saturation: tempSat })
+        }
+        if (opts.editState.sharpness > 0) {
+          const sigma = 0.5 + (opts.editState.sharpness / 100) * 1.5
+          pipeline = pipeline.sharpen({ sigma })
+        }
       }
 
-      // Sharpen if requested
-      if (opts.editState.sharpness > 0) {
-        const sigma = 0.5 + (opts.editState.sharpness / 100) * 1.5
-        pipeline = pipeline.sharpen({ sigma })
-      }
-
-      // Optional max dimension cap (free tier)
       if (opts.maxDimension) {
         pipeline = pipeline.resize(opts.maxDimension, opts.maxDimension, {
           fit: 'inside',
@@ -53,7 +56,6 @@ export function registerExportHandlers(): void {
         })
       }
 
-      // Output format
       if (filePath.endsWith('.png')) {
         await pipeline.png({ compressionLevel: 8 }).toFile(filePath)
       } else {

@@ -10,8 +10,21 @@ const ASSETS_ROOT = join(__dirname, '../..', 'assets')
 export function registerAssetHandlers(): void {
   // ── Load a .cube LUT file  ──────────────────────────────────────────────────
   ipcMain.handle('assets:loadLUT', async (_event, filename: string): Promise<LUTData> => {
-    const lutPath = join(ASSETS_ROOT, 'luts', 'free', filename)
+    const lutsDir = join(ASSETS_ROOT, 'luts', 'free')
 
+    // Case-insensitive lookup: find the actual file on disk regardless of extension casing
+    let resolvedFilename = filename
+    if (existsSync(join(lutsDir, filename))) {
+      resolvedFilename = filename
+    } else {
+      try {
+        const files = readdirSync(lutsDir)
+        const match = files.find(f => f.toLowerCase() === filename.toLowerCase())
+        if (match) resolvedFilename = match
+      } catch { /* ignore */ }
+    }
+
+    const lutPath = join(lutsDir, resolvedFilename)
     if (!existsSync(lutPath)) {
       throw new Error(`LUT file not found: ${filename}`)
     }

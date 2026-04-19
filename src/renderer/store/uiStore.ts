@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type AppTab = 'editor' | 'templates' | 'canvas'
+type AppTab = 'home' | 'editor' | 'templates' | 'canvas'
 type RightPanelTab = 'light' | 'color' | 'detail' | 'effects'
 
 interface UIStore {

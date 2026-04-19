@@ -333,6 +333,12 @@ export class RenderPipeline {
     gl.uniform1f(u('u_tint'), s.tint / 100)
     gl.uniform1f(u('u_vibrance'), s.vibrance / 100)
     gl.uniform1f(u('u_saturation'), s.saturation / 100)
+    // Detail panel
+    gl.uniform1f(u('u_sharpness'), s.sharpness / 100)
+    gl.uniform1f(u('u_clarity'), s.clarity / 100)
+    gl.uniform1f(u('u_texture'), s.texture / 100)
+    gl.uniform1f(u('u_noiseReduction'), s.noiseReduction / 100)
+    gl.uniform2f(u('u_texelSize'), 1 / this.width, 1 / this.height)
     this.draw()
     return tex
   }
@@ -456,6 +462,11 @@ export class RenderPipeline {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     this.bindProgram(this.progPassthrough, input, null)
     this.draw()
+  }
+
+  // ── Capture the current canvas as a data URL (Option A export parity) ──────
+  getCanvasDataURL(type = 'image/jpeg', quality = 0.92): string {
+    return this.outputCanvas.toDataURL(type, quality)
   }
 
   // ── Resize ─────────────────────────────────────────────────────────────────

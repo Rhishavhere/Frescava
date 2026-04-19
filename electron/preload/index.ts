@@ -16,6 +16,14 @@ const api = {
     loadTexture: (filename: string) => ipcRenderer.invoke('assets:loadTexture', filename),
     listPresets: () => ipcRenderer.invoke('assets:listPresets'),
   },
+  projects: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    save: (project: any) => ipcRenderer.invoke('projects:save', project),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    saveAs: (project: any) => ipcRenderer.invoke('projects:saveAs', project),
+    list: () => ipcRenderer.invoke('projects:list'),
+    load: (path: string) => ipcRenderer.invoke('projects:load', path),
+  },
   app: {
     minimize: () => ipcRenderer.invoke('app:minimize'),
     maximize: () => ipcRenderer.invoke('app:maximize'),

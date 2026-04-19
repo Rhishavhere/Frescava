@@ -23,11 +23,15 @@ export default function ImageCanvas() {
     try {
       const pipeline = new RenderPipeline(canvas)
       pipelineRef.current = pipeline
+
+      // Expose canvas capture method globally so Toolbar can access it without prop-drilling
+      window.__frescavaGetCanvasDataURL = () => pipeline.getCanvasDataURL()
     } catch (e) {
       console.error('[Canvas] WebGL init failed:', e)
     }
 
     return () => {
+      window.__frescavaGetCanvasDataURL = undefined
       if (pipelineRef.current) {
         pipelineRef.current.destroy()
         pipelineRef.current = null

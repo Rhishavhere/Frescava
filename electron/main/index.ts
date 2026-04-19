@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, globalShortcut } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } from 'electron'
 import { join } from 'path'
 import { registerExportHandlers } from './ipc/export'
 import { registerAssetHandlers } from './ipc/assets'
+import { registerProjectHandlers } from './ipc/projects'
 
 const isDev = process.env['ELECTRON_RENDERER_URL'] !== undefined || process.env['NODE_ENV'] === 'development'
 
@@ -124,6 +125,7 @@ app.whenReady().then(() => {
 
   registerExportHandlers()
   registerAssetHandlers()
+  registerProjectHandlers()
 
   createWindow()
 

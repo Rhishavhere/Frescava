@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-type AppTab = 'editor' | 'templates' | 'canvas'
+type AppTab = 'home' | 'editor' | 'templates' | 'canvas'
 
 interface TitleBarProps {
   activeTab: AppTab
@@ -8,8 +8,8 @@ interface TitleBarProps {
 }
 
 const TABS: { id: AppTab; label: string }[] = [
+  { id: 'home', label: 'Home' },
   { id: 'editor', label: 'Editor' },
-  { id: 'templates', label: 'Templates' },
   { id: 'canvas', label: 'Canvas' },
 ]
 

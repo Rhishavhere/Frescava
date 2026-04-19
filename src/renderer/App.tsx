@@ -4,14 +4,15 @@ import { useEditStore } from './store/editStore'
 import { usePresetStore } from './store/presetStore'
 import TitleBar from './components/ui/TitleBar'
 import Editor from './pages/Editor'
+import Home from './pages/Home'
 
-// Stub pages for future tabs
 function TemplatesStub() {
   return (
-    <div className="flex-1 flex items-center justify-center text-text-muted">
+    <div className="flex-1 flex items-center justify-center" style={{ background: '#F6F2EC' }}>
       <div className="text-center">
-        <div className="text-4xl mb-3">🎨</div>
-        <p className="text-sm font-medium">Templates — coming in v0.3</p>
+        <div className="text-5xl mb-4" style={{ fontFamily: 'Georgia, serif' }}>◫</div>
+        <p className="text-sm font-semibold" style={{ fontFamily: 'Georgia, serif' }}>Templates — coming in v0.3</p>
+        <p className="text-xs font-mono text-black/40 mt-2">Editorial layouts, film strips, poster compositions</p>
       </div>
     </div>
   )
@@ -19,10 +20,11 @@ function TemplatesStub() {
 
 function CanvasStub() {
   return (
-    <div className="flex-1 flex items-center justify-center text-text-muted">
+    <div className="flex-1 flex items-center justify-center" style={{ background: '#F6F2EC' }}>
       <div className="text-center">
-        <div className="text-4xl mb-3">∞</div>
-        <p className="text-sm font-medium">Canvas — coming in v0.5</p>
+        <div className="text-5xl mb-4" style={{ fontFamily: 'Georgia, serif' }}>∞</div>
+        <p className="text-sm font-semibold" style={{ fontFamily: 'Georgia, serif' }}>Canvas — coming in v0.5</p>
+        <p className="text-xs font-mono text-black/40 mt-2">Infinite moodboard workspace</p>
       </div>
     </div>
   )
@@ -33,20 +35,17 @@ export default function App() {
   const { setShowOriginal } = useEditStore()
   const { loadPresets } = usePresetStore()
 
-  // Load presets on startup
   useEffect(() => {
     loadPresets()
   }, [loadPresets])
 
   // Global keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Spacebar = before/after toggle (only when not typing in an input)
     if (e.code === 'Space' &&
         !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
       e.preventDefault()
       setShowOriginal(true)
     }
-    // Cmd/Ctrl+Z = undo (handled in editStore, but we can dispatch here if needed)
   }, [setShowOriginal])
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
@@ -66,11 +65,9 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-white overflow-hidden">
-      {/* Custom title bar */}
       <TitleBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Page content */}
       <div className="flex-1 overflow-hidden flex flex-col">
+        {activeTab === 'home' && <Home />}
         {activeTab === 'editor' && <Editor />}
         {activeTab === 'templates' && <TemplatesStub />}
         {activeTab === 'canvas' && <CanvasStub />}

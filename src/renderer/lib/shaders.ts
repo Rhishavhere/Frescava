@@ -32,7 +32,7 @@ uniform sampler2D u_image;
 in vec2 v_texCoord;
 out vec4 fragColor;
 
-// Adjustment uniforms (-1 to 1 normalized unless specified)
+// ── Adjustment uniforms ──
 uniform float u_exposure;      // -5..5 stops
 uniform float u_contrast;      // -1..1
 uniform float u_highlights;    // -1..1
@@ -43,6 +43,13 @@ uniform float u_temperature;   // -1..1
 uniform float u_tint;          // -1..1
 uniform float u_vibrance;      // -1..1
 uniform float u_saturation;    // -1..1
+
+// ── Detail uniforms ──
+uniform float u_sharpness;     // 0..1
+uniform float u_clarity;       // -1..1
+uniform float u_texture;       // -1..1
+uniform float u_noiseReduction;// 0..1
+uniform vec2  u_texelSize;     // 1/width, 1/height
 
 // sRGB <-> linear helpers
 float srgbToLinear(float v) {
@@ -166,6 +173,73 @@ void main() {
   hsl.y = clamp(hsl.y + u_vibrance * vibranceMask * 0.8, 0.0, 1.0);
   rgb = hslToRgb(hsl);
 
+  // ── Detail processing (requires texelSize uniforms) ──────────────────────
+  
+  // 3×3 luminosity-weighted Noise Reduction (simple box blur in shadow regions)
+  if (u_noiseReduction > 0.001) {
+    vec3 blurred = vec3(0.0);
+    float wTotal = 0.0;
+    for (int dy = -1; dy <= 1; dy++) {
+      for (int dx = -1; dx <= 1; dx++) {
+        vec2 offset = vec2(float(dx), float(dy)) * u_texelSize;
+        vec3 s = texture(u_image, v_texCoord + offset).rgb;
+        float w = 1.0 - float(abs(dx) + abs(dy)) * 0.15;
+        blurred += s * w;
+        wTotal  += w;
+      }
+    }
+    blurred /= wTotal;
+    // Apply NR only in shadowed regions — bright areas stay sharp
+    vec3 hslNR = rgbToHsl(rgb);
+    float shadowMask = 1.0 - smoothstep(0.0, 0.55, hslNR.z);
+    rgb = mix(rgb, blurred, u_noiseReduction * shadowMask * 0.75);
+  }
+
+  // Sharpness — Laplacian unsharp mask
+  if (u_sharpness > 0.001) {
+    vec3 center = rgb;
+    vec3 neighbors = vec3(0.0);
+    neighbors += texture(u_image, v_texCoord + vec2( u_texelSize.x, 0.0)).rgb;
+    neighbors += texture(u_image, v_texCoord + vec2(-u_texelSize.x, 0.0)).rgb;
+    neighbors += texture(u_image, v_texCoord + vec2(0.0,  u_texelSize.y)).rgb;
+    neighbors += texture(u_image, v_texCoord + vec2(0.0, -u_texelSize.y)).rgb;
+    vec3 edge = center - neighbors * 0.25;
+    rgb = clamp(rgb + edge * u_sharpness * 1.8, 0.0, 1.0);
+  }
+
+  // Texture — fine detail boost (smaller radius than clarity)
+  if (abs(u_texture) > 0.001) {
+    vec3 fine = vec3(0.0);
+    for (int dy = -1; dy <= 1; dy++) {
+      for (int dx = -1; dx <= 1; dx++) {
+        fine += texture(u_image, v_texCoord + vec2(float(dx), float(dy)) * u_texelSize * 0.8).rgb;
+      }
+    }
+    fine /= 9.0;
+    vec3 fineDetail = rgb - fine;
+    rgb = clamp(rgb + fineDetail * u_texture * 1.4, 0.0, 1.0);
+  }
+
+  // Clarity — local contrast boost via large-radius unsharp mask
+  if (abs(u_clarity) > 0.001) {
+    vec3 blurC = vec3(0.0);
+    float wC = 0.0;
+    for (int dy = -2; dy <= 2; dy++) {
+      for (int dx = -2; dx <= 2; dx++) {
+        vec2 off = vec2(float(dx), float(dy)) * u_texelSize * 3.0;
+        float ww = exp(-float(dx*dx + dy*dy) * 0.18);
+        blurC += texture(u_image, v_texCoord + off).rgb * ww;
+        wC    += ww;
+      }
+    }
+    blurC /= wC;
+    vec3 clarityDetail = rgb - blurC;
+    // Only boost midtones (mask out highlights to avoid blown-out look)
+    vec3 hslC = rgbToHsl(rgb);
+    float midMask = smoothstep(0.1, 0.5, hslC.z) * (1.0 - smoothstep(0.5, 0.9, hslC.z));
+    rgb = clamp(rgb + clarityDetail * u_clarity * midMask * 2.0, 0.0, 1.0);
+  }
+
   fragColor = vec4(clamp(rgb, 0.0, 1.0), color.a);
 }
 `
@@ -192,7 +266,7 @@ void main() {
 }
 `
 
-// ─── Grain shader ────────────────────────────────────────────────────────────
+// ─── Grain shader — smooth value noise with luminosity masking ───────────────
 
 export const GRAIN_FRAG = /* glsl */`#version 300 es
 precision highp float;
@@ -201,79 +275,77 @@ in vec2 v_texCoord;
 out vec4 fragColor;
 
 uniform float u_intensity;   // 0..1
-uniform float u_size;        // 0..1 (maps to pixel size)
-uniform float u_seed;        // random seed (changes per frame if animated)
+uniform float u_size;        // 0..1
+uniform float u_seed;        // jitter seed (change per frame for animated grain)
 uniform int u_type;          // 0=fine, 1=medium, 2=coarse, 3=film
 
-float hash(vec2 p) {
-  p = fract(p * vec2(234.34, 435.345));
-  p += dot(p, p + 34.23);
-  return fract(p.x * p.y);
+// Smooth value noise helpers
+vec2 hash2(vec2 p) {
+  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+  return -1.0 + 2.0 * fract(sin(p) * 43758.5453);
 }
 
-float grain(vec2 uv, float sz, float seed) {
-  vec2 scaled = uv / sz + seed * 7.3;
-  return hash(floor(scaled)) * 2.0 - 1.0;
+float valueNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  // Smooth quintic interpolation
+  vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+  float a = dot(hash2(i + vec2(0.0, 0.0)), f - vec2(0.0, 0.0));
+  float b = dot(hash2(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0));
+  float c = dot(hash2(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0));
+  float d = dot(hash2(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-vec3 rgbToHsl(vec3 rgb) {
-  float maxC = max(rgb.r, max(rgb.g, rgb.b));
-  float minC = min(rgb.r, min(rgb.g, rgb.b));
-  float delta = maxC - minC;
-  float l = (maxC + minC) * 0.5;
-  float s = delta < 0.0001 ? 0.0 : delta / (1.0 - abs(2.0 * l - 1.0));
-  float h = 0.0;
-  if (delta > 0.0001) {
-    if (maxC == rgb.r) h = mod((rgb.g - rgb.b) / delta, 6.0);
-    else if (maxC == rgb.g) h = (rgb.b - rgb.r) / delta + 2.0;
-    else h = (rgb.r - rgb.g) / delta + 4.0;
-    h /= 6.0;
+float multiOctaveNoise(vec2 p) {
+  float v = 0.0;
+  float amp = 0.5;
+  for (int i = 0; i < 3; i++) {
+    v += valueNoise(p) * amp;
+    p  = p * 2.1 + vec2(31.4, 17.3);
+    amp *= 0.45;
   }
-  return vec3(h, s, l);
-}
-float hue2rgb(float p, float q, float t) {
-  if (t < 0.0) t += 1.0; if (t > 1.0) t -= 1.0;
-  if (t < 1.0/6.0) return p + (q-p)*6.0*t;
-  if (t < 1.0/2.0) return q;
-  if (t < 2.0/3.0) return p + (q-p)*(2.0/3.0-t)*6.0;
-  return p;
-}
-vec3 hslToRgb(vec3 hsl) {
-  float h=hsl.x,s=hsl.y,l=hsl.z;
-  if (s < 0.0001) return vec3(l);
-  float q = l < 0.5 ? l*(1.0+s) : l+s-l*s;
-  float p = 2.0*l-q;
-  return vec3(hue2rgb(p,q,h+1.0/3.0), hue2rgb(p,q,h), hue2rgb(p,q,h-1.0/3.0));
+  return v;
 }
 
 void main() {
   vec4 color = texture(u_image, v_texCoord);
 
-  // Grain size in uv space
-  float grainSize = 0.001 + u_size * 0.008;
+  // Frequency based on type
+  float freq;
+  if      (u_type == 0) freq = 800.0 + u_size * 400.0;  // fine
+  else if (u_type == 1) freq = 450.0 + u_size * 250.0;  // medium
+  else if (u_type == 2) freq = 200.0 + u_size * 150.0;  // coarse
+  else                  freq = 600.0 + u_size * 300.0;  // film (fine but layered)
+
+  vec2 noiseUV = v_texCoord * freq + u_seed * 73.1;
 
   float noise;
   if (u_type == 3) {
-    // Film: organic clumping (two overlapping layers)
-    vec2 off = vec2(0.0013, 0.0009);
-    noise = (grain(v_texCoord, grainSize, u_seed) +
-              grain(v_texCoord + off, grainSize * 1.6, u_seed)) * 0.5;
-  } else if (u_type == 2) {
-    // Coarse: large blobs
-    noise = grain(v_texCoord, grainSize * 2.5, u_seed);
-  } else if (u_type == 1) {
-    // Medium
-    noise = grain(v_texCoord, grainSize * 1.5, u_seed);
+    // Film: two slightly offset layers for organic character
+    noise = multiOctaveNoise(noiseUV) * 0.65
+          + multiOctaveNoise(noiseUV * 0.5 + vec2(13.7, 9.4)) * 0.35;
   } else {
-    // Fine
-    noise = grain(v_texCoord, grainSize, u_seed);
+    noise = multiOctaveNoise(noiseUV);
   }
 
-  // Apply in luminosity mode — affect brightness only, not hue/sat
-  vec3 hsl = rgbToHsl(color.rgb);
-  hsl.z = clamp(hsl.z + noise * u_intensity * 0.18, 0.0, 1.0);
-  vec3 result = hslToRgb(hsl);
+  // ── Luminosity mask: grain is stronger in shadows & midtones, fades in highlights ──
+  // (models real film silver halide behaviour)
+  float lum = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+  float lumMask = smoothstep(0.9, 0.5, lum) * 0.6  // reduce in brights
+                + smoothstep(0.0, 0.3, lum) * 0.4;  // reduce in extreme shadows
+  lumMask = clamp(lumMask, 0.2, 1.0);
 
+  float grainAmount = noise * u_intensity * 0.22 * lumMask;
+
+  // Apply in luminosity — affects value only, preserves hue/sat
+  // Optionally: add a very subtle warm tint to grain (film character)
+  vec3 grainColor = vec3(1.0);
+  if (u_type == 3) {
+    grainColor = vec3(1.02, 0.99, 0.97); // slightly warm, like Kodak
+  }
+
+  vec3 result = clamp(color.rgb + grainAmount * grainColor, 0.0, 1.0);
   fragColor = vec4(result, color.a);
 }
 `

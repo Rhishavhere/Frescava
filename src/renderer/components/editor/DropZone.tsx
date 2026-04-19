@@ -1,21 +1,20 @@
 import { useCallback } from 'react'
-import { useEditStore } from '../../store/editStore'
 import { useUIStore } from '../../store/uiStore'
+import { useTabStore } from '../../store/tabStore'
 
 export default function DropZone() {
-  const { loadImage } = useEditStore()
   const { setIsLoadingImage } = useUIStore()
+  const { openTab } = useTabStore()
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return
     setIsLoadingImage(true)
     
     try {
-      // In Electron, File objects have a 'path' property
       const filePath = (file as any).path
       if (filePath) {
         const result = await window.frame.file.load(filePath)
-        loadImage(result.path, result.width, result.height, result.dataURL)
+        openTab({ path: result.path, dataURL: result.dataURL, width: result.width, height: result.height })
       } else {
         console.error('File path not available')
       }
@@ -24,7 +23,7 @@ export default function DropZone() {
     } finally {
       setIsLoadingImage(false)
     }
-  }, [loadImage, setIsLoadingImage])
+  }, [openTab, setIsLoadingImage])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -46,7 +45,7 @@ export default function DropZone() {
     const result = await window.frame.file.open()
     if (!result) return
     setIsLoadingImage(true)
-    loadImage(result.path, result.width, result.height, result.dataURL)
+    openTab({ path: result.path, dataURL: result.dataURL, width: result.width, height: result.height })
     setIsLoadingImage(false)
   }
 
