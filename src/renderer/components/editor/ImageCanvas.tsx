@@ -135,7 +135,7 @@ export default function ImageCanvas() {
 
     const loadTex = async (id: string, filename: string) => {
       try {
-        const buffer = await window.frame.assets.loadTexture(`presets/${preset.folderName}/${filename}`)
+        const buffer = await window.frame.assets.loadTexture(filename)
         const blob = new Blob([buffer])
         const url = URL.createObjectURL(blob)
         const img = new Image()

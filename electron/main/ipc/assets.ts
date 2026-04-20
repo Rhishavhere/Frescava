@@ -38,12 +38,9 @@ function normalizePreset(raw: PresetDef, folderName: string): Preset {
   if (raw.grain) {
     defaults.grain = {
       enabled: raw.grain.enabled ?? false,
-      type: raw.grain.type ?? 'medium',
-      intensity: raw.grain.intensity ?? 0.3,
-      size: raw.grain.size ?? 1,
-      roughness: raw.grain.roughness ?? 0.5,
-      luminosityMode: raw.grain.luminosityMode ?? true,
-      highlightReduction: raw.grain.highlightReduction ?? 0.4,
+      textureFile: raw.grain.textureFile ?? null,
+      opacity: raw.grain.opacity ?? 0.5,
+      blendMode: raw.grain.blendMode ?? 'overlay',
     }
   }
 

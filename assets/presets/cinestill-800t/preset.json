@@ -58,38 +58,6 @@
     "character": "soft"
   },
 
-  "lensDistortion": {
-    "enabled": false,
-    "amount": 0.0
-  },
-
-  "lightLeak": {
-    "enabled": false,
-    "textureFile": null,
-    "color": "#FF4400",
-    "colorStrength": 0.4,
-    "position": [0.0, 0.0],
-    "opacity": 0.0,
-    "blendMode": "screen"
-  },
-
-  "dustScratches": {
-    "enabled": false,
-    "textureFile": null,
-    "opacity": 0.0,
-    "blendMode": "screen"
-  },
-
-  "border": {
-    "enabled": false,
-    "type": null,
-    "textureFile": null,
-    "color": "#1A1A1A",
-    "width": 0.025,
-    "bottomWeight": 1.0,
-    "cornerRadius": 0.0,
-    "expandCanvas": false
-  },
 
   "ui": {
     "accentColor": "#E84040",
