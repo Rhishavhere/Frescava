@@ -119,8 +119,16 @@ async function loadImageFile(filePath: string): Promise<{
 }> {
   const sharp = require('sharp')
   
-  // Rotate resolves EXIF orientation. Resize to max 2560 on the longest edge to avoid WebGL memory bloat.
-  const pipeline = sharp(filePath)
+  const tempDir = join(app.getPath('temp'), 'frescava-previews')
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true })
+  }
+
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`
+  const tempPath = join(tempDir, fileName)
+
+  // Write DIRECTLY to file — no intermediate buffer, single Sharp pass
+  const info = await sharp(filePath)
     .rotate()
     .resize({
       width: 2560,
@@ -128,25 +136,14 @@ async function loadImageFile(filePath: string): Promise<{
       fit: 'inside',
       withoutEnlargement: true
     })
-
-  const { data, info } = await pipeline.jpeg({ quality: 85, mozjpeg: true }).toBuffer({ resolveWithObject: true })
-
-  const tempDir = join(app.getPath('temp'), 'frescava-previews')
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true })
-  }
-  
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`
-  const tempPath = join(tempDir, fileName)
-  fs.writeFileSync(tempPath, data)
-
-  const dataURL = `frescava://load/${encodeURIComponent(fileName)}`
+    .jpeg({ quality: 85, mozjpeg: true })
+    .toFile(tempPath)  // ← direct to file, no .toBuffer() first
 
   return {
     path: filePath,
     width: info.width ?? 0,
     height: info.height ?? 0,
-    dataURL,
+    dataURL: `frescava://load/${encodeURIComponent(fileName)}`,
   }
 }
 
