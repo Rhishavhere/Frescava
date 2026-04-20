@@ -49,33 +49,52 @@ export default function ImageCanvas() {
   useEffect(() => {
     if (!imageDataURL || !pipelineRef.current || !canvasRef.current || !containerRef.current) return
 
-    const img = new Image()
-    img.onload = () => {
-      if (!pipelineRef.current || !containerRef.current) return
-      currentImageRef.current = img
+    let isCancelled = false
 
-      // Size canvas to fit container while maintaining aspect ratio
-      const container = containerRef.current
-      const containerW = container.clientWidth
-      const containerH = container.clientHeight
-      const aspect = img.width / img.height
+    const loadBitmap = async () => {
+      try {
+        const response = await fetch(imageDataURL)
+        const blob = await response.blob()
+        const img = await createImageBitmap(blob)
 
-      let displayW = containerW - 48 // padding
-      let displayH = displayW / aspect
-      if (displayH > containerH - 48) {
-        displayH = containerH - 48
-        displayW = displayH * aspect
+        if (isCancelled || !pipelineRef.current || !containerRef.current) {
+          img.close()
+          return
+        }
+
+        currentImageRef.current = img as unknown as HTMLImageElement
+
+        // Size canvas to fit container while maintaining aspect ratio
+        const container = containerRef.current
+        const containerW = container.clientWidth
+        const containerH = container.clientHeight
+        const aspect = img.width / img.height
+
+        let displayW = containerW - 48 // padding
+        let displayH = displayW / aspect
+        if (displayH > containerH - 48) {
+          displayH = containerH - 48
+          displayW = displayH * aspect
+        }
+
+        const canvas = canvasRef.current!
+        canvas.width = Math.round(displayW)
+        canvas.height = Math.round(displayH)
+
+        pipelineRef.current.resize(canvas.width, canvas.height)
+        pipelineRef.current.loadImage(img)
+        // Ensure requestRender is called, it will be defined by the time this async function resolves
+        requestRender()
+      } catch (e) {
+        console.error('[Canvas] Failed to load ImageBitmap:', e)
       }
-
-      const canvas = canvasRef.current!
-      canvas.width = Math.round(displayW)
-      canvas.height = Math.round(displayH)
-
-      pipelineRef.current.resize(canvas.width, canvas.height)
-      pipelineRef.current.loadImage(img)
-      requestRender()
     }
-    img.src = imageDataURL
+
+    loadBitmap()
+
+    return () => {
+      isCancelled = true
+    }
   }, [imageDataURL])
 
   // ── Load LUT when preset changes ───────────────────────────────────────────

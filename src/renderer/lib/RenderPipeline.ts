@@ -186,7 +186,7 @@ export class RenderPipeline {
 
   // ── Load image ──────────────────────────────────────────────────────────────
 
-  loadImage(imageData: ImageData | HTMLImageElement): void {
+  loadImage(imageData: ImageData | HTMLImageElement | ImageBitmap): void {
     const gl = this.gl
     if (this.sourceTexture) gl.deleteTexture(this.sourceTexture)
     const tex = gl.createTexture()!

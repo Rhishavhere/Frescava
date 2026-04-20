@@ -1,10 +1,26 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } from 'electron'
-import { join } from 'path'
+import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, protocol, net } from 'electron'
+import { join, basename } from 'path'
+import * as fs from 'fs'
 import { registerExportHandlers } from './ipc/export'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerProjectHandlers } from './ipc/projects'
 
 const isDev = process.env['ELECTRON_RENDERER_URL'] !== undefined || process.env['NODE_ENV'] === 'development'
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'frescava', privileges: { secure: true, standard: true, bypassCSP: true, supportFetchAPI: true } }
+])
+
+function cleanPreviewsDir(): void {
+  const tempDir = join(app.getPath('temp'), 'frescava-previews')
+  try {
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true })
+    }
+  } catch (e) {
+    console.error('Failed to clean temp previews:', e)
+  }
+}
 
 let mainWindow: BrowserWindow | null = null
 
@@ -115,7 +131,16 @@ async function loadImageFile(filePath: string): Promise<{
 
   const { data, info } = await pipeline.jpeg({ quality: 85, mozjpeg: true }).toBuffer({ resolveWithObject: true })
 
-  const dataURL = `data:image/jpeg;base64,${data.toString('base64')}`
+  const tempDir = join(app.getPath('temp'), 'frescava-previews')
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true })
+  }
+  
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`
+  const tempPath = join(tempDir, fileName)
+  fs.writeFileSync(tempPath, data)
+
+  const dataURL = `frescava://load/${encodeURIComponent(fileName)}`
 
   return {
     path: filePath,
@@ -146,6 +171,22 @@ async function loadImageFileFull(filePath: string): Promise<{
 }
 
 app.whenReady().then(() => {
+  cleanPreviewsDir() // Clean on startup for crash recovery
+  
+  protocol.handle('frescava', (request) => {
+    const url = request.url.replace('frescava://load/', '')
+    const decodedName = decodeURIComponent(url)
+    const tempDir = join(app.getPath('temp'), 'frescava-previews')
+    
+    // Sandbox to temp directory
+    const safePath = join(tempDir, basename(decodedName))
+    
+    if (safePath.startsWith(tempDir) && fs.existsSync(safePath)) {
+      return net.fetch('file://' + safePath)
+    }
+    return new Response('Not Found', { status: 404 })
+  })
+
   app.setAppUserModelId('co.frescava.desktop')
 
   registerExportHandlers()
@@ -160,5 +201,6 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  cleanPreviewsDir() // Clean on exit
   if (process.platform !== 'darwin') app.quit()
 })
