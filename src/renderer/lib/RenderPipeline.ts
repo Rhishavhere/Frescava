@@ -226,7 +226,9 @@ export class RenderPipeline {
 
     const tex = gl.createTexture()!
     gl.bindTexture(gl.TEXTURE_3D, tex)
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1) // ← add this before texImage3D
     gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB, size, size, size, 0, gl.RGB, gl.UNSIGNED_BYTE, uint8)
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4) // ← reset to default after
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)

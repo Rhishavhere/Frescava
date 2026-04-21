@@ -55,7 +55,8 @@ export default function ImageCanvas() {
       try {
         const response = await fetch(imageDataURL)
         const blob = await response.blob()
-        const img = await createImageBitmap(blob)
+        // ImageBitmaps ignore WebGL's UNPACK_FLIP_Y_WEBGL, so we must flip them here
+        const img = await createImageBitmap(blob, { imageOrientation: 'flipY' })
 
         if (isCancelled || !pipelineRef.current || !containerRef.current) {
           img.close()
