@@ -81,7 +81,7 @@ module.exports = {
         },
       },
       spacing: {
-        'titlebar': '38px',
+        'titlebar': '32px',
       }
     },
   },

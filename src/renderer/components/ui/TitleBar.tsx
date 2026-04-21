@@ -30,8 +30,8 @@ export default function TitleBar({ activeTab, onTabChange }: TitleBarProps) {
 
   return (
     <header
-      className="drag-region flex items-center h-10 border-b border-border bg-white shrink-0"
-      style={{ minHeight: 40 }}
+      className="drag-region flex items-center h-8 border-b border-border bg-white shrink-0"
+      style={{ minHeight: 32 }}
     >
       {/* macOS traffic lights space */}
       {isMac && <div className="no-drag w-[72px] shrink-0" />}
@@ -72,7 +72,7 @@ export default function TitleBar({ activeTab, onTabChange }: TitleBarProps) {
         <div className="no-drag flex items-center">
           <button
             onClick={handleMinimize}
-            className="flex items-center justify-center w-11 h-10 text-text-muted hover:bg-surface-100 hover:text-text-primary transition-colors"
+            className="flex items-center justify-center w-11 h-8 text-text-muted hover:bg-surface-100 hover:text-text-primary transition-colors"
             title="Minimize"
           >
             <svg width="10" height="1" viewBox="0 0 10 1" fill="none">
@@ -81,7 +81,7 @@ export default function TitleBar({ activeTab, onTabChange }: TitleBarProps) {
           </button>
           <button
             onClick={handleMaximize}
-            className="flex items-center justify-center w-11 h-10 text-text-muted hover:bg-surface-100 hover:text-text-primary transition-colors"
+            className="flex items-center justify-center w-11 h-8 text-text-muted hover:bg-surface-100 hover:text-text-primary transition-colors"
             title={isMaximized ? 'Restore' : 'Maximize'}
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -97,7 +97,7 @@ export default function TitleBar({ activeTab, onTabChange }: TitleBarProps) {
           </button>
           <button
             onClick={handleClose}
-            className="flex items-center justify-center w-11 h-10 text-text-muted hover:bg-red-500 hover:text-white transition-colors"
+            className="flex items-center justify-center w-11 h-8 text-text-muted hover:bg-red-500 hover:text-white transition-colors"
             title="Close"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">

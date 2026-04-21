@@ -217,7 +217,7 @@ input[type='range']:focus::-webkit-slider-thumb {
 /* ─── Tab bar ─────────────────────────────────────────────────────────────── */
 
 .tab-item {
-  @apply relative px-4 py-2 text-sm font-medium text-text-muted cursor-pointer transition-colors duration-150;
+  @apply relative px-4 py-1 text-sm font-medium text-text-muted cursor-pointer transition-colors duration-150;
   @apply hover:text-text-primary;
 }
 .tab-item.active {
