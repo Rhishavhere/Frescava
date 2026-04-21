@@ -11,6 +11,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Kenoky';
+  src: url('../assets/fonts/KenokyLight.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
 @keyframes scroll-up {
   0% { transform: translateY(0); }
   100% { transform: translateY(-50%); }

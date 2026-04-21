@@ -32,11 +32,11 @@ function CanvasStub() {
 
 function ExploreStub() {
   return (
-    <div className="flex-1 flex items-center justify-center bg-black text-white">
+    <div className="flex-1 flex items-center justify-center bg-[#F6F2EC] text-black">
       <div className="text-center">
         <div className="text-5xl mb-4 opacity-50">✧</div>
         <p className="text-sm font-mono tracking-widest uppercase">Explore (Coming Soon)</p>
-        <p className="text-xs font-mono text-white/40 mt-2">Discover curated film stocks and templates</p>
+        <p className="text-xs font-mono text-black/40 mt-2">Discover curated film stocks and templates</p>
       </div>
     </div>
   )

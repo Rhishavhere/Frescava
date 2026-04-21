@@ -42,7 +42,7 @@ interface UIStore {
 }
 
 export const useUIStore = create<UIStore>((set) => ({
-  activeTab: 'editor',
+  activeTab: 'home',
   setActiveTab: (tab) => set({ activeTab: tab }),
 
   rightPanelTab: 'light',

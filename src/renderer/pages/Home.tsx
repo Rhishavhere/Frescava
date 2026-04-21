@@ -2,28 +2,17 @@ import { useSessionStore } from '../store/tabStore'
 import { useUIStore } from '../store/uiStore'
 
 const COL_1 = [
-  'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1481555716071-8830d013ac1c?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?auto=format&fit=crop&w=600&q=80'
+  'https://images.unsplash.com/photo-1730956473717-b1bb69fc595e?q=80&w=707&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  'https://images.unsplash.com/photo-1548811579-017cf2a4268b?q=80&w=689&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  'https://images.unsplash.com/photo-1753093329977-d950f394b215?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
 ]
 
 const COL_2 = [
-  'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1502161254066-6c74afbf07aa?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1515347619362-7dd3d5e236e7?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1534444586259-71701eedba7c?auto=format&fit=crop&w=600&q=80'
+  'https://images.unsplash.com/photo-1608146226687-b39d090a8c20?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  'https://images.unsplash.com/photo-1696671294244-558d2365683d?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  'https://images.unsplash.com/photo-1702700484900-14d8d528b660?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
 ]
 
-const COL_3 = [
-  'https://images.unsplash.com/photo-1542301416-654db4010a30?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1481604987258-a510fba2be9a?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1520333789090-1afc82db536a?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1436831135709-48bd1ef01783?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?auto=format&fit=crop&w=600&q=80'
-]
 
 
 function MarqueeColumn({ images, direction }: { images: string[]; direction: 'up' | 'down' }) {
@@ -62,7 +51,7 @@ export default function Home() {
     <div className="flex w-full h-full bg-[#f4f4f4] text-black overflow-hidden font-mono">
       
       {/* ─── LEFT PANE (55%) ─── */}
-      <div className="w-[55%] h-full flex flex-col p-10 justify-between shrink-0">
+      <div className="w-[65%] h-full flex flex-col p-10 justify-between shrink-0">
         
         {/* Top Navbar */}
         <div className="flex justify-between items-center text-[10px] tracking-[0.15em] font-semibold uppercase">
@@ -71,21 +60,21 @@ export default function Home() {
               <rect x="3" y="3" width="18" height="18" />
               <line x1="9" y1="3" x2="9" y2="21" />
             </svg>
-            <span>PRESETS +</span>
+            <span>RHISHAV</span>
           </button>
 
           <div className="flex gap-6">
-            <button className="hover:opacity-60 transition-opacity">LUTS +</button>
-            <button className="hover:opacity-60 transition-opacity">PROJECTS +</button>
-            <button className="hover:opacity-60 transition-opacity">NEW +</button>
+            <button className="hover:opacity-60 transition-opacity">RECENTS +</button>
+            <button className="hover:opacity-60 transition-opacity">COMMUNITY +</button>
+            <button className="hover:opacity-60 transition-opacity">CREATE +</button>
           </div>
         </div>
 
         {/* Center Canvas */}
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="relative inline-flex items-start">
-            <h1 style={{ fontFamily: 'Coffekan', fontSize: 'clamp(5rem, 14vw, 16rem)', lineHeight: 0.9, letterSpacing: '-0.02em', color: '#000' }}>
-              Frescava
+            <h1 className="font-kenoky text-[clamp(5rem,14vw,16rem)] leading-[0.9] tracking-[-0.02em] text-black">
+              frescava
             </h1>
             <span className="text-xl md:text-3xl font-sans font-bold absolute -right-6 md:-right-10 top-2 md:top-6 opacity-80">
               ®
@@ -96,19 +85,19 @@ export default function Home() {
           <div className="mt-12 flex gap-8 text-[11px] font-semibold tracking-[0.2em] uppercase text-black/40">
             <button onClick={handleOpenImage} className="hover:text-black transition-colors hover:scale-105 transform duration-300">OPEN</button>
             <button onClick={() => setActiveTab('editor')} className="hover:text-black transition-colors hover:scale-105 transform duration-300">EDITOR</button>
-            <button className="hover:text-black transition-colors hover:scale-105 transform duration-300">CANVAS</button>
+            <button onClick={() => setActiveTab('canvas')} className="hover:text-black transition-colors hover:scale-105 transform duration-300">CANVAS</button>
           </div>
         </div>
 
         {/* Bottom Footer */}
         <div className="flex justify-between items-end text-[9px] font-semibold tracking-widest uppercase">
           <button onClick={handleOpenImage} className="text-left w-32 hover:opacity-60 transition-opacity">
-            OPEN PHOTO +
+            WHAT'S NEW ?
           </button>
           
           <div className="text-center tracking-[0.1em] leading-relaxed mx-4">
-            HIGH QUALITY PRESETS DESIGNED<br />
-            & MADE IN THE CLOUD
+            THE ART OF HARMONY, BROUGHT CLOSER TO<br />
+            THE EYES OF THE BEHOLDER
           </div>
 
           <div className="text-right w-32">
@@ -118,10 +107,10 @@ export default function Home() {
       </div>
 
       {/* ─── RIGHT PANE (45%) ─── */}
-      <div className="w-[45%] h-full bg-black p-2 flex gap-2 flex-grow">
+      <div className="w-[35%] h-full bg-black p-2 flex gap-2 flex-grow">
         <MarqueeColumn direction="up" images={COL_1} />
         <MarqueeColumn direction="down" images={COL_2} />
-        <MarqueeColumn direction="up" images={COL_3} />
+        {/* <MarqueeColumn direction="up" images={COL_3} /> */}
       </div>
 
     </div>

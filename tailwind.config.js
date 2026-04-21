@@ -44,6 +44,8 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+        kenoky: ['Kenoky', 'sans-serif'],
+        coffekan: ['Coffekan', 'serif'],
       },
       fontSize: {
         '2xs': ['0.65rem', { lineHeight: '1rem' }],
