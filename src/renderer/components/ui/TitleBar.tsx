@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-type AppTab = 'home' | 'editor' | 'templates' | 'canvas'
+type AppTab = 'home' | 'editor' | 'templates' | 'canvas' | 'explore'
 
 interface TitleBarProps {
   activeTab: AppTab
@@ -9,8 +9,7 @@ interface TitleBarProps {
 
 const TABS: { id: AppTab; label: string }[] = [
   { id: 'home', label: 'Home' },
-  { id: 'editor', label: 'Editor' },
-  { id: 'canvas', label: 'Canvas' },
+  { id: 'explore', label: 'Explore' },
 ]
 
 export default function TitleBar({ activeTab, onTabChange }: TitleBarProps) {

@@ -1,305 +1,129 @@
-import { useEffect, useState } from 'react'
-import { useProjectStore } from '../store/projectStore'
-import { usePresetStore } from '../store/presetStore'
-import { useUIStore } from '../store/uiStore'
 import { useSessionStore } from '../store/tabStore'
-import type { ProjectMeta } from '@shared/types'
+import { useUIStore } from '../store/uiStore'
+
+const COL_1 = [
+  'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1481555716071-8830d013ac1c?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?auto=format&fit=crop&w=600&q=80'
+]
+
+const COL_2 = [
+  'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1502161254066-6c74afbf07aa?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1515347619362-7dd3d5e236e7?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1534444586259-71701eedba7c?auto=format&fit=crop&w=600&q=80'
+]
+
+const COL_3 = [
+  'https://images.unsplash.com/photo-1542301416-654db4010a30?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1481604987258-a510fba2be9a?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1520333789090-1afc82db536a?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1436831135709-48bd1ef01783?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?auto=format&fit=crop&w=600&q=80'
+]
+
+
+function MarqueeColumn({ images, direction }: { images: string[]; direction: 'up' | 'down' }) {
+  // Duplicate array carefully to ensure seamless loop
+  const seamlessImages = [...images, ...images]
+  
+  return (
+    <div className="flex-1 overflow-hidden relative bg-black">
+      <div className={`flex flex-col gap-2 w-full ${direction === 'up' ? 'animate-scroll-up' : 'animate-scroll-down'}`}>
+        {seamlessImages.map((src, i) => (
+          <img 
+            key={i} 
+            src={src} 
+            alt="Editorial" 
+            className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity grayscale-[30%] hover:grayscale-0 duration-500"
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 
 export default function Home() {
-  const { projects, loadProjects, isLoading } = useProjectStore()
-  const { presets } = usePresetStore()
   const { setActiveTab } = useUIStore()
   const { openSession } = useSessionStore()
-  const [greeting, setGreeting] = useState('')
-
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 17) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-    loadProjects()
-  }, [loadProjects])
 
   const handleOpenImage = async () => {
-    // Multi-select allowed → batch session
     const results = await window.frame.file.openMultiple()
     if (!results.length) return
     openSession(results.map(r => ({ path: r.path, dataURL: r.dataURL, width: r.width, height: r.height })))
     setActiveTab('editor')
   }
 
-  const handleOpenProject = async (project: ProjectMeta) => {
-    try {
-      const file = await window.frame.projects.load(project.path)
-      const imageResult = await window.frame.file.load(file.imagePath)
-      // Open as a new session
-      openSession([{ path: imageResult.path, dataURL: imageResult.dataURL, width: imageResult.width, height: imageResult.height }])
-      setActiveTab('editor')
-    } catch (e) {
-      console.error('[Home] Failed to open project:', e)
-    }
-  }
-
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-
   return (
-    <div className="home-page flex-1 overflow-y-auto" style={{ background: '#F6F2EC' }}>
+    <div className="flex w-full h-full bg-[#f4f4f4] text-black overflow-hidden font-mono">
       
-      {/* ── Hero Header ── */}
-      <div className="home-hero relative px-12 pt-16 pb-10 overflow-hidden">
-        {/* Decorative torn paper / brutalist border */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-full h-1 bg-black" />
-          <div className="absolute top-4 right-8 w-32 h-32 border-2 border-black opacity-10 rotate-6" />
-          <div className="absolute top-8 right-24 w-16 h-16 border-2 border-black opacity-10 -rotate-3" />
-          <div className="absolute bottom-0 left-0 w-full h-px bg-black opacity-20" />
+      {/* ─── LEFT PANE (55%) ─── */}
+      <div className="w-[55%] h-full flex flex-col p-10 justify-between shrink-0">
+        
+        {/* Top Navbar */}
+        <div className="flex justify-between items-center text-[10px] tracking-[0.15em] font-semibold uppercase">
+          <button className="flex items-center gap-2 hover:opacity-60 transition-opacity">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
+              <rect x="3" y="3" width="18" height="18" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+            </svg>
+            <span>PRESETS +</span>
+          </button>
+
+          <div className="flex gap-6">
+            <button className="hover:opacity-60 transition-opacity">LUTS +</button>
+            <button className="hover:opacity-60 transition-opacity">PROJECTS +</button>
+            <button className="hover:opacity-60 transition-opacity">NEW +</button>
+          </div>
         </div>
 
-        <div className="relative flex items-end justify-between">
-          <div>
-            <p className="text-xs font-mono tracking-[0.25em] text-black/40 uppercase mb-2">{today}</p>
-            <h1 className="home-greeting" style={{
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)',
-              fontWeight: 900,
-              lineHeight: 1,
-              letterSpacing: '-0.03em',
-              color: '#111',
-            }}>
-              {greeting},<br />
-              <span style={{ fontStyle: 'italic', color: '#8B5C2A' }}>creator.</span>
+        {/* Center Canvas */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="relative inline-flex items-start">
+            <h1 style={{ fontFamily: 'Coffekan', fontSize: 'clamp(5rem, 14vw, 16rem)', lineHeight: 0.9, letterSpacing: '-0.02em', color: '#000' }}>
+              Frescava
             </h1>
-            <p className="mt-4 text-sm text-black/50 font-mono tracking-wide">
-              Your studio awaits — drop a photo, pick a look, make it yours.
-            </p>
+            <span className="text-xl md:text-3xl font-sans font-bold absolute -right-6 md:-right-10 top-2 md:top-6 opacity-80">
+              ®
+            </span>
           </div>
 
-          {/* Quick actions — big editorial style CTA buttons */}
-          <div className="flex flex-col gap-3 shrink-0">
-            <button
-              onClick={handleOpenImage}
-              className="home-cta-primary"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              Open Photo
-            </button>
-            <button
-              onClick={() => setActiveTab('templates')}
-              className="home-cta-secondary"
-            >
-              Browse Templates
-            </button>
+          {/* Sub Navigation Links */}
+          <div className="mt-12 flex gap-8 text-[11px] font-semibold tracking-[0.2em] uppercase text-black/40">
+            <button onClick={handleOpenImage} className="hover:text-black transition-colors hover:scale-105 transform duration-300">OPEN</button>
+            <button onClick={() => setActiveTab('editor')} className="hover:text-black transition-colors hover:scale-105 transform duration-300">EDITOR</button>
+            <button className="hover:text-black transition-colors hover:scale-105 transform duration-300">CANVAS</button>
+          </div>
+        </div>
+
+        {/* Bottom Footer */}
+        <div className="flex justify-between items-end text-[9px] font-semibold tracking-widest uppercase">
+          <button onClick={handleOpenImage} className="text-left w-32 hover:opacity-60 transition-opacity">
+            OPEN PHOTO +
+          </button>
+          
+          <div className="text-center tracking-[0.1em] leading-relaxed mx-4">
+            HIGH QUALITY PRESETS DESIGNED<br />
+            & MADE IN THE CLOUD
+          </div>
+
+          <div className="text-right w-32">
+            FRESCAVA 2026©
           </div>
         </div>
       </div>
 
-      <div className="px-12 pb-16 space-y-14">
-
-        {/* ── Recent Projects ── */}
-        <section>
-          <div className="flex items-baseline justify-between mb-6">
-            <div>
-              <h2 className="home-section-title">Recent edits</h2>
-              <div className="home-section-rule" />
-            </div>
-            {projects.length > 0 && (
-              <span className="text-xs font-mono text-black/40">{projects.length} saved</span>
-            )}
-          </div>
-
-          {isLoading && (
-            <div className="flex gap-4">
-              {[1,2,3].map(i => (
-                <div key={i} className="home-project-skeleton" style={{ animationDelay: `${i * 0.1}s` }} />
-              ))}
-            </div>
-          )}
-
-          {!isLoading && projects.length === 0 && (
-            <button onClick={handleOpenImage} className="home-empty-state">
-              <div className="home-empty-state-inner">
-                <div className="text-4xl mb-3">⬚</div>
-                <p className="text-sm font-semibold" style={{ fontFamily: 'Georgia, serif' }}>Start your first edit</p>
-                <p className="text-xs text-black/40 mt-1 font-mono">Saved projects appear here</p>
-              </div>
-            </button>
-          )}
-
-          {!isLoading && projects.length > 0 && (
-            <div className="home-projects-grid">
-              {/* New edit button — always first */}
-              <button onClick={handleOpenImage} className="home-new-card">
-                <div className="home-new-card-inner">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-8 h-8 mb-2 opacity-40">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  <span className="text-xs font-mono text-black/40">New edit</span>
-                </div>
-              </button>
-
-              {projects.slice(0, 7).map((project) => (
-                <ProjectCard key={project.path} project={project} onClick={() => handleOpenProject(project)} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ── Filter/Preset Strip Bento ── */}
-        <section>
-          <div className="mb-6">
-            <h2 className="home-section-title">Filters & Looks</h2>
-            <div className="home-section-rule" />
-          </div>
-
-          {presets.length === 0 ? (
-            <div className="home-coming-soon-banner">
-              <span className="font-mono text-xs">Add .json presets to assets/presets/ to see them here</span>
-            </div>
-          ) : (
-            <div className="home-filters-grid">
-              {presets.map((preset, i) => (
-                <button
-                  key={preset.id}
-                  onClick={handleOpenImage}
-                  className="home-filter-card"
-                  style={{ '--filter-idx': i } as React.CSSProperties}
-                >
-                  <div className="home-filter-swatch" style={{ background: CATEGORY_COLORS[preset.category] ?? '#DDD8CE' }} />
-                  <div className="home-filter-info">
-                    <p className="text-xs font-bold leading-tight" style={{ fontFamily: 'Georgia, serif' }}>{preset.name}</p>
-                    <p className="text-[10px] font-mono text-black/40 uppercase mt-0.5">{preset.category.replace('-', ' ')}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ── What's Coming Bento ── */}
-        <section>
-          <div className="mb-6">
-            <h2 className="home-section-title">Coming soon</h2>
-            <div className="home-section-rule" />
-          </div>
-          <div className="home-bento-grid">
-            <BentoCard
-              label="Templates"
-              sublabel="Editorial layouts, film strips, poster comps"
-              icon="◫"
-              size="large"
-              accent="#E8D5B0"
-            />
-            <BentoCard
-              label="Text & Graphics"
-              sublabel="Film credits, Y2K chrome, handwritten captions"
-              icon="Aa"
-              size="medium"
-              accent="#D6C9B8"
-            />
-            <BentoCard
-              label="AI Upscale"
-              sublabel="4× resolution recovery"
-              icon="⬡"
-              size="small"
-              accent="#C8BFAF"
-            />
-            <BentoCard
-              label="Canvas"
-              sublabel="Infinite moodboard workspace"
-              icon="∞"
-              size="small"
-              accent="#BDAF9F"
-            />
-            <BentoCard
-              label="AI Captions"
-              sublabel="Claude-powered, 5 tone options"
-              icon="✦"
-              size="medium"
-              accent="#D0C5B5"
-            />
-          </div>
-        </section>
-
+      {/* ─── RIGHT PANE (45%) ─── */}
+      <div className="w-[45%] h-full bg-black p-2 flex gap-2 flex-grow">
+        <MarqueeColumn direction="up" images={COL_1} />
+        <MarqueeColumn direction="down" images={COL_2} />
+        <MarqueeColumn direction="up" images={COL_3} />
       </div>
-    </div>
-  )
-}
 
-// ─── Preset category accent colors ────────────────────────────────────────────
-
-const CATEGORY_COLORS: Record<string, string> = {
-  'film-stock': '#E8C89A',
-  'mood': '#CCDAD1',
-  'era': '#D8C5AF',
-  'cinematic': '#BFB8C8',
-  'editorial': '#D4D0C8',
-  'aesthetic': '#DCCABF',
-}
-
-// ─── Project Card ─────────────────────────────────────────────────────────────
-
-function ProjectCard({ project, onClick }: { project: ProjectMeta; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false)
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="home-project-card"
-    >
-      {/* Thumbnail */}
-      <div className="home-project-thumb">
-        {project.previewDataURL ? (
-          <img
-            src={project.previewDataURL}
-            alt={project.name}
-            className="w-full h-full object-cover transition-transform duration-500"
-            style={{ transform: hovered ? 'scale(1.04)' : 'scale(1)' }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: '#DDD8CE' }}>
-            <span className="text-2xl opacity-30">⬚</span>
-          </div>
-        )}
-        {/* Hover overlay */}
-        <div className="home-project-overlay" style={{ opacity: hovered ? 1 : 0 }}>
-          <span className="text-white text-xs font-mono">Open →</span>
-        </div>
-      </div>
-      <div className="home-project-meta">
-        <p className="text-xs font-bold truncate text-black/80" style={{ fontFamily: 'Georgia, serif' }}>
-          {project.name}
-        </p>
-        <p className="text-[10px] font-mono text-black/40 mt-0.5">
-          {project.presetId ?? 'No preset'} · {new Date(project.savedAt).toLocaleDateString()}
-        </p>
-      </div>
-    </button>
-  )
-}
-
-// ─── Bento Card ────────────────────────────────────────────────────────────────
-
-function BentoCard({ label, sublabel, icon, size, accent }: {
-  label: string; sublabel: string; icon: string
-  size: 'large' | 'medium' | 'small'; accent: string
-}) {
-  return (
-    <div
-      className={`home-bento-card home-bento-${size}`}
-      style={{ background: accent }}
-    >
-      <div className="home-bento-icon">{icon}</div>
-      <div className="mt-auto">
-        <p className="font-bold text-sm" style={{ fontFamily: 'Georgia, serif' }}>{label}</p>
-        <p className="text-[10px] font-mono text-black/50 mt-1">{sublabel}</p>
-        <div className="home-bento-badge">v0.3</div>
-      </div>
     </div>
   )
 }

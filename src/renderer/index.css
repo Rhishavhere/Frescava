@@ -4,6 +4,33 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Coffekan';
+  src: url('../assets/fonts/CoffekanRegular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@keyframes scroll-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes scroll-down {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0); }
+}
+
+.animate-scroll-up {
+  animation: scroll-up 40s linear infinite;
+  will-change: transform;
+}
+
+.animate-scroll-down {
+  animation: scroll-down 45s linear infinite;
+  will-change: transform;
+}
+
 /* ─── Base resets ─────────────────────────────────────────────────────────── */
 
 *, *::before, *::after {

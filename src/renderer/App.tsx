@@ -30,6 +30,18 @@ function CanvasStub() {
   )
 }
 
+function ExploreStub() {
+  return (
+    <div className="flex-1 flex items-center justify-center bg-black text-white">
+      <div className="text-center">
+        <div className="text-5xl mb-4 opacity-50">✧</div>
+        <p className="text-sm font-mono tracking-widest uppercase">Explore (Coming Soon)</p>
+        <p className="text-xs font-mono text-white/40 mt-2">Discover curated film stocks and templates</p>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const { activeTab, setActiveTab } = useUIStore()
   const { setShowOriginal } = useEditStore()
@@ -71,6 +83,7 @@ export default function App() {
         {activeTab === 'editor' && <Editor />}
         {activeTab === 'templates' && <TemplatesStub />}
         {activeTab === 'canvas' && <CanvasStub />}
+        {activeTab === 'explore' && <ExploreStub />}
       </div>
     </div>
   )
