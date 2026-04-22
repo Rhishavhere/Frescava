@@ -101,7 +101,7 @@ export default function Home() {
           </div>
 
           <div className="text-right w-32">
-            FRESCAVA 2026©
+            FRESCAVA 2026
           </div>
         </div>
       </div>
