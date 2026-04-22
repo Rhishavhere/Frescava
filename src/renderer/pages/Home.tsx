@@ -96,7 +96,7 @@ export default function Home() {
           </button>
           
           <div className="text-center tracking-[0.1em] leading-relaxed mx-4">
-            THE ART OF HARMONY, BROUGHT CLOSER TO<br />
+            THE ART OF HARMONY, CLOSER TO<br />
             THE EYES OF THE BEHOLDER
           </div>
 
