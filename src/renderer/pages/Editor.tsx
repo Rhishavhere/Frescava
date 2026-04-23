@@ -64,7 +64,7 @@ export default function Editor() {
             <div className="flex-1 overflow-y-auto">
               {!hasImage ? (
                 <div className="flex items-center justify-center h-full text-text-muted">
-                  <p className="text-xs text-center px-6">Open a photo to start editing</p>
+                  <p className="text-xs text-center px-6">Magic Happens Here</p>
                 </div>
               ) : (
                 <>
