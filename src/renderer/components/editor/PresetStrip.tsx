@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { usePresetStore } from '../../store/presetStore'
 import { useEditStore } from '../../store/editStore'
 import { useSessionStore } from '../../store/tabStore'
-import { Slider } from '../ui'
 import type { PresetCategory, Preset } from '@shared/types'
 
 const CATEGORY_LABELS: Record<PresetCategory, string> = {
@@ -18,7 +17,7 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as PresetCategory[]
 
 export default function PresetStrip() {
   const { presets, favorites, selectedPresetId, selectPreset, toggleFavorite, isLoading } = usePresetStore()
-  const { params, applyPreset, setPresetIntensity } = useEditStore()
+  const { params, applyPreset } = useEditStore()
   const { applyPresetToAll, getActiveBatch, markActiveImageDirty } = useSessionStore()
   const isBatch = getActiveBatch().length > 1
   const [activeCategory, setActiveCategory] = useState<PresetCategory | 'all'>('all')
@@ -126,23 +125,6 @@ export default function PresetStrip() {
           />
         ))}
       </div>
-
-      {/* Preset intensity slider (shown when a preset is active) */}
-      {params.presetId && (
-        <div className="border-t border-border px-3 py-3 shrink-0">
-          <Slider
-            label="Intensity"
-            value={Math.round(params.presetIntensity * 100)}
-            min={0}
-            max={100}
-            onChange={v => {
-              setPresetIntensity(v / 100)
-              markActiveImageDirty()
-            }}
-            unit="%"
-          />
-        </div>
-      )}
 
       {/* ── Templates section ──────────────────────────────────────────────────── */}
       <div className="border-t border-border shrink-0">
