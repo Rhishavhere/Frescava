@@ -61,10 +61,10 @@ export default function Editor() {
                 </button>
               ))}
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto right-panel-scroll">
               {!hasImage ? (
                 <div className="flex items-center justify-center h-full text-text-muted">
-                  <p className="text-xs text-center px-6">Magic Happens Here</p>
+                  <p className="text-xs text-center px-6">Open a photo to start editing</p>
                 </div>
               ) : (
                 <>
