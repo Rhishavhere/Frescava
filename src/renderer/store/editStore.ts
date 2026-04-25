@@ -64,6 +64,7 @@ interface EditStore {
 
   // Before/after
   showOriginal: boolean
+  compareMode: boolean
 
   // Actions
   loadImage: (path: string, width: number, height: number, dataURL: string) => void
@@ -87,6 +88,7 @@ interface EditStore {
   canUndo: () => boolean
   canRedo: () => boolean
   setShowOriginal: (show: boolean) => void
+  setCompareMode: (enabled: boolean) => void
   pushHistory: () => void
 }
 
@@ -102,6 +104,7 @@ export const useEditStore = create<EditStore>()(
     history: [],
     historyIndex: -1,
     showOriginal: false,
+    compareMode: false,
 
     loadImage: (path, width, height, dataURL) => {
       set(state => {
@@ -113,6 +116,7 @@ export const useEditStore = create<EditStore>()(
         state.history = []
         state.historyIndex = -1
         state.showOriginal = false
+        state.compareMode = false
       })
     },
 
@@ -240,6 +244,10 @@ export const useEditStore = create<EditStore>()(
 
     setShowOriginal: (show) => {
       set(state => { state.showOriginal = show })
+    },
+
+    setCompareMode: (enabled) => {
+      set(state => { state.compareMode = enabled })
     },
   }))
 )
