@@ -5,7 +5,7 @@ interface ProjectStore {
   projects: ProjectMeta[]
   isLoading: boolean
 
-  /** Path of the currently open/saved project. null = never saved yet (first save = Save As) */
+  /** Path of the last-saved `.frex` for this session. `null` until first Save (then default or user path). */
   currentFilePath: string | null
   setCurrentFilePath: (path: string | null) => void
 
@@ -13,9 +13,9 @@ interface ProjectStore {
 
   /**
    * Smart save:
-   * - If no currentFilePath → show Save As dialog (first save ever)
+   * - If no currentFilePath → write to default `Documents/Frescava Projects` (auto name, no dialog)
    * - Otherwise → silently overwrite the existing file
-   * Returns the saved path, or null if cancelled (Save As dialog)
+   * Returns the saved path, or null on failure
    */
   smartSave: (project: ProjectFile) => Promise<string | null>
 
@@ -47,8 +47,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     const { currentFilePath } = get()
 
     if (!currentFilePath) {
-      // First save — always show dialog
-      return get().saveAs(project)
+      // First save — default folder (see main: projects:save), no browse dialog
+      const result = await window.frame.projects.save(project)
+      set({ currentFilePath: result.path })
+      const projects = await window.frame.projects.list()
+      set({ projects })
+      return result.path
     }
 
     // Overwrite existing file silently

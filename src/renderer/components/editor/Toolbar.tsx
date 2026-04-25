@@ -153,7 +153,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
     }
   }
 
-  // ── Save project (smart: first save = dialog, subsequent = overwrite) ─────
+  // ── Save project: first write → default Documents folder; then overwrite .frex path
   const buildProjectFile = () => {
     const name = imagePath!.split(/[\/]/).pop()?.replace(/\.[^.]+$/, '') ?? 'Untitled'
     return {
@@ -270,7 +270,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
       {/* Save — hover reveals Save As */}
       {hasImage && (
         <div className="relative group">
-          <Button variant="ghost" size="sm" onClick={handleSave} title="Save project (.frex)">
+          <Button variant="ghost" size="sm" onClick={handleSave} title="Save project to Documents/Frescava Projects (no dialog; use Save As for browse)">
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline strokeLinecap="round" strokeLinejoin="round" points="17 21 17 13 7 13 7 21"/>

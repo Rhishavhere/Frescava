@@ -131,6 +131,18 @@ Dirty tracking:
 - save/export flows can mark active image clean
 - removal/close actions can trigger confirm modal if dirty
 
+## Project save vs image export
+
+Two different pipelines exist:
+
+| User action | What it does | Main IPC | Browse dialog? |
+|-------------|--------------|----------|------------------|
+| **Save** (toolbar) | Serializes the current image’s edit state + preview into a **`.frex` project** | First save: `projects:save` → `Documents/Frescava Projects/<name>_<timestamp>.frex`. Later: `projects:saveAt` to the remembered path. | **No** for normal Save. |
+| **Save As…** (hover or Export menu) | Same `.frex` payload, user picks path/filename | `projects:saveAs` | **Yes** |
+| **Export** (dropdown) | Renders a **JPEG/PNG** (canvas capture or full-res path) | `export:save` (single) or `export:exportBatch` (folder) | **Yes** (file or folder picker) |
+
+`smartSave` in `src/renderer/store/projectStore.ts` implements the Save button: it uses the default project directory until `currentFilePath` is set, then overwrites in place. Export never writes `.frex` files; it only produces shareable image files.
+
 ## Persistence Formats
 
 ### Project File (`.frex`)
