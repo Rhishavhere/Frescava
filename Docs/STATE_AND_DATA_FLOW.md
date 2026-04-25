@@ -11,8 +11,8 @@ File: `src/renderer/store/editStore.ts`
 Owns:
 - active image metadata (`imagePath`, dimensions, preview URL)
 - current edit parameters (`params`)
-- history snapshots for undo/redo
-- before/after toggle flag (`showOriginal`)
+- history snapshots for undo/redo (see [Edit history](#edit-history-current-implementation-and-roadmap))
+- preview-only flags: `showOriginal` (hold “before”) and `compareMode` (side-by-side)
 
 Important behavior:
 - `loadImage()` resets params/history to defaults
@@ -86,6 +86,35 @@ Current rendering model in `RenderPipeline` is intentionally layered:
   - root effect params (`params.vignette`, `params.halation`, etc.)
 
 This lets users apply a preset look, then stack personal modifications predictably.
+
+## Edit history (current implementation and roadmap)
+
+**Implemented today:** Frescava keeps a **linear stack of parameter snapshots** for the active image. Each `HistoryEntry` stores a deep-copied `params` object (everything under `editStore.params`—preset id, intensity, `presetFilters`, adjustments, and effect toggles/values). It does **not** record UI-only state such as which panel is open, `showOriginal`, or `compareMode`.
+
+**How entries are created**
+
+- **`pushHistory()`** (file: `src/renderer/store/editStore.ts`) appends the **current** `params` after an edit, truncates any redo tail, and moves `historyIndex` to the new tip. The stack is capped (currently 100 entries); oldest entries are dropped when the cap is exceeded.
+- **`applyPreset()`** saves the pre-preset `params` snapshot, then applies the preset into `params.presetFilters` (and related fields)—so the user can undo back to the state before that preset was applied.
+- **`resetAll()`** saves the current `params` before replacing them with `DEFAULT_EDIT_STATE`, so undo can restore the pre-reset look.
+
+**How undo/redo work**
+
+- **Undo** moves `historyIndex` backward and restores `params` from the previous snapshot (or default edit state when stepping before the first entry).
+- **Redo** moves forward and restores from the next snapshot.
+- The toolbar exposes these via `canUndo` / `canRedo` and the undo/redo actions.
+
+**Where `pushHistory` is wired**
+
+- Typical pattern: continuous controls (e.g. sliders in adjustment and effects panels) call `pushHistory` on **`onChangeEnd`** (after the user finishes a drag or interaction), not on every pointer move. That keeps the stack small but means one undo step often corresponds to “revert the last completed adjustment gesture,” not every micro-movement.
+- Not every code path that mutates `params` necessarily calls `pushHistory`; coverage should be treated as **partial** until audited. Any control that only calls `setParam` / `setNestedParam` / `setPresetFilterParam` without a matching `pushHistory` will **not** create a new history entry for that edit.
+
+**Known gaps (to address in a later pass)**
+
+- There is no **history list**, **labels**, or **jump to arbitrary step**—only sequential undo/redo.
+- Snapshot semantics and “what counts as one edit” are not yet uniform across the whole UI (preset settings, toggles, and batch operations may need explicit history rules).
+- **Planned product direction:** replace or augment this stack with a **proper edit history timeline** so users can **see discrete versions**, **select any step**, and **return to that full parameter state in one action** (optionally with naming, grouping, and clearer boundaries for slider sessions). That work will include revisiting when snapshots are taken, how history interacts with session/batch image switches, and persistence (e.g. whether history is saved with a project or remains session-scoped).
+
+Until that timeline exists, treat the current system as a **practical but basic** undo/redo layer for `params`, not a full version browser.
 
 ## Session and Batch Synchronization
 

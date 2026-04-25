@@ -6,7 +6,7 @@ Use this as the primary entrypoint for repository documentation.
 
 - `Docs/CODEBASE_MAP.md` - detailed repository map and ownership
 - `Docs/ARCHITECTURE.md` - current implementation architecture (main/preload/renderer)
-- `Docs/STATE_AND_DATA_FLOW.md` - store orchestration, edit lifecycle, persistence flow
+- `Docs/STATE_AND_DATA_FLOW.md` - store orchestration, edit lifecycle, **edit history (current stack + planned timeline)**, persistence flow
 - `Docs/IPC_REFERENCE.md` - complete IPC surface and payload contracts
 - `Docs/PRESET_DESIGN_GUIDE.md` - preset authoring and asset format
 - `Docs/PRODUCT.md` - product vision and roadmap (planned work)
