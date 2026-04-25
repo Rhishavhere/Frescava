@@ -18,7 +18,21 @@ interface ToolbarProps {
 }
 
 export default function Toolbar({ hasImage }: ToolbarProps) {
-  const { params, setShowOriginal, showOriginal, resetAll, undo, redo, canUndo, canRedo, imagePath, imageWidth, imageHeight } = useEditStore()
+  const {
+    params,
+    setShowOriginal,
+    showOriginal,
+    compareMode,
+    setCompareMode,
+    resetAll,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    imagePath,
+    imageWidth,
+    imageHeight,
+  } = useEditStore()
   const { isExporting, setIsExporting, setExportSuccess, showExportSuccess } = useUIStore()
   const { smartSave, saveAs: saveProjectAs } = useProjectStore()
   const { addToSession, getActiveBatch, getActiveSession, markActiveImageClean } = useSessionStore()
@@ -202,13 +216,27 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
           onMouseDown={() => setShowOriginal(true)}
           onMouseUp={() => setShowOriginal(false)}
           onMouseLeave={() => setShowOriginal(false)}
-          className={`btn-ghost text-xs gap-1 ${showOriginal ? 'bg-surface-100 text-text-primary' : ''}`}
+          className={`btn-ghost text-xs gap-1 ${showOriginal && !compareMode ? 'bg-surface-100 text-text-primary' : ''}`}
           title="Hold to see original"
+          disabled={compareMode}
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
           </svg>
           Before
+        </button>
+      )}
+
+      {hasImage && (
+        <button
+          className={`btn-ghost text-xs gap-1 ${compareMode ? 'bg-text-primary text-white hover:bg-text-primary hover:text-white' : ''}`}
+          onClick={() => setCompareMode(!compareMode)}
+          title="Toggle side-by-side compare"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z" />
+          </svg>
+          Compare
         </button>
       )}
 
