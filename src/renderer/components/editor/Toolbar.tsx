@@ -3,6 +3,7 @@ import { useEditStore } from '../../store/editStore'
 import { useUIStore } from '../../store/uiStore'
 import { useProjectStore } from '../../store/projectStore'
 import { useSessionStore } from '../../store/tabStore'
+import { fileStem } from '@shared/pathUtils'
 import { renderFullRes } from '../../lib/fullResRender'
 import { Button } from '../ui'
 
@@ -155,7 +156,9 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
 
   // ── Save project: first write → default Documents folder; then overwrite .frex path
   const buildProjectFile = () => {
-    const name = imagePath!.split(/[\/]/).pop()?.replace(/\.[^.]+$/, '') ?? 'Untitled'
+    const session = getActiveSession()
+    const primaryPath = session?.images[0]?.imagePath ?? imagePath!
+    const name = fileStem(primaryPath) || 'Untitled'
     return {
       version: 1 as const,
       name,
