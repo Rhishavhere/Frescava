@@ -307,18 +307,23 @@ export class RenderPipeline {
         current = this.runHalation(current, { halation: pf.halation } as EditState)
       }
 
-      // 4. Preset Chromatic Aberration
+      // 4. Preset Bloom
+      if (pf.bloom?.enabled && (pf.bloom.intensity ?? 0) > 0) {
+        current = this.runBloom(current, pf.bloom as EditState['bloom'])
+      }
+
+      // 5. Preset Chromatic Aberration
       if (pf.chromaticAberration?.enabled && (pf.chromaticAberration.amount ?? 0) > 0) {
         // runCA takes the object directly
         current = this.runCA(current, pf.chromaticAberration as EditState['chromaticAberration'])
       }
 
-      // 5. Preset Lens Distortion
+      // 6. Preset Lens Distortion
       if (pf.lensDistortion?.enabled && (pf.lensDistortion.amount ?? 0) !== 0) {
         current = this.runLensDist(current, { lensDistortion: pf.lensDistortion } as EditState)
       }
 
-      // 6. Preset Light Leaks
+      // 7. Preset Light Leaks
       if (pf.lightLeak?.enabled && (pf.lightLeak.opacity ?? 0) > 0 && this.overlayTextures.has('lightLeak')) {
         current = this.runOverlay(current, this.overlayTextures.get('lightLeak')!, {
           opacity: pf.lightLeak.opacity ?? 1,
@@ -329,12 +334,12 @@ export class RenderPipeline {
         })
       }
 
-      // 7. Preset Vignette
+      // 8. Preset Vignette
       if (pf.vignette?.enabled && (pf.vignette.strength ?? 0) > 0) {
         current = this.runVignette(current, { vignette: pf.vignette } as EditState)
       }
 
-      // 8. Preset Dust & Scratches
+      // 9. Preset Dust & Scratches
       if (pf.dustScratches?.enabled && (pf.dustScratches.opacity ?? 0) > 0 && this.overlayTextures.has('dustScratches')) {
         current = this.runOverlay(current, this.overlayTextures.get('dustScratches')!, {
           opacity: pf.dustScratches.opacity ?? 0.3,
@@ -345,7 +350,7 @@ export class RenderPipeline {
         })
       }
 
-      // 9. Preset Grain (TEXTURE OVERLAY)
+      // 10. Preset Grain (TEXTURE OVERLAY)
       if (pf.grain?.enabled && (pf.grain.opacity ?? 0) > 0 && this.overlayTextures.has('presetGrain')) {
         current = this.runOverlay(current, this.overlayTextures.get('presetGrain')!, {
           opacity: pf.grain.opacity ?? 0.5,
@@ -356,7 +361,7 @@ export class RenderPipeline {
         })
       }
 
-      // 10. Preset Border
+      // 11. Preset Border
       if (pf.border?.enabled && this.overlayTextures.has('border')) {
         current = this.runOverlay(current, this.overlayTextures.get('border')!, {
           opacity: 1.0, 
@@ -385,6 +390,11 @@ export class RenderPipeline {
     // User Halation
     if (state.halation.enabled && state.halation.intensity > 0) {
       current = this.runHalation(current, state)
+    }
+
+    // User Bloom
+    if (state.bloom.enabled && state.bloom.intensity > 0) {
+      current = this.runBloom(current, state.bloom)
     }
 
     // User Chromatic Aberration
@@ -566,6 +576,68 @@ export class RenderPipeline {
     gl.bindVertexArray(null)
 
     // Pass 3: composite halation over original → ping-pong
+    const { fbo, tex } = this.getNextFBO()
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
+    gl.useProgram(this.progHalComposite)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, input)
+    gl.uniform1i(gl.getUniformLocation(this.progHalComposite, 'u_image'), 0)
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, this.halTexture!)
+    gl.uniform1i(gl.getUniformLocation(this.progHalComposite, 'u_halation'), 1)
+    gl.uniform1f(gl.getUniformLocation(this.progHalComposite, 'u_intensity'), intensity)
+    gl.bindVertexArray(this.vaos.get(this.progHalComposite)!)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.bindVertexArray(null)
+
+    return tex
+  }
+
+  private runBloom(input: WebGLTexture, bloom: EditState['bloom']): WebGLTexture {
+    const gl = this.gl
+    const { threshold, intensity, radius, character } = bloom
+
+    // Pass 1: extract bright highlights with neutral white color.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.halFBO)
+    gl.useProgram(this.progHalExtract)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, input)
+    gl.uniform1i(gl.getUniformLocation(this.progHalExtract, 'u_image'), 0)
+    gl.uniform1f(gl.getUniformLocation(this.progHalExtract, 'u_threshold'), threshold)
+    gl.uniform3f(gl.getUniformLocation(this.progHalExtract, 'u_color'), 1, 1, 1)
+    gl.bindVertexArray(this.vaos.get(this.progHalExtract)!)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.bindVertexArray(null)
+
+    const blurR = Math.max(1, Math.round(radius * (character === 'hard' ? 0.16 : 0.28)))
+    const texelW = 1 / this.width
+    const texelH = 1 / this.height
+
+    // Pass 2a: horizontal blur.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.halFBO2)
+    gl.useProgram(this.progBlurH)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, this.halTexture!)
+    gl.uniform1i(gl.getUniformLocation(this.progBlurH, 'u_image'), 0)
+    gl.uniform1f(gl.getUniformLocation(this.progBlurH, 'u_radius'), blurR)
+    gl.uniform2f(gl.getUniformLocation(this.progBlurH, 'u_texelSize'), texelW, texelH)
+    gl.bindVertexArray(this.vaos.get(this.progBlurH)!)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.bindVertexArray(null)
+
+    // Pass 2b: vertical blur.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.halFBO)
+    gl.useProgram(this.progBlurV)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, this.halTexture2!)
+    gl.uniform1i(gl.getUniformLocation(this.progBlurV, 'u_image'), 0)
+    gl.uniform1f(gl.getUniformLocation(this.progBlurV, 'u_radius'), blurR)
+    gl.uniform2f(gl.getUniformLocation(this.progBlurV, 'u_texelSize'), texelW, texelH)
+    gl.bindVertexArray(this.vaos.get(this.progBlurV)!)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.bindVertexArray(null)
+
+    // Pass 3: screen-composite bloom over the incoming texture.
     const { fbo, tex } = this.getNextFBO()
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
     gl.useProgram(this.progHalComposite)
