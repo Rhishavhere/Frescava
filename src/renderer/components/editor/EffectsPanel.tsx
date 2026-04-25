@@ -22,6 +22,11 @@ export default function EffectsPanel() {
         onChange={(key, v) => setNestedParam('halation', key, v)}
         onChangeEnd={pushHistory}
       />
+      <BloomSection
+        bloom={params.bloom}
+        onChange={(key, v) => setNestedParam('bloom', key, v)}
+        onChangeEnd={pushHistory}
+      />
       <CaSection
         ca={params.chromaticAberration}
         onChange={(key, v) => setNestedParam('chromaticAberration', key, v)}
@@ -139,6 +144,49 @@ function HalationSection({
           <Slider label="Radius" value={halation.radius} min={5} max={120}
             onChange={v => onChange('radius', v)} onChangeEnd={onChangeEnd} />
           <Slider label="Threshold" value={Math.round(halation.threshold * 100)} min={40} max={100}
+            onChange={v => onChange('threshold', v / 100)} onChangeEnd={onChangeEnd} unit="%" />
+        </div>
+      )}
+    </PanelSection>
+  )
+}
+
+// ─── Bloom ────────────────────────────────────────────────────────────────────
+function BloomSection({
+  bloom, onChange, onChangeEnd
+}: { bloom: typeof useEditStore['prototype']['params']['bloom']; onChange: (k: string, v: unknown) => void; onChangeEnd: () => void }) {
+  return (
+    <PanelSection>
+      <EffectHeader
+        label="Bloom"
+        enabled={bloom.enabled}
+        onToggle={v => onChange('enabled', v)}
+      />
+      {bloom.enabled && (
+        <div className="flex flex-col gap-4 mt-3 panel-slide-right">
+          <div>
+            <span className="text-[11px] text-text-muted mb-1.5 block">Character</span>
+            <div className="flex gap-1.5">
+              {(['soft', 'hard'] as const).map(character => (
+                <button
+                  key={character}
+                  onClick={() => onChange('character', character)}
+                  className={`flex-1 py-1 rounded-md text-[10px] font-medium capitalize transition-colors ${
+                    bloom.character === character
+                      ? 'bg-text-primary text-white'
+                      : 'bg-surface-100 text-text-muted hover:bg-surface-200'
+                  }`}
+                >
+                  {character}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Slider label="Intensity" value={Math.round(bloom.intensity * 100)} min={0} max={100}
+            onChange={v => onChange('intensity', v / 100)} onChangeEnd={onChangeEnd} unit="%" />
+          <Slider label="Radius" value={bloom.radius} min={5} max={80}
+            onChange={v => onChange('radius', v)} onChangeEnd={onChangeEnd} />
+          <Slider label="Threshold" value={Math.round(bloom.threshold * 100)} min={40} max={100}
             onChange={v => onChange('threshold', v / 100)} onChangeEnd={onChangeEnd} unit="%" />
         </div>
       )}
