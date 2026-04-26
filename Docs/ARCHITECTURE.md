@@ -167,6 +167,14 @@ Not implemented yet:
 - encrypted premium packs
 - backend validation gates
 
+## Settings (Home window) and future persistence
+
+Global app preferences live in the **Home** window (see `FrescavaHomeShell` in `src/renderer/App.tsx` and `SettingsPage`).
+
+- **Entry**: Editor title bar (Library, Settings) and Home title bar; both call `window.frame.openHome({ view })` to focus or create the Home window and show the right tab. Main uses `pendingHomeView` and IPC `home:openView` so a cold start or an already-open Home lands on the correct view.
+
+- **Planned persistence**: `electron-store` in the main process (or a thin preload bridge) to read/write a single source of truth; main broadcasts updates to all renderers (e.g. `webContents.send` to every `BrowserWindow`, or a small channel the shell subscribes to). For **system theme** vs in-app light/dark, align with `nativeTheme` in main and map to CSS variables in the renderer. Cross-window `localStorage` is not a substitute unless both windows share the same storage origin; verify in packaged builds if used.
+
 ## Build and Packaging
 
 Configured in `package.json`:

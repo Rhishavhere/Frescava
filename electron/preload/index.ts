@@ -38,7 +38,16 @@ const api = {
   },
   window: {
     openEditor: (opts?: { files?: FileOpenResult[] }) => ipcRenderer.invoke('window:openEditor', opts),
-    openHome: () => ipcRenderer.invoke('window:openHome'),
+    openHome: (opts?: { view?: 'default' | 'settings' }) => ipcRenderer.invoke('window:openHome', opts),
+    getHomeLaunchView: () =>
+      ipcRenderer.invoke('window:getHomeLaunchView') as Promise<'default' | 'settings' | null>,
+    onHomeOpenView: (cb: (view: 'default' | 'settings') => void) => {
+      const handler = (_e: IpcRendererEvent, view: 'default' | 'settings') => {
+        cb(view)
+      }
+      ipcRenderer.on('home:openView', handler)
+      return () => ipcRenderer.removeListener('home:openView', handler)
+    },
     getLaunchPayload: () =>
       ipcRenderer.invoke('window:getLaunchPayload') as Promise<
         { type: 'files'; files: FileOpenResult[] } | { type: 'empty' } | null

@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import { registerExportHandlers } from './ipc/export'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerProjectHandlers } from './ipc/projects'
-import type { FileOpenResult } from '@shared/types'
+import type { FileOpenResult, OpenHomeView } from '@shared/types'
 
 const isDev = process.env['ELECTRON_RENDERER_URL'] !== undefined || process.env['NODE_ENV'] === 'development'
 
@@ -28,6 +28,8 @@ protocol.registerSchemesAsPrivileged([
 
 let homeWindow: BrowserWindow | null = null
 let editorWindow: BrowserWindow | null = null
+/** Set before a new Home window loads; read once by renderer via getHomeLaunchView */
+let pendingHomeView: OpenHomeView | null = null
 /** Set before the editor window loads; read once by renderer via getLaunchPayload */
 let pendingEditorPayload: EditorLaunchPayload | null = null
 
@@ -201,12 +203,21 @@ function registerWindowIpc(): void {
     createEditorWindow()
   })
 
-  ipcMain.handle('window:openHome', () => {
+  ipcMain.handle('window:openHome', (_e, opts?: { view?: OpenHomeView }) => {
+    const view: OpenHomeView = opts?.view === 'settings' ? 'settings' : 'default'
     if (homeWindow && !homeWindow.isDestroyed()) {
       homeWindow.focus()
-    } else {
-      createHomeWindow()
+      homeWindow.webContents.send('home:openView', view)
+      return
     }
+    pendingHomeView = view
+    createHomeWindow()
+  })
+
+  ipcMain.handle('window:getHomeLaunchView', (): OpenHomeView | null => {
+    const v = pendingHomeView
+    pendingHomeView = null
+    return v
   })
 
   ipcMain.handle('window:getLaunchPayload', (): EditorLaunchPayload | null => {

@@ -262,7 +262,7 @@ export interface ProjectFile {
   savedAt: string
 }
 
-// ─── IPC API surface ──────────────────────────────────────────────────────────
+export type OpenHomeView = 'default' | 'settings'
 
 export interface FrescavaAPI {
   file: {
@@ -300,7 +300,13 @@ export interface FrescavaAPI {
    */
   window: {
     openEditor: (opts?: { files?: FileOpenResult[] }) => Promise<void>
-    openHome: () => Promise<void>
+    openHome: (opts?: { view?: OpenHomeView }) => Promise<void>
+    getHomeLaunchView: () => Promise<OpenHomeView | null>
+    /**
+     * When the Home window is already open and get focused via openHome (e.g. from Editor),
+     * main sends the target view so the client can switch tabs.
+     */
+    onHomeOpenView: (cb: (view: OpenHomeView) => void) => () => void
     getLaunchPayload: () => Promise<
       { type: 'files'; files: FileOpenResult[] } | { type: 'empty' } | null
     >

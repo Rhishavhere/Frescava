@@ -5,6 +5,7 @@ import { usePresetStore } from './store/presetStore'
 import TitleBar from './components/ui/TitleBar'
 import Editor from './pages/Editor'
 import Home from './pages/Home'
+import SettingsPage from './pages/SettingsPage'
 
 function getWindowModeFromHash(): 'home' | 'editor' {
   const h = (window.location.hash || '').replace(/^#/, '')
@@ -51,11 +52,27 @@ function ExploreStub() {
 function FrescavaHomeShell() {
   const { activeTab, setActiveTab } = useUIStore()
 
+  useEffect(() => {
+    const applyView = (v: 'default' | 'settings') => {
+      setActiveTab(v === 'settings' ? 'settings' : 'home')
+    }
+    const off = window.frame.window.onHomeOpenView(applyView)
+    void window.frame.window.getHomeLaunchView().then((v) => {
+      if (v === 'settings') {
+        setActiveTab('settings')
+      } else if (v === 'default') {
+        setActiveTab('home')
+      }
+    })
+    return off
+  }, [setActiveTab])
+
   return (
     <div className="flex flex-col h-screen bg-white overflow-hidden">
       <TitleBar variant="home" activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex-1 overflow-hidden flex flex-col">
         {activeTab === 'home' && <Home />}
+        {activeTab === 'settings' && <SettingsPage />}
         {activeTab === 'templates' && <TemplatesStub />}
         {activeTab === 'canvas' && <CanvasStub />}
         {activeTab === 'explore' && <ExploreStub />}

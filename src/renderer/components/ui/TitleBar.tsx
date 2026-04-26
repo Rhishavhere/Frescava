@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 
-type HomeTab = 'home' | 'templates' | 'canvas' | 'explore'
+type HomeTab = 'home' | 'templates' | 'canvas' | 'explore' | 'settings'
 
 const HOME_TABS: { id: HomeTab; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'explore', label: 'Explore' },
+  { id: 'settings', label: 'Settings' },
 ]
 
 type TitleBarHomeProps = {
@@ -35,7 +36,11 @@ export default function TitleBar(props: TitleBarProps) {
   const handleClose = () => window.frame?.app.close()
 
   const handleOpenHome = () => {
-    void window.frame?.window.openHome()
+    void window.frame?.window.openHome({ view: 'default' })
+  }
+
+  const handleOpenSettings = () => {
+    void window.frame?.window.openHome({ view: 'settings' })
   }
 
   if (props.variant === 'editor') {
@@ -61,13 +66,23 @@ export default function TitleBar(props: TitleBarProps) {
         <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted no-drag pr-1">
           Editor
         </span>
-        <button
-          type="button"
-          onClick={handleOpenHome}
-          className="no-drag text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 transition-colors"
-        >
-          Library
-        </button>
+        <div className="no-drag flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleOpenHome}
+            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 transition-colors"
+          >
+            Library
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenSettings}
+            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 transition-colors"
+            title="Settings"
+          >
+            Settings
+          </button>
+        </div>
         <div className="flex-1" />
 
         {!isMac && (
