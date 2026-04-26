@@ -7,16 +7,7 @@ export default function EditorTabBar() {
 
   return (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'stretch',
-        background: '#FAFAFA',
-        borderBottom: '1px solid #E5E5E5',
-        overflowX: 'auto',
-        height: 32,
-        scrollbarWidth: 'none',
-        flexShrink: 0,
-      }}
+      className="flex items-stretch overflow-x-auto shrink-0 h-8 border-b border-border dark:border-zinc-800/80 bg-surface-50 dark:bg-zinc-900/50 scrollbar-none"
     >
       {sessions.map((session) => {
         const isActive = session.id === activeSessionId
@@ -25,61 +16,48 @@ export default function EditorTabBar() {
             key={session.id}
             onClick={() => switchSession(session.id)}
             role="button"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              paddingLeft: 12,
-              paddingRight: 6,
-              minWidth: 80,
-              maxWidth: 200,
-              fontSize: 11,
-              fontFamily: 'Inter, system-ui, sans-serif',
-              fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#111' : '#777',
-              background: isActive ? '#fff' : 'transparent',
-              borderRight: '1px solid #E5E5E5',
-              borderBottom: isActive ? '2px solid #111' : '2px solid transparent',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              flexShrink: 0,
-              userSelect: 'none',
-              transition: 'color 0.1s, background 0.1s',
-            }}
+            className={`
+              group flex items-center gap-1.5 pl-3 pr-1.5 min-w-[5rem] max-w-[12.5rem] text-[11px] font-sans
+              border-r border-border dark:border-zinc-800/80 cursor-pointer whitespace-nowrap overflow-hidden flex-shrink-0 select-none
+              transition-[color,background] duration-100
+              ${isActive
+                ? 'font-semibold text-text-primary dark:text-zinc-100 bg-white dark:bg-zinc-950/90 border-b-2 border-b-text-primary dark:border-b-[color:var(--editor-accent)] -mb-px z-[1]'
+                : 'font-normal text-text-secondary dark:text-zinc-500 bg-transparent border-b-2 border-b-transparent hover:text-text-primary dark:hover:text-zinc-300'
+              }`}
           >
-            {/* First image thumbnail */}
             {session.images[0] && (
-              <div style={{ width: 14, height: 14, borderRadius: 2, overflow: 'hidden', flexShrink: 0, background: '#DDD' }}>
-                <img src={session.images[0].imageDataURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div className="w-3.5 h-3.5 rounded-sm overflow-hidden flex-shrink-0 bg-surface-300 dark:bg-zinc-700">
+                <img
+                  src={session.images[0].imageDataURL}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               </div>
             )}
 
-            {/* Session label */}
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span className="flex-1 min-w-0 overflow-hidden text-ellipsis flex items-center gap-1">
               {session.label}
               {session.images.length > 1 && (
-                <span style={{ color: '#999', fontWeight: 400, marginLeft: 2 }}>+{session.images.length - 1}</span>
+                <span className="text-text-muted dark:text-zinc-600 font-normal ml-0.5">
+                  +{session.images.length - 1}
+                </span>
               )}
-              {/* Dirty indicator — amber dot when any image has unsaved edits */}
-              {session.images.some(img => img.isDirty) && (
+              {session.images.some((img) => img.isDirty) && (
                 <span
                   title="Unsaved edits"
-                  style={{ width: 5, height: 5, borderRadius: '50%', background: '#C4873A', flexShrink: 0, display: 'inline-block', marginLeft: 2 }}
+                  className="w-[5px] h-[5px] rounded-full bg-film flex-shrink-0 inline-block ml-0.5"
                 />
               )}
             </span>
 
-            {/* Close */}
             <button
-              onClick={(e) => { e.stopPropagation(); closeSession(session.id) }}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 16, height: 16, borderRadius: 3, border: 'none',
-                background: 'none', cursor: 'pointer', color: '#999', flexShrink: 0, fontSize: 10, padding: 0,
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                closeSession(session.id)
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#EEE')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              className="flex items-center justify-center w-4 h-4 rounded-sm border-0 bg-transparent cursor-pointer text-text-muted dark:text-zinc-600 text-[10px] p-0 flex-shrink-0
+                hover:bg-surface-200 dark:hover:bg-zinc-800"
             >
               ✕
             </button>

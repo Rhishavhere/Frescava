@@ -59,20 +59,20 @@ export default function DropZone() {
     >
       <div className="text-center pointer-events-none select-none max-w-xs">
         {/* Icon */}
-        <div className="mx-auto mb-5 w-16 h-16 rounded-2xl bg-surface-100 border border-dashed border-surface-400 flex items-center justify-center">
-          <svg className="w-7 h-7 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <div className="mx-auto mb-5 w-16 h-16 rounded-2xl bg-surface-100 dark:bg-zinc-800/50 border border-dashed border-surface-400 dark:border-zinc-600 flex items-center justify-center">
+          <svg className="w-7 h-7 text-text-muted dark:text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
           </svg>
         </div>
 
-        <p className="text-sm font-semibold text-text-primary mb-1">
+        <p className="text-sm font-semibold text-text-primary dark:text-zinc-100 mb-1">
           Drop a photo here
         </p>
-        <p className="text-xs text-text-muted mb-4">
+        <p className="text-xs text-text-muted dark:text-zinc-500 mb-4">
           or click to browse — JPEG, PNG supported
         </p>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-text-primary text-white text-xs font-medium">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-text-primary text-white text-xs font-medium dark:bg-zinc-100 dark:text-zinc-900">
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>

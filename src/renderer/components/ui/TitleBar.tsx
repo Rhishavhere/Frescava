@@ -46,7 +46,7 @@ export default function TitleBar(props: TitleBarProps) {
   if (props.variant === 'editor') {
     return (
       <header
-        className="drag-region flex items-center h-8 border-b border-border bg-white shrink-0"
+        className="drag-region flex items-center h-8 border-b border-border bg-white dark:bg-zinc-950/90 dark:border-zinc-800/70 shrink-0"
         style={{ minHeight: 32 }}
       >
         {isMac && <div className="no-drag w-[72px] shrink-0" />}
@@ -54,30 +54,30 @@ export default function TitleBar(props: TitleBarProps) {
         {isMac ? (
           <div className="no-drag flex items-center gap-2 mr-4 pl-0.5">
             <FrescavaLogo className="w-4 h-4" />
-            <span className="text-xs font-semibold tracking-tight text-text-primary">Frescava</span>
+            <span className="text-xs font-semibold tracking-tight text-text-primary dark:text-zinc-100">Frescava</span>
           </div>
         ) : (
           <div className="no-drag flex items-center gap-2 pl-3 mr-4">
             <FrescavaLogo className="w-5 h-5" />
-            <span className="text-sm font-semibold tracking-tight text-text-primary">Frescava</span>
+            <span className="text-sm font-semibold tracking-tight text-text-primary dark:text-zinc-100">Frescava</span>
           </div>
         )}
 
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted no-drag pr-1">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted dark:text-zinc-500 no-drag pr-1">
           Editor
         </span>
         <div className="no-drag flex items-center gap-1.5">
           <button
             type="button"
             onClick={handleOpenHome}
-            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 transition-colors"
+            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/80 transition-colors"
           >
             Library
           </button>
           <button
             type="button"
             onClick={handleOpenSettings}
-            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 transition-colors"
+            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/80 transition-colors"
             title="Settings"
           >
             Settings
@@ -89,7 +89,7 @@ export default function TitleBar(props: TitleBarProps) {
           <div className="no-drag flex items-center">
             <button
               onClick={handleMinimize}
-              className="flex items-center justify-center w-11 h-8 text-text-muted hover:bg-surface-100 hover:text-text-primary transition-colors"
+              className="flex items-center justify-center w-11 h-8 text-text-muted dark:text-zinc-500 hover:bg-surface-100 dark:hover:bg-zinc-800/90 hover:text-text-primary dark:hover:text-zinc-100 transition-colors"
               title="Minimize"
             >
               <svg width="10" height="1" viewBox="0 0 10 1" fill="none">
@@ -98,7 +98,7 @@ export default function TitleBar(props: TitleBarProps) {
             </button>
             <button
               onClick={handleMaximize}
-              className="flex items-center justify-center w-11 h-8 text-text-muted hover:bg-surface-100 hover:text-text-primary transition-colors"
+              className="flex items-center justify-center w-11 h-8 text-text-muted dark:text-zinc-500 hover:bg-surface-100 dark:hover:bg-zinc-800/90 hover:text-text-primary dark:hover:text-zinc-100 transition-colors"
               title={isMaximized ? 'Restore' : 'Maximize'}
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -130,7 +130,7 @@ export default function TitleBar(props: TitleBarProps) {
   const { activeTab, onTabChange } = props
   return (
     <header
-      className="drag-region flex items-center h-8 border-b border-border bg-white shrink-0"
+      className="drag-region flex items-center h-8 border-b border-border bg-white dark:bg-zinc-950/90 dark:border-zinc-800/70 shrink-0"
       style={{ minHeight: 32 }}
     >
       {isMac && <div className="no-drag w-[72px] shrink-0" />}

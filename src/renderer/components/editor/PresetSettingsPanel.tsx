@@ -125,20 +125,20 @@ function PresetEffectCard({
       onClick={onToggle}
       className={`relative text-left rounded-md border transition-colors pl-1.5 pr-5 py-1 min-h-[2.35rem] sm:min-h-[2.5rem] ${
         enabled
-          ? 'bg-surface-100 border-border'
-          : 'bg-surface-50/90 border-border'
+          ? 'bg-surface-100 border-border dark:bg-zinc-800/60 dark:border-zinc-700/80'
+          : 'bg-surface-50/90 border-border dark:bg-zinc-900/40 dark:border-zinc-800/80'
       }`}
     >
       <span
         className={`text-[12px] leading-tight pr-0.5 block ${
-          enabled ? 'text-text-primary' : 'text-text-muted'
+          enabled ? 'text-text-primary dark:text-zinc-100' : 'text-text-muted dark:text-zinc-500'
         }`}
       >
         {label}
       </span>
       <span
         className={`mt-2 block text-[9px] font-mono leading-none tracking-tight pl-0.5 pr-0.5 truncate ${
-          enabled ? 'text-text-secondary' : 'text-text-muted'
+          enabled ? 'text-text-secondary dark:text-zinc-400' : 'text-text-muted dark:text-zinc-600'
         }`}
         title={valueText}
       >
@@ -149,9 +149,9 @@ function PresetEffectCard({
         aria-hidden
       >
         {enabled ? (
-          <span className="h-1.5 w-1.5 rounded-full bg-text-primary" />
+          <span className="h-1.5 w-1.5 rounded-full bg-text-primary dark:bg-[color:var(--editor-accent-mid)]" />
         ) : (
-          <span className="h-1.5 w-1.5 rounded-full border border-surface-300 bg-white" />
+          <span className="h-1.5 w-1.5 rounded-full border border-surface-300 dark:border-zinc-600 bg-white dark:bg-zinc-800" />
         )}
       </span>
     </button>
@@ -185,18 +185,18 @@ export default function PresetSettingsPanel() {
   return (
     <div className="flex flex-col pt-2.5 px-4 pb-3 gap-3 mb-20">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+        <span className="text-[11px] font-semibold text-text-muted dark:text-zinc-500 uppercase tracking-wider">
           Preset effects
         </span>
         <button
           type="button"
           onClick={resetAllPresetEffects}
-          className="text-[10px] font-medium uppercase tracking-wider text-text-muted hover:text-text-primary"
+          className="text-[10px] font-medium uppercase tracking-wider text-text-muted dark:text-zinc-500 hover:text-text-primary dark:hover:text-zinc-200"
         >
           Reset all
         </button>
       </div>
-      <div className="h-px w-full bg-border" />
+      <div className="h-px w-full bg-border dark:bg-zinc-800/80" />
       
       <Slider
         label="Overall intensity"

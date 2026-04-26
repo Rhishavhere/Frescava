@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import { registerExportHandlers } from './ipc/export'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerProjectHandlers } from './ipc/projects'
-import type { FileOpenResult, OpenHomeView } from '@shared/types'
+import type { FileOpenResult, AppAppearance, EditorUiPreferences, OpenHomeView } from '@shared/types'
 
 const isDev = process.env['ELECTRON_RENDERER_URL'] !== undefined || process.env['NODE_ENV'] === 'development'
 
@@ -41,6 +41,50 @@ function defaultParentWindow(
   e: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent
 ): BrowserWindow | undefined {
   return winFrom(e) ?? homeWindow ?? undefined
+}
+
+const preferencesPath = () => join(app.getPath('userData'), 'preferences.json')
+
+function readPreferences(): EditorUiPreferences {
+  try {
+    const raw = fs.readFileSync(preferencesPath(), 'utf8')
+    const p = JSON.parse(raw) as Record<string, unknown>
+    let appearance: AppAppearance = 'dark'
+    if (p.editorAppearance === 'light' || p.editorAppearance === 'dark') {
+      appearance = p.editorAppearance
+    } else if (p.appearance === 'light' || p.appearance === 'dark') {
+      appearance = p.appearance
+    }
+    return { appearance }
+  } catch {
+    // missing or invalid
+  }
+  return { appearance: 'dark' }
+}
+
+function writePreferences(p: EditorUiPreferences): void {
+  try {
+    fs.writeFileSync(
+      preferencesPath(),
+      JSON.stringify({ editorAppearance: p.appearance }, null, 2),
+      'utf8'
+    )
+  } catch (e) {
+    console.error('Failed to write preferences:', e)
+  }
+}
+
+function mergeEditorUi(partial: Partial<EditorUiPreferences>): EditorUiPreferences {
+  const cur = readPreferences()
+  const appearance: AppAppearance =
+    partial.appearance === 'light' || partial.appearance === 'dark' ? partial.appearance : cur.appearance
+  return { appearance }
+}
+
+function broadcastEditorUi(prefs: EditorUiPreferences): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send('preferences:editorUiChanged', prefs)
+  }
 }
 
 function getRendererBaseUrlWithHash(hash: 'home' | 'editor'): string {
@@ -147,6 +191,13 @@ function registerWindowIpc(): void {
     winFrom(e)?.close()
   })
   ipcMain.handle('app:isMaximized', e => winFrom(e)?.isMaximized() ?? false)
+
+  ipcMain.handle('preferences:getEditorUi', (): EditorUiPreferences => readPreferences())
+  ipcMain.handle('preferences:setEditorUi', async (_e, partial: Partial<EditorUiPreferences>) => {
+    const next = mergeEditorUi(partial)
+    writePreferences(next)
+    broadcastEditorUi(next)
+  })
 
   ipcMain.handle('file:open', async (e) => {
     const parent = defaultParentWindow(e)

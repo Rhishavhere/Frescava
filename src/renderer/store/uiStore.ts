@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { AppAppearance, EditorUiPreferences } from '@shared/types'
 
 type AppTab = 'home' | 'templates' | 'canvas' | 'explore' | 'settings'
 type RightPanelTab = 'light' | 'color' | 'detail' | 'effects'
@@ -12,7 +13,21 @@ interface ConfirmOptions {
   onConfirm: () => void
 }
 
+function mergeEditorUi(
+  current: { editorAppearance: AppAppearance },
+  partial: Partial<EditorUiPreferences>
+): { editorAppearance: AppAppearance } {
+  return {
+    editorAppearance: partial.appearance ?? current.editorAppearance,
+  }
+}
+
 interface UIStore {
+  /** Image workspace (Editor) only; Home ignores this for its chrome. */
+  editorAppearance: AppAppearance
+  setEditorUi: (partial: Partial<EditorUiPreferences>) => void
+  commitEditorUi: (partial: Partial<EditorUiPreferences>) => Promise<void>
+
   // App-level navigation
   activeTab: AppTab
   setActiveTab: (tab: AppTab) => void
@@ -47,7 +62,17 @@ interface UIStore {
   closeConfirm: () => void
 }
 
-export const useUIStore = create<UIStore>((set) => ({
+export const useUIStore = create<UIStore>((set, get) => ({
+  editorAppearance: 'dark',
+  setEditorUi: (partial) =>
+    set(mergeEditorUi({ editorAppearance: get().editorAppearance }, partial)),
+
+  commitEditorUi: async (partial) => {
+    const next = mergeEditorUi({ editorAppearance: get().editorAppearance }, partial)
+    set(next)
+    await window.frame.preferences.setEditorUi(partial)
+  },
+
   activeTab: 'home',
   setActiveTab: (tab) => set({ activeTab: tab }),
 

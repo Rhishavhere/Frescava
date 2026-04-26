@@ -55,7 +55,7 @@ export default function Editor() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Left: preset column — full strip on main, stub on Text / Templates */}
-          <aside className="w-48 shrink-0 flex flex-col border-r border-border bg-surface-50 overflow-hidden">
+          <aside className="w-48 shrink-0 flex flex-col border-r border-border dark:border-zinc-800/60 bg-surface-50 dark:bg-zinc-950/90 overflow-hidden">
             {isMainWorkspace ? <PresetStrip /> : <PresetColumnStub mode={editorWorkspace} />}
           </aside>
 
@@ -70,7 +70,7 @@ export default function Editor() {
           </div>
 
           {/* Right: inspector — adjustments on main, stub otherwise */}
-          <aside className="w-72 shrink-0 flex flex-col border-l border-border bg-white overflow-hidden">
+          <aside className="w-72 shrink-0 flex flex-col border-l border-border dark:border-zinc-800/60 bg-white dark:bg-zinc-950/95 overflow-hidden">
             {isMainWorkspace ? (
               <>
                 <AdjustmentHistogram />
@@ -90,7 +90,7 @@ export default function Editor() {
                 </div>
                 <div className="flex-1 flex flex-col min-h-0">
                   {!hasImage ? (
-                    <div className="flex flex-1 items-center justify-center text-text-muted overflow-y-auto right-panel-scroll">
+                    <div className="flex flex-1 items-center justify-center text-text-muted dark:text-zinc-500 overflow-y-auto right-panel-scroll">
                       <p className="text-xs text-center px-6">Open a photo to start editing</p>
                     </div>
                   ) : (
@@ -102,7 +102,7 @@ export default function Editor() {
                         {rightPanelTab === 'effects' && <EffectsPanel />}
                       </div>
                       {showPresetDock && (
-                        <div className="shrink-0 min-h-0 max-h-[45%] border-t border-border overflow-y-auto overflow-x-hidden bg-surface-50">
+                        <div className="shrink-0 min-h-0 max-h-[45%] border-t border-border dark:border-zinc-800/60 overflow-y-auto overflow-x-hidden bg-surface-50 dark:bg-zinc-900/50">
                           <PresetSettingsPanel />
                         </div>
                       )}

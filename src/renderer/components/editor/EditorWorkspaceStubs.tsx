@@ -14,8 +14,8 @@ const COPY: Record<Exclude<EditorWorkspace, 'main'>, { left: string; right: stri
 export function PresetColumnStub({ mode }: { mode: 'text' | 'templates' }) {
   return (
     <div className="h-full flex flex-col items-center justify-center px-3 py-4 text-center border-b border-border sm:border-b-0">
-      <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-2">Presets</p>
-      <p className="text-xs text-text-secondary leading-relaxed max-w-[11rem]">{COPY[mode].left}</p>
+      <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted dark:text-zinc-500 mb-2">Presets</p>
+      <p className="text-xs text-text-secondary dark:text-zinc-400 leading-relaxed max-w-[11rem]">{COPY[mode].left}</p>
     </div>
   )
 }
@@ -23,8 +23,8 @@ export function PresetColumnStub({ mode }: { mode: 'text' | 'templates' }) {
 export function InspectorColumnStub({ mode }: { mode: 'text' | 'templates' }) {
   return (
     <div className="h-full flex flex-col items-center justify-center px-4 py-6 text-center">
-      <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-2">Inspector</p>
-      <p className="text-xs text-text-secondary leading-relaxed max-w-xs">{COPY[mode].right}</p>
+      <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted dark:text-zinc-500 mb-2">Inspector</p>
+      <p className="text-xs text-text-secondary dark:text-zinc-400 leading-relaxed max-w-xs">{COPY[mode].right}</p>
     </div>
   )
 }

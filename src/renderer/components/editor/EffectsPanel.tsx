@@ -6,7 +6,7 @@ export default function EffectsPanel() {
   const { params, setNestedParam, pushHistory } = useEditStore()
 
   return (
-    <div className="flex flex-col divide-y divide-border panel-slide-right">
+    <div className="flex flex-col divide-y divide-border dark:divide-zinc-800/80 panel-slide-right">
       <FadeSection
         fade={params.fade}
         onChange={(key, v) => setNestedParam('fade', key, v)}
@@ -100,7 +100,7 @@ function GrainSection({
         <div className="flex flex-col gap-4 mt-3 panel-slide-right">
           {/* Type radio */}
           <div>
-            <span className="text-[11px] text-text-muted mb-1.5 block">Type</span>
+            <span className="text-[11px] text-text-muted dark:text-zinc-500 mb-1.5 block">Type</span>
             <div className="flex gap-1.5">
               {(['fine', 'medium', 'coarse', 'film'] as const).map(t => (
                 <button
@@ -108,8 +108,8 @@ function GrainSection({
                   onClick={() => onChange('type', t)}
                   className={`flex-1 py-1 rounded-md text-[10px] font-medium capitalize transition-colors ${
                     grain.type === t
-                      ? 'bg-text-primary text-white'
-                      : 'bg-surface-100 text-text-muted hover:bg-surface-200'
+                      ? 'bg-text-primary text-white dark:bg-zinc-100 dark:text-zinc-900'
+                      : 'bg-surface-100 text-text-muted hover:bg-surface-200 dark:bg-zinc-800/50 dark:text-zinc-400 dark:hover:bg-zinc-800'
                   }`}
                 >
                   {t}
@@ -144,7 +144,7 @@ function VignetteSection({
             {(['oval', 'rect'] as const).map(s => (
               <button key={s} onClick={() => onChange('shape', s)}
                 className={`flex-1 py-1 rounded-md text-[10px] font-medium capitalize transition-colors ${
-                  vignette.shape === s ? 'bg-text-primary text-white' : 'bg-surface-100 text-text-muted hover:bg-surface-200'
+                  vignette.shape === s ? 'bg-text-primary text-white dark:bg-zinc-100 dark:text-zinc-900' : 'bg-surface-100 text-text-muted hover:bg-surface-200 dark:bg-zinc-800/50 dark:text-zinc-400 dark:hover:bg-zinc-800'
                 }`}
               >{s}</button>
             ))}
@@ -175,12 +175,12 @@ function HalationSection({
       {halation.enabled && (
         <div className="flex flex-col gap-4 mt-3 panel-slide-right">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-secondary flex-1">Color</span>
+            <span className="text-xs text-text-secondary dark:text-zinc-400 flex-1">Color</span>
             <input
               type="color"
               value={halation.color}
               onChange={e => onChange('color', e.target.value)}
-              className="w-8 h-6 rounded border border-border cursor-pointer"
+              className="w-8 h-6 rounded border border-border dark:border-zinc-600 cursor-pointer"
             />
           </div>
           <Slider label="Intensity" value={Math.round(halation.intensity * 100)} min={0} max={100}
@@ -209,7 +209,7 @@ function BloomSection({
       {bloom.enabled && (
         <div className="flex flex-col gap-4 mt-3 panel-slide-right">
           <div>
-            <span className="text-[11px] text-text-muted mb-1.5 block">Character</span>
+            <span className="text-[11px] text-text-muted dark:text-zinc-500 mb-1.5 block">Character</span>
             <div className="flex gap-1.5">
               {(['soft', 'hard'] as const).map(character => (
                 <button
@@ -217,8 +217,8 @@ function BloomSection({
                   onClick={() => onChange('character', character)}
                   className={`flex-1 py-1 rounded-md text-[10px] font-medium capitalize transition-colors ${
                     bloom.character === character
-                      ? 'bg-text-primary text-white'
-                      : 'bg-surface-100 text-text-muted hover:bg-surface-200'
+                      ? 'bg-text-primary text-white dark:bg-zinc-100 dark:text-zinc-900'
+                      : 'bg-surface-100 text-text-muted hover:bg-surface-200 dark:bg-zinc-800/50 dark:text-zinc-400 dark:hover:bg-zinc-800'
                   }`}
                 >
                   {character}
@@ -274,7 +274,7 @@ function LensDistSection({
         <div className="mt-3 panel-slide-right">
           <Slider label="Amount" value={Math.round(lens.amount * 100)} min={-100} max={100}
             onChange={v => onChange('amount', v / 100)} onChangeEnd={onChangeEnd} />
-          <p className="text-[10px] text-text-muted mt-1">−  barrel  |  + pincushion</p>
+          <p className="text-[10px] text-text-muted dark:text-zinc-500 mt-1">−  barrel  |  + pincushion</p>
         </div>
       )}
     </PanelSection>
@@ -287,7 +287,7 @@ function EffectHeader({
 }: { label: string; enabled: boolean; onToggle: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-between">
-      <span className={`text-xs font-semibold transition-colors ${enabled ? 'text-text-primary' : 'text-text-muted'}`}>
+      <span className={`text-xs font-semibold transition-colors ${enabled ? 'text-text-primary dark:text-zinc-100' : 'text-text-muted dark:text-zinc-500'}`}>
         {label}
       </span>
       <Toggle checked={enabled} onChange={onToggle} />

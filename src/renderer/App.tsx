@@ -6,10 +6,27 @@ import TitleBar from './components/ui/TitleBar'
 import Editor from './pages/Editor'
 import Home from './pages/Home'
 import SettingsPage from './pages/SettingsPage'
+import type { EditorUiPreferences } from '@shared/types'
 
 function getWindowModeFromHash(): 'home' | 'editor' {
   const h = (window.location.hash || '').replace(/^#/, '')
   return h === 'editor' ? 'editor' : 'home'
+}
+
+/** Keep editor UI prefs in sync (persisted in main; Home + Editor both use the store in their process). */
+function EditorUiBootstrap() {
+  const setEditorUi = useUIStore(s => s.setEditorUi)
+
+  useEffect(() => {
+    void window.frame.preferences.getEditorUi().then((prefs: EditorUiPreferences) => {
+      setEditorUi(prefs)
+    })
+    return window.frame.preferences.onEditorUiChange((prefs) => {
+      setEditorUi(prefs)
+    })
+  }, [setEditorUi])
+
+  return null
 }
 
 function TemplatesStub() {
@@ -48,7 +65,7 @@ function ExploreStub() {
   )
 }
 
-/** Home / startup hub: separate window from the photo editor. */
+/** Home / startup hub: fixed warm aesthetic — no app-wide dark/light theme. */
 function FrescavaHomeShell() {
   const { activeTab, setActiveTab } = useUIStore()
 
@@ -81,10 +98,12 @@ function FrescavaHomeShell() {
   )
 }
 
-/** Maximized editor window: grading workspace only. */
+/** Editor window: theme (light/dark) here only; accent is hardcoded monochrome in CSS. */
 function FrescavaEditorShell() {
   const { setShowOriginal } = useEditStore()
   const { loadPresets } = usePresetStore()
+  const editorAppearance = useUIStore(s => s.editorAppearance)
+  const isDark = editorAppearance === 'dark'
 
   useEffect(() => {
     loadPresets()
@@ -115,7 +134,13 @@ function FrescavaEditorShell() {
   }, [handleKeyDown, handleKeyUp])
 
   return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden">
+    <div
+      className={
+        isDark
+          ? 'frescava-editor dark flex flex-col h-screen overflow-hidden bg-[#09090b] text-zinc-100 antialiased'
+          : 'frescava-editor flex flex-col h-screen overflow-hidden bg-[#f5f5f5] text-text-primary antialiased'
+      }
+    >
       <TitleBar variant="editor" />
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <Editor />
@@ -126,8 +151,10 @@ function FrescavaEditorShell() {
 
 export default function App() {
   const mode = getWindowModeFromHash()
-  if (mode === 'editor') {
-    return <FrescavaEditorShell />
-  }
-  return <FrescavaHomeShell />
+  return (
+    <>
+      <EditorUiBootstrap />
+      {mode === 'editor' ? <FrescavaEditorShell /> : <FrescavaHomeShell />}
+    </>
+  )
 }

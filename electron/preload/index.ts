@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import type { FileOpenResult, FrescavaAPI } from '../../src/shared/types'
+import type { FileOpenResult, EditorUiPreferences, FrescavaAPI } from '../../src/shared/types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = {
@@ -35,6 +35,18 @@ const api = {
     maximize: () => ipcRenderer.invoke('app:maximize'),
     close: () => ipcRenderer.invoke('app:close'),
     isMaximized: (): Promise<boolean> => ipcRenderer.invoke('app:isMaximized'),
+  },
+  preferences: {
+    getEditorUi: (): Promise<EditorUiPreferences> => ipcRenderer.invoke('preferences:getEditorUi'),
+    setEditorUi: (partial: Partial<EditorUiPreferences>) =>
+      ipcRenderer.invoke('preferences:setEditorUi', partial),
+    onEditorUiChange: (cb: (prefs: EditorUiPreferences) => void) => {
+      const handler = (_e: IpcRendererEvent, prefs: EditorUiPreferences) => {
+        cb(prefs)
+      }
+      ipcRenderer.on('preferences:editorUiChanged', handler)
+      return () => ipcRenderer.removeListener('preferences:editorUiChanged', handler)
+    },
   },
   window: {
     openEditor: (opts?: { files?: FileOpenResult[] }) => ipcRenderer.invoke('window:openEditor', opts),

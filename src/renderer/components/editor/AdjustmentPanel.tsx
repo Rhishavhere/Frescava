@@ -74,7 +74,7 @@ export default function AdjustmentPanel({ activeSection }: AdjustmentPanelProps)
       {/* Quick reset all */}
       <div className="px-4 pb-4">
         <button
-          className="w-full text-xs text-text-muted hover:text-text-primary py-1 transition-colors"
+          className="w-full text-xs text-text-muted dark:text-zinc-500 hover:text-text-primary dark:hover:text-zinc-200 py-1 transition-colors"
           onClick={() => {
             sliders.forEach(s => resetParam(s.key as keyof typeof params))
           }}
@@ -111,7 +111,9 @@ function SliderRow({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <label
-          className={`text-xs font-medium transition-colors cursor-pointer select-none ${isModified ? 'text-text-primary' : 'text-text-secondary'}`}
+          className={`text-xs font-medium transition-colors cursor-pointer select-none ${
+            isModified ? 'text-text-primary dark:text-zinc-100' : 'text-text-secondary dark:text-zinc-500'
+          }`}
           onDoubleClick={onReset}
           title="Double-click to reset"
         >
@@ -121,7 +123,7 @@ function SliderRow({
           onDoubleClick={onReset}
           title="Double-click to reset"
           className={`text-xs font-mono tabular-nums text-right min-w-[36px] transition-colors cursor-default ${
-            isModified ? 'text-accent font-medium' : 'text-text-muted'
+            isModified ? 'text-accent font-medium dark:text-[color:var(--editor-accent-mid)]' : 'text-text-muted dark:text-zinc-600'
           }`}
         >
           {displayVal}
@@ -134,7 +136,7 @@ function SliderRow({
         step={step}
         value={value}
         style={{
-          background: `linear-gradient(to right, ${isModified ? '#2563eb' : '#111111'} ${pct}%, #E8E8E8 ${pct}%)`
+          background: `linear-gradient(to right, ${isModified ? 'var(--frescava-adj-modified)' : 'var(--frescava-range-fill)'} ${pct}%, var(--frescava-range-track) ${pct}%)`
         }}
         className="w-full"
         onChange={e => onChange(parseFloat(e.target.value))}

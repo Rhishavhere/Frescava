@@ -177,10 +177,10 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
   const isBatch = batch.length > 1
 
   const toolBtn = (active: boolean) =>
-    `btn-icon ${active ? 'bg-surface-200 text-text-primary' : ''}`
+    `btn-icon ${active ? 'bg-surface-200 text-text-primary dark:bg-zinc-800 dark:text-zinc-100' : ''}`
 
   return (
-    <div className="relative flex items-center gap-1 px-2 py-1.5 border-b border-border bg-white shrink-0 min-h-11">
+    <div className="relative flex items-center gap-1 px-2 py-1.5 border-b border-border dark:border-zinc-800/60 bg-white dark:bg-zinc-950/80 shrink-0 min-h-11">
       {/* ── Left: icon-only tools (batch count stays visible on the left) ── */}
       <div className="flex items-center gap-0.5 shrink-0 no-drag">
         <button className="btn-icon" type="button" onClick={handleOpen} title="Add images" aria-label="Add images">
@@ -194,14 +194,14 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
         </button>
         {isBatch && (
           <span
-            className="text-[9px] font-mono tabular-nums text-text-muted px-1"
+            className="text-[9px] font-mono tabular-nums text-text-muted dark:text-zinc-500 px-1"
             title={`${batch.length} images in batch`}
             aria-hidden
           >
             {batch.length}
           </span>
         )}
-        <div className="w-px h-4 bg-border mx-0.5" />
+        <div className="w-px h-4 bg-border dark:bg-zinc-800 mx-0.5" />
         <button className="btn-icon" type="button" disabled={!canUndo()} onClick={undo} title="Undo" aria-label="Undo">
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
@@ -212,16 +212,16 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
           </svg>
         </button>
-        <div className="w-px h-4 bg-border mx-0.5" />
+        <div className="w-px h-4 bg-border dark:bg-zinc-800 mx-0.5" />
         {hasImage && (
           <>
             <button
               type="button"
               className={`btn-icon transition-opacity ${
                 compareMode
-                  ? 'opacity-40 !cursor-not-allowed text-text-placeholder'
+                  ? 'opacity-40 !cursor-not-allowed text-text-placeholder dark:text-zinc-600'
                   : showOriginal
-                    ? 'bg-surface-200 text-text-primary'
+                    ? 'bg-surface-200 text-text-primary dark:bg-zinc-800 dark:text-zinc-100'
                     : ''
               }`}
               onMouseDown={() => {
@@ -281,7 +281,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
       {/* ── Center: Editor / Text / Templates (in-editor workspace) ── */}
       <div className="flex-1 flex justify-center min-w-0 px-2 no-drag">
         <div
-          className="inline-flex rounded-lg p-0.5 bg-surface-100 border border-border"
+          className="inline-flex rounded-lg p-0.5 bg-surface-100 dark:bg-zinc-900/80 border border-border dark:border-zinc-800/80"
           role="tablist"
           aria-label="Editor workspace"
         >
@@ -296,8 +296,8 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                 onClick={() => setEditorWorkspace(t.id)}
                 className={`px-2.5 sm:px-3 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-colors whitespace-nowrap ${
                   active
-                    ? 'bg-white text-text-primary shadow-sm'
-                    : 'text-text-muted hover:text-text-primary'
+                    ? 'bg-white text-text-primary shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                    : 'text-text-muted dark:text-zinc-500 hover:text-text-primary dark:hover:text-zinc-200'
                 }`}
               >
                 {t.label}
@@ -311,11 +311,11 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
       {/* ── Right: labels for Save + Export only ── */}
       <div className="flex items-center gap-1.5 shrink-0 no-drag">
         {params.presetId && (
-          <span className="hidden sm:inline text-[10px] text-text-muted truncate max-w-[100px]">
+          <span className="hidden sm:inline text-[10px] text-text-muted dark:text-zinc-500 truncate max-w-[100px]">
             {params.presetId} ·{Math.round(params.presetIntensity * 100)}%
           </span>
         )}
-        {showExportSuccess && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓</span>}
+        {showExportSuccess && <span className="text-xs text-green-600 dark:text-emerald-400 font-medium hidden sm:inline">✓</span>}
         {hasImage && (
           <div className="relative group">
             <Button
@@ -338,7 +338,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
             <button
               type="button"
               onClick={handleSaveAs}
-              className="absolute right-0 top-full mt-0.5 whitespace-nowrap bg-white border border-border rounded shadow-md px-2.5 py-1.5 text-[11px] text-text-secondary hover:bg-surface-50 z-40 hidden group-hover:block"
+              className="absolute right-0 top-full mt-0.5 whitespace-nowrap bg-white border border-border rounded shadow-md px-2.5 py-1.5 text-[11px] text-text-secondary dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 hover:bg-surface-50 dark:hover:bg-zinc-800 z-40 hidden group-hover:block"
             >
               Save As…
             </button>
@@ -355,8 +355,8 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
             Export ▾
           </Button>
           {showExportMenu && (
-            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-lg shadow-xl z-50 overflow-hidden py-1">
-              <div className="px-3 py-2 border-b border-border">
+            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-lg shadow-xl z-50 overflow-hidden py-1 dark:bg-zinc-900 dark:border-zinc-700">
+              <div className="px-3 py-2 border-b border-border dark:border-zinc-800">
                 <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Resolution</p>
                 <div className="flex gap-1">
                   {(['canvas', 'full-res'] as const).map(mode => (
@@ -366,25 +366,25 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                       onClick={() => setExportMode(mode)}
                       className={`flex-1 py-1 px-2 rounded text-[10px] font-medium transition-colors ${
                         exportMode === mode
-                          ? 'bg-text-primary text-white'
-                          : 'bg-surface-100 text-text-muted hover:bg-surface-200'
+                          ? 'bg-text-primary text-white dark:bg-zinc-100 dark:text-zinc-900'
+                          : 'bg-surface-100 text-text-muted dark:bg-zinc-800/80 dark:text-zinc-400 hover:bg-surface-200 dark:hover:bg-zinc-800'
                       }`}
                     >
                       {mode === 'canvas' ? 'Preview match' : 'Full-res'}
                     </button>
                   ))}
                 </div>
-                <p className="text-[9px] text-text-muted mt-1">
+                <p className="text-[9px] text-text-muted dark:text-zinc-500 mt-1">
                   {exportMode === 'canvas' ? 'Exact preview · canvas capture' : 'Full resolution from source file'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleExportCurrent}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 dark:hover:bg-zinc-800/80 flex items-center gap-2"
               >
                 <svg
-                  className="w-3.5 h-3.5 text-text-muted shrink-0"
+                  className="w-3.5 h-3.5 text-text-muted dark:text-zinc-500 shrink-0"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -402,10 +402,10 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                 <button
                   type="button"
                   onClick={handleExportAll}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 dark:hover:bg-zinc-800/80 flex items-center gap-2"
                 >
                   <svg
-                    className="w-3.5 h-3.5 text-text-muted shrink-0"
+                    className="w-3.5 h-3.5 text-text-muted dark:text-zinc-500 shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -420,14 +420,14 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                   Export all {batch.length} images
                 </button>
               )}
-              <div className="border-t border-border mt-1 pt-1">
+              <div className="border-t border-border dark:border-zinc-800 mt-1 pt-1">
                 <button
                   type="button"
                   onClick={() => {
                     setShowExportMenu(false)
                     void handleSaveAs()
                   }}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 flex items-center gap-2 text-text-muted"
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 dark:hover:bg-zinc-800/80 flex items-center gap-2 text-text-muted dark:text-zinc-500"
                 >
                   <svg
                     className="w-3.5 h-3.5 shrink-0"

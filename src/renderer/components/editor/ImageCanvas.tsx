@@ -284,7 +284,7 @@ export default function ImageCanvas() {
           style={{ maxWidth: '100%', maxHeight: '100%', display: 'block' }}
         />
         {compareMode && (
-          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/85 text-[10px] font-semibold text-text-primary shadow-panel pointer-events-none">
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 dark:bg-zinc-900/90 text-[10px] font-semibold text-text-primary dark:text-zinc-100 shadow-panel dark:shadow-[0_1px_12px_rgba(0,0,0,0.5)] pointer-events-none border border-black/5 dark:border-white/10">
             Before
           </div>
         )}

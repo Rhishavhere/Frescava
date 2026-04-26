@@ -264,6 +264,14 @@ export interface ProjectFile {
 
 export type OpenHomeView = 'default' | 'settings'
 
+/** UI for the editor / canvas windows only. Home is always custom (not themed). */
+export type AppAppearance = 'light' | 'dark'
+
+/** Persisted: light/dark for the image workspace. Accent is hardcoded (monochrome zinc) in CSS. */
+export interface EditorUiPreferences {
+  appearance: AppAppearance
+}
+
 export interface FrescavaAPI {
   file: {
     open: () => Promise<FileOpenResult | null>
@@ -294,6 +302,15 @@ export interface FrescavaAPI {
     maximize: () => void
     close: () => void
     isMaximized: () => Promise<boolean>
+  }
+  /**
+   * Image workspace (Editor / future Canvas) only — not used for the Home hub window.
+   * Persisted in userData. Broadcast to all windows so an open editor updates from Settings.
+   */
+  preferences: {
+    getEditorUi: () => Promise<EditorUiPreferences>
+    setEditorUi: (partial: Partial<EditorUiPreferences>) => Promise<void>
+    onEditorUiChange: (cb: (prefs: EditorUiPreferences) => void) => () => void
   }
   /**
    * Multi-window: Home vs Editor are separate BrowserWindows.

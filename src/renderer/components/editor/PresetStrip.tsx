@@ -48,10 +48,10 @@ export default function PresetStrip() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex items-center justify-between shrink-0">
-        <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Presets</span>
+        <span className="text-[11px] font-semibold text-text-muted dark:text-zinc-500 uppercase tracking-wider">Presets</span>
         <button
           onClick={() => setShowFavOnly(v => !v)}
-          className={`text-text-muted hover:text-text-primary transition-colors ${showFavOnly ? 'text-film' : ''}`}
+          className={`text-text-muted hover:text-text-primary transition-colors dark:text-zinc-500 dark:hover:text-zinc-200 ${showFavOnly ? 'text-film' : ''}`}
           title="Show favorites"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill={showFavOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
@@ -88,8 +88,8 @@ export default function PresetStrip() {
           onClick={handleClearPreset}
           className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             !params.presetId
-              ? 'bg-surface-100 text-text-primary'
-              : 'text-text-muted hover:bg-surface-100 hover:text-text-primary'
+              ? 'bg-surface-100 text-text-primary dark:bg-zinc-800/80 dark:text-zinc-100'
+              : 'text-text-muted hover:bg-surface-100 hover:text-text-primary dark:text-zinc-500 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200'
           }`}
         >
           ✕ No preset
@@ -125,32 +125,6 @@ export default function PresetStrip() {
           />
         ))}
       </div>
-
-      {/* ── Templates section ──────────────────────────────────────────────────── */}
-      <div className="border-t border-border shrink-0">
-        <div className="px-3 pt-3 pb-2 flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Templates</span>
-          <span className="text-[9px] font-mono text-text-muted bg-surface-100 px-1.5 py-0.5 rounded">v0.3</span>
-        </div>
-        <div className="px-2 pb-3 flex flex-col gap-1">
-          {TEMPLATE_STUBS.map(t => (
-            <div
-              key={t.id}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-lg opacity-50 cursor-not-allowed"
-              title="Coming in v0.3"
-            >
-              <div className="w-10 h-10 rounded-md shrink-0 flex items-center justify-center text-sm"
-                style={{ background: t.color }}>
-                {t.icon}
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-text-secondary truncate">{t.name}</p>
-                <p className="text-[9px] text-text-muted">Coming soon</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
@@ -170,8 +144,8 @@ function CategoryPill({ label, active, onClick }: { label: string; active: boole
       onClick={onClick}
       className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap ${
         active
-          ? 'bg-text-primary text-white'
-          : 'bg-surface-100 text-text-muted hover:bg-surface-200 hover:text-text-primary'
+          ? 'bg-text-primary text-white dark:bg-zinc-100 dark:text-zinc-900'
+          : 'bg-surface-100 text-text-muted hover:bg-surface-200 hover:text-text-primary dark:bg-zinc-800/50 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200'
       }`}
     >
       {label}
@@ -196,12 +170,12 @@ function PresetCard({
         onClick={onSelect}
         className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-colors text-left ${
           isActive
-            ? 'bg-accent-muted text-text-primary'
-            : 'hover:bg-surface-100 text-text-secondary hover:text-text-primary'
+            ? 'bg-accent-muted text-text-primary dark:bg-amber-950/40 dark:text-amber-100/90'
+            : 'hover:bg-surface-100 text-text-secondary hover:text-text-primary dark:hover:bg-zinc-800/60 dark:text-zinc-400 dark:hover:text-zinc-100'
         }`}
       >
         {/* Thumbnail or placeholder */}
-        <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface-200 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface-200 dark:bg-zinc-800 flex items-center justify-center">
           {preset.thumbnailFile ? (
             <img
               src={`../assets/presets/${preset.folderName}/${preset.thumbnailFile}`}
@@ -210,7 +184,7 @@ function PresetCard({
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-surface-200 to-surface-300 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-surface-200 to-surface-300 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center">
               <span className="text-[8px] text-text-muted font-mono">LUT</span>
             </div>
           )}

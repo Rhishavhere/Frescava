@@ -72,14 +72,14 @@ export default function AdjustmentHistogram() {
 
   return (
     <div
-      className="shrink-0 border-b border-border bg-surface-50 p-1"
+      className="shrink-0 border-b border-border dark:border-zinc-800/60 bg-surface-50 dark:bg-zinc-950/80 p-1"
       role="img"
       aria-label="Luminance histogram of the current preview"
     >
-      <div className="h-20 w-full rounded-sm overflow-hidden bg-white border border-border/60 pt-6">
+      <div className="h-20 w-full rounded-sm overflow-hidden bg-white dark:bg-zinc-900/50 border border-border/60 dark:border-zinc-800/60 pt-6">
         {heights && fillPath ? (
           <svg
-            className="w-full h-full text-text-primary block"
+            className="w-full h-full text-text-primary dark:text-white block"
             viewBox="0 0 256 1"
             preserveAspectRatio="none"
             aria-hidden
@@ -103,7 +103,7 @@ export default function AdjustmentHistogram() {
             ) : null}
           </svg>
         ) : (
-          <div className="h-full w-full bg-surface-100" />
+          <div className="h-full w-full bg-surface-100 dark:bg-zinc-800/30" />
         )}
       </div>
     </div>

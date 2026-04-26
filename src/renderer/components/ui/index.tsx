@@ -19,11 +19,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
 }, ref) => {
   const base = 'inline-flex items-center justify-center gap-1.5 font-medium transition-all duration-100 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95'
   const variants = {
-    primary: 'bg-text-primary text-white rounded-lg hover:opacity-85',
-    secondary: 'bg-surface-100 text-text-primary rounded-lg border border-border hover:bg-surface-200',
-    ghost: 'text-text-secondary rounded-lg hover:bg-surface-100 hover:text-text-primary',
-    icon: 'text-text-muted rounded-lg hover:bg-surface-100 hover:text-text-primary',
-    danger: 'bg-red-50 text-red-600 rounded-lg border border-red-100 hover:bg-red-100',
+    primary: 'bg-text-primary text-white rounded-lg hover:opacity-85 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:opacity-90',
+    secondary: 'bg-surface-100 text-text-primary rounded-lg border border-border hover:bg-surface-200 dark:bg-zinc-800/60 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800',
+    ghost: 'text-text-secondary rounded-lg hover:bg-surface-100 hover:text-text-primary dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100',
+    icon: 'text-text-muted rounded-lg hover:bg-surface-100 hover:text-text-primary dark:text-zinc-500 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200',
+    danger: 'bg-red-50 text-red-600 rounded-lg border border-red-100 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/50 dark:hover:bg-red-900/30',
   }
   const sizes = {
     sm: 'px-2.5 py-1 text-xs',
@@ -78,12 +78,14 @@ export function Slider({
   const pct = ((value - min) / (max - min)) * 100
   const displayVal = value > 0 ? `+${value}` : `${value}`
 
+  const lineColor = 'var(--frescava-range-fill, #111111)'
+  const trackColor = 'var(--frescava-range-track, #E8E8E8)'
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-text-secondary">{label}</label>
+        <label className="text-xs font-medium text-text-secondary dark:text-zinc-400">{label}</label>
         {showValue && (
-          <span className="text-xs font-mono text-text-muted tabular-nums" style={{ minWidth: 36, textAlign: 'right' }}>
+          <span className="text-xs font-mono text-text-muted tabular-nums dark:text-zinc-500" style={{ minWidth: 36, textAlign: 'right' }}>
             {displayVal}{unit}
           </span>
         )}
@@ -96,8 +98,7 @@ export function Slider({
           step={step}
           value={value}
           style={{
-            // Coloured track up to thumb
-            background: `linear-gradient(to right, #111111 ${pct}%, #E8E8E8 ${pct}%)`,
+            background: `linear-gradient(to right, ${lineColor} ${pct}%, ${trackColor} ${pct}%)`,
           }}
           className="w-full"
           onChange={e => onChange(parseFloat(e.target.value))}
@@ -120,17 +121,17 @@ interface ToggleProps {
 export function Toggle({ checked, onChange, label, size = 'sm' }: ToggleProps) {
   return (
     <label className="flex items-center gap-2 cursor-pointer select-none">
-      {label && <span className="text-xs text-text-secondary">{label}</span>}
+      {label && <span className="text-xs text-text-secondary dark:text-zinc-400">{label}</span>}
       <button
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative flex-shrink-0 rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
           size === 'sm' ? 'w-7 h-4' : 'w-9 h-5'
-        } ${checked ? 'bg-text-primary' : 'bg-surface-300'}`}
+        } ${checked ? 'bg-text-primary dark:bg-[color:var(--editor-accent-mid)]' : 'bg-surface-300 dark:bg-zinc-700'}`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+          className={`absolute top-0.5 left-0.5 rounded-full bg-white dark:bg-zinc-900 shadow-sm transition-transform duration-150 ${
             size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'
           } ${checked ? (size === 'sm' ? 'translate-x-3' : 'translate-x-4') : 'translate-x-0'}`}
         />
@@ -156,7 +157,7 @@ export function PanelSection({
     <div className={`px-4 py-3 ${className}`}>
       {title && (
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{title}</span>
+          <span className="text-[11px] font-semibold text-text-muted dark:text-zinc-500 uppercase tracking-wider">{title}</span>
           {action}
         </div>
       )}
