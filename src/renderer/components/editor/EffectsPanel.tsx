@@ -7,6 +7,11 @@ export default function EffectsPanel() {
 
   return (
     <div className="flex flex-col divide-y divide-border panel-slide-right">
+      <FadeSection
+        fade={params.fade}
+        onChange={(key, v) => setNestedParam('fade', key, v)}
+        onChangeEnd={pushHistory}
+      />
       <GrainSection
         grain={params.grain}
         onChange={(key, v) => setNestedParam('grain', key, v)}
@@ -38,6 +43,45 @@ export default function EffectsPanel() {
         onChangeEnd={pushHistory}
       />
     </div>
+  )
+}
+
+// ─── Fade (matte / film rolloff) ─────────────────────────────────────────────
+function FadeSection({
+  fade, onChange, onChangeEnd
+}: { fade: typeof useEditStore['prototype']['params']['fade']; onChange: (k: string, v: unknown) => void; onChangeEnd: () => void }) {
+  return (
+    <PanelSection>
+      <EffectHeader
+        label="Fade"
+        enabled={fade.enabled}
+        onToggle={v => onChange('enabled', v)}
+      />
+      {fade.enabled && (
+        <div className="flex flex-col gap-4 mt-3 panel-slide-right">
+          <Slider
+            label="Black lift"
+            value={Math.round(fade.blackLift * 1000) / 10}
+            min={0}
+            max={30}
+            step={0.5}
+            onChange={v => onChange('blackLift', v / 100)}
+            onChangeEnd={onChangeEnd}
+            unit="%"
+          />
+          <Slider
+            label="White ceiling"
+            value={Math.round(fade.whiteCeiling * 1000) / 10}
+            min={70}
+            max={100}
+            step={0.1}
+            onChange={v => onChange('whiteCeiling', v / 100)}
+            onChangeEnd={onChangeEnd}
+            unit="%"
+          />
+        </div>
+      )}
+    </PanelSection>
   )
 }
 
