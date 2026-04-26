@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 
-type AppTab = 'home' | 'editor' | 'templates' | 'canvas'
+type AppTab = 'home' | 'editor' | 'templates' | 'canvas' | 'explore'
 type RightPanelTab = 'light' | 'color' | 'detail' | 'effects'
+
+export type EditorWorkspace = 'main' | 'text' | 'templates'
 
 interface ConfirmOptions {
   title: string
@@ -11,11 +13,15 @@ interface ConfirmOptions {
 }
 
 interface UIStore {
-  // Navigation
+  // App-level navigation
   activeTab: AppTab
   setActiveTab: (tab: AppTab) => void
 
-  // Panel state
+  /** In-editor tool mode: main photo tools vs text vs templates (same session; different side panels) */
+  editorWorkspace: EditorWorkspace
+  setEditorWorkspace: (w: EditorWorkspace) => void
+
+  // Right inspector tab (main workspace)
   rightPanelTab: RightPanelTab
   setRightPanelTab: (tab: RightPanelTab) => void
 
@@ -44,6 +50,9 @@ interface UIStore {
 export const useUIStore = create<UIStore>((set) => ({
   activeTab: 'home',
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  editorWorkspace: 'main' as EditorWorkspace,
+  setEditorWorkspace: (w) => set({ editorWorkspace: w }),
 
   rightPanelTab: 'light',
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
