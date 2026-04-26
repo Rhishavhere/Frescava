@@ -6,6 +6,7 @@ const api = {
   file: {
     open: () => ipcRenderer.invoke('file:open'),
     openMultiple: () => ipcRenderer.invoke('file:openMultiple'),
+    openForEditor: () => ipcRenderer.invoke('file:openForEditor'),
     load: (path: string) => ipcRenderer.invoke('file:load', path),
     loadFull: (path: string) => ipcRenderer.invoke('file:loadFull', path),
   },
@@ -49,7 +50,8 @@ const api = {
     },
   },
   window: {
-    openEditor: (opts?: { files?: FileOpenResult[] }) => ipcRenderer.invoke('window:openEditor', opts),
+    openEditor: (opts?: { files?: FileOpenResult[]; project?: { filePath: string; project: import('../../src/shared/types').ProjectFile } }) =>
+      ipcRenderer.invoke('window:openEditor', opts),
     openHome: (opts?: { view?: 'default' | 'settings' }) => ipcRenderer.invoke('window:openHome', opts),
     getHomeLaunchView: () =>
       ipcRenderer.invoke('window:getHomeLaunchView') as Promise<'default' | 'settings' | null>,
@@ -62,7 +64,10 @@ const api = {
     },
     getLaunchPayload: () =>
       ipcRenderer.invoke('window:getLaunchPayload') as Promise<
-        { type: 'files'; files: FileOpenResult[] } | { type: 'empty' } | null
+        | { type: 'files'; files: FileOpenResult[] }
+        | { type: 'empty' }
+        | { type: 'project'; filePath: string; project: import('../../src/shared/types').ProjectFile }
+        | null
       >,
     onEditorOpenFiles: (cb: (files: FileOpenResult[]) => void) => {
       const handler = (_e: IpcRendererEvent, files: FileOpenResult[]) => {
@@ -70,6 +75,16 @@ const api = {
       }
       ipcRenderer.on('editor:openFiles', handler)
       return () => ipcRenderer.removeListener('editor:openFiles', handler)
+    },
+    onEditorOpenProject: (cb: (payload: { filePath: string; project: import('../../src/shared/types').ProjectFile }) => void) => {
+      const handler = (
+        _e: IpcRendererEvent,
+        payload: { filePath: string; project: import('../../src/shared/types').ProjectFile }
+      ) => {
+        cb(payload)
+      }
+      ipcRenderer.on('editor:openProject', handler)
+      return () => ipcRenderer.removeListener('editor:openProject', handler)
     },
   },
 }

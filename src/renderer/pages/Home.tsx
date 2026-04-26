@@ -39,9 +39,15 @@ export default function Home() {
   const { setActiveTab } = useUIStore()
 
   const handleOpenImage = async () => {
-    const results = await window.frame.file.openMultiple()
-    if (!results.length) return
-    void window.frame.window.openEditor({ files: results })
+    const result = await window.frame.file.openForEditor()
+    if (result.kind === 'empty') return
+    if (result.kind === 'project') {
+      void window.frame.window.openEditor({
+        project: { filePath: result.filePath, project: result.project },
+      })
+      return
+    }
+    void window.frame.window.openEditor({ files: result.files })
   }
 
   return (

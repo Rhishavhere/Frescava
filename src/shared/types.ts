@@ -273,10 +273,18 @@ export interface EditorUiPreferences {
   appearance: AppAppearance
 }
 
+/** Home “Open” dialog: images and/or a single `.frex` project */
+export type OpenForEditorResult =
+  | { kind: 'empty' }
+  | { kind: 'project'; filePath: string; project: ProjectFile }
+  | { kind: 'images'; files: FileOpenResult[] }
+
 export interface FrescavaAPI {
   file: {
     open: () => Promise<FileOpenResult | null>
     openMultiple: () => Promise<FileOpenResult[]>
+    /** Pick images and/or a Frescava project (if a `.frex` is included, the first is loaded as project) */
+    openForEditor: () => Promise<OpenForEditorResult>
     load: (path: string) => Promise<FileOpenResult>
     loadFull: (path: string) => Promise<FileOpenResult>
   }
@@ -317,7 +325,10 @@ export interface FrescavaAPI {
    * Multi-window: Home vs Editor are separate BrowserWindows.
    */
   window: {
-    openEditor: (opts?: { files?: FileOpenResult[] }) => Promise<void>
+    openEditor: (opts?: {
+      files?: FileOpenResult[]
+      project?: { filePath: string; project: ProjectFile }
+    }) => Promise<void>
     openHome: (opts?: { view?: OpenHomeView }) => Promise<void>
     getHomeLaunchView: () => Promise<OpenHomeView | null>
     /**
@@ -326,10 +337,15 @@ export interface FrescavaAPI {
      */
     onHomeOpenView: (cb: (view: OpenHomeView) => void) => () => void
     getLaunchPayload: () => Promise<
-      { type: 'files'; files: FileOpenResult[] } | { type: 'empty' } | null
+      | { type: 'files'; files: FileOpenResult[] }
+      | { type: 'empty' }
+      | { type: 'project'; filePath: string; project: ProjectFile }
+      | null
     >
     /** New batch opened from Home while the editor window is already open */
     onEditorOpenFiles: (cb: (files: FileOpenResult[]) => void) => () => void
+    /** Open a saved `.frex` while the editor is already open */
+    onEditorOpenProject: (cb: (payload: { filePath: string; project: ProjectFile }) => void) => () => void
   }
 }
 

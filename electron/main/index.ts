@@ -5,11 +5,14 @@ import * as fs from 'fs'
 import { registerExportHandlers } from './ipc/export'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerProjectHandlers } from './ipc/projects'
-import type { FileOpenResult, AppAppearance, EditorUiPreferences, OpenHomeView } from '@shared/types'
+import type { FileOpenResult, AppAppearance, EditorUiPreferences, OpenHomeView, ProjectFile } from '@shared/types'
 
 const isDev = process.env['ELECTRON_RENDERER_URL'] !== undefined || process.env['NODE_ENV'] === 'development'
 
-type EditorLaunchPayload = { type: 'files'; files: FileOpenResult[] } | { type: 'empty' }
+type EditorLaunchPayload =
+  | { type: 'files'; files: FileOpenResult[] }
+  | { type: 'empty' }
+  | { type: 'project'; filePath: string; project: ProjectFile }
 
 function cleanPreviewsDir(): void {
   const tempDir = join(app.getPath('temp'), 'frescava-previews')
@@ -199,6 +202,34 @@ function registerWindowIpc(): void {
     broadcastEditorUi(next)
   })
 
+  ipcMain.handle('file:openForEditor', async (e) => {
+    const parent = defaultParentWindow(e)
+    if (!parent) return { kind: 'empty' as const }
+    const { canceled, filePaths } = await dialog.showOpenDialog(parent, {
+      title: 'Open',
+      filters: [
+        { name: 'Frescava & images', extensions: ['frex', 'jpg', 'jpeg', 'png', 'webp'] },
+      ],
+      properties: ['openFile', 'multiSelections'],
+    })
+    if (canceled || !filePaths.length) return { kind: 'empty' as const }
+
+    const firstFrex = filePaths.find(p => p.toLowerCase().endsWith('.frex'))
+    if (firstFrex) {
+      try {
+        const raw = fs.readFileSync(firstFrex, 'utf-8')
+        const project = JSON.parse(raw) as ProjectFile
+        return { kind: 'project' as const, filePath: firstFrex, project }
+      } catch (err) {
+        console.error('[openForEditor] Failed to read .frex', err)
+        return { kind: 'empty' as const }
+      }
+    }
+
+    const files = await Promise.all(filePaths.map(f => loadImageFile(f)))
+    return { kind: 'images' as const, files }
+  })
+
   ipcMain.handle('file:open', async (e) => {
     const parent = defaultParentWindow(e)
     if (!parent) return null
@@ -231,11 +262,22 @@ function registerWindowIpc(): void {
     return await loadImageFileFull(filePath)
   })
 
-  ipcMain.handle('window:openEditor', async (_e, opts?: { files?: FileOpenResult[] }) => {
-    if (opts?.files && opts.files.length > 0) {
+  ipcMain.handle('window:openEditor', async (_e, opts?: {
+    files?: FileOpenResult[]
+    project?: { filePath: string; project: ProjectFile }
+  }) => {
+    if (opts?.project) {
+      const { filePath, project } = opts.project
       if (editorWindow && !editorWindow.isDestroyed()) {
+        editorWindow.webContents.send('editor:openProject', { filePath, project })
+        closeHomeWindow()
         editorWindow.focus()
         editorWindow.maximize()
+        return
+      }
+      pendingEditorPayload = { type: 'project', filePath, project }
+    } else if (opts?.files && opts.files.length > 0) {
+      if (editorWindow && !editorWindow.isDestroyed()) {
         editorWindow.webContents.send('editor:openFiles', opts.files)
         closeHomeWindow()
         return
@@ -243,15 +285,17 @@ function registerWindowIpc(): void {
       pendingEditorPayload = { type: 'files', files: opts.files }
     } else {
       if (editorWindow && !editorWindow.isDestroyed()) {
+        closeHomeWindow()
         editorWindow.focus()
         editorWindow.maximize()
-        closeHomeWindow()
         return
       }
       pendingEditorPayload = { type: 'empty' }
     }
     closeHomeWindow()
-    createEditorWindow()
+    if (!editorWindow || editorWindow.isDestroyed()) {
+      createEditorWindow()
+    }
   })
 
   ipcMain.handle('window:openHome', (_e, opts?: { view?: OpenHomeView }) => {

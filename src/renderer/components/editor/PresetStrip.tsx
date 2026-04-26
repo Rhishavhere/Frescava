@@ -18,8 +18,7 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as PresetCategory[]
 export default function PresetStrip() {
   const { presets, favorites, selectedPresetId, selectPreset, toggleFavorite, isLoading } = usePresetStore()
   const { params, applyPreset } = useEditStore()
-  const { applyPresetToAll, getActiveBatch, markActiveImageDirty } = useSessionStore()
-  const isBatch = getActiveBatch().length > 1
+  const { markActiveImageDirty } = useSessionStore()
   const [activeCategory, setActiveCategory] = useState<PresetCategory | 'all'>('all')
   const [showFavOnly, setShowFavOnly] = useState(false)
 
@@ -33,15 +32,12 @@ export default function PresetStrip() {
     selectPreset(preset.id)
     applyPreset(preset.id, preset.defaults ?? {})
     markActiveImageDirty()
-    // Apply to ALL images in the batch
-    if (isBatch) applyPresetToAll(preset.id, params.presetIntensity)
   }
 
   const handleClearPreset = () => {
     selectPreset(null)
     applyPreset('', { presetId: null })
     markActiveImageDirty()
-    if (isBatch) applyPresetToAll(null, 1)
   }
 
   return (

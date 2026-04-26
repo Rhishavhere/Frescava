@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useUIStore } from '../store/uiStore'
 import { useEditStore } from '../store/editStore'
 import { useSessionStore } from '../store/tabStore'
+import { loadProjectIntoEditor } from '../lib/hydrateProject'
 import ImageCanvas from '../components/editor/ImageCanvas'
 import PresetStrip from '../components/editor/PresetStrip'
 import AdjustmentPanel from '../components/editor/AdjustmentPanel'
@@ -11,7 +12,6 @@ import AdjustmentHistogram from '../components/editor/AdjustmentHistogram'
 import { PresetColumnStub, InspectorColumnStub } from '../components/editor/EditorWorkspaceStubs'
 import DropZone from '../components/editor/DropZone'
 import Toolbar from '../components/editor/Toolbar'
-import EditorTabBar from '../components/editor/EditorTabBar'
 import BatchStrip from '../components/editor/BatchStrip'
 import ConfirmModal from '../components/ui/ConfirmModal'
 
@@ -24,16 +24,24 @@ const PANEL_TABS = [
 
 function EditorWindowSessionBootstrap() {
   useEffect(() => {
-    const off = window.frame.window.onEditorOpenFiles((files) => {
+    const offFiles = window.frame.window.onEditorOpenFiles((files) => {
       if (files.length) useSessionStore.getState().openSession(files)
+    })
+    const offProject = window.frame.window.onEditorOpenProject((p) => {
+      void loadProjectIntoEditor(p.filePath, p.project)
     })
     void (async () => {
       const payload = await window.frame.window.getLaunchPayload()
-      if (payload?.type === 'files' && payload.files.length > 0) {
+      if (payload?.type === 'project') {
+        await loadProjectIntoEditor(payload.filePath, payload.project)
+      } else if (payload?.type === 'files' && payload.files.length > 0) {
         useSessionStore.getState().openSession(payload.files)
       }
     })()
-    return off
+    return () => {
+      offFiles()
+      offProject()
+    }
   }, [])
   return null
 }
@@ -43,7 +51,6 @@ export default function Editor() {
   const imagePath = useEditStore(s => s.imagePath)
   const imageDataURL = useEditStore(s => s.imageDataURL)
   const presetId = useEditStore(s => s.params.presetId)
-  const { sessions } = useSessionStore()
 
   const hasImage = !!imagePath && !!imageDataURL
   const showPresetDock = hasImage && !!presetId
@@ -62,7 +69,6 @@ export default function Editor() {
           {/* Center: same canvas + batch for all in-editor modes; toolbar switches workspace panels */}
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <Toolbar hasImage={hasImage} />
-            {sessions.length > 0 && <EditorTabBar />}
             <div className="flex-1 canvas-container overflow-hidden min-h-0">
               {hasImage ? <ImageCanvas /> : <DropZone />}
             </div>

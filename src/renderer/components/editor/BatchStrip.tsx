@@ -1,11 +1,20 @@
 import { useSessionStore } from '../../store/tabStore'
+import { useEditStore } from '../../store/editStore'
+import { usePresetStore } from '../../store/presetStore'
 
 export default function BatchStrip() {
-  const { getActiveBatch, getActiveSession, setActiveImage, removeImage, addToSession } = useSessionStore()
-  const batch = getActiveBatch()
-  const session = getActiveSession()
+  const { setActiveImage, removeImage, addToSession, applyCurrentEditToAll } = useSessionStore()
+  const session = useSessionStore(s => s.session)
+  const batch = session?.images ?? []
+  const params = useEditStore(s => s.params)
+  const { getPresetById } = usePresetStore()
 
-  if (!session || batch.length <= 1) return null   // only show when 2+ images
+  if (!session || batch.length === 0) return null
+
+  const presetLabel = params.presetId
+    ? getPresetById(params.presetId)?.name ?? params.presetId
+    : 'No preset'
+  const canApplyAll = batch.length >= 2
 
   const handleAddMore = async () => {
     const results = await window.frame.file.openMultiple()
@@ -16,14 +25,26 @@ export default function BatchStrip() {
   return (
     <div className="batch-strip">
       <div className="batch-strip-inner">
-        {/* Preset badge */}
+        <button
+          type="button"
+          className="batch-apply-all-btn"
+          disabled={!canApplyAll}
+          title={
+            canApplyAll
+              ? 'Copy the current image’s preset and all adjustments to every other image'
+              : 'Add another image to enable Apply to all'
+          }
+          onClick={() => canApplyAll && applyCurrentEditToAll()}
+        >
+          Apply to all
+        </button>
+
         <div className="batch-preset-badge">
           <span className="text-[9px] font-mono uppercase tracking-wider opacity-50">
-            {session.sharedPresetId ?? 'No preset'} · {batch.length} images
+            {presetLabel} · {batch.length} {batch.length === 1 ? 'image' : 'images'}
           </span>
         </div>
 
-        {/* Thumbnails */}
         {batch.map((img, idx) => {
           const isActive = img.id === session.activeImageId
           return (
@@ -33,21 +54,17 @@ export default function BatchStrip() {
               onClick={() => setActiveImage(img.id)}
               title={img.label}
             >
-              {/* Image */}
               <div className="batch-thumb-img">
                 <img
                   src={img.imageDataURL}
                   alt={img.label}
                   className="w-full h-full object-cover"
                 />
-                {/* Active ring */}
                 {isActive && <div className="batch-thumb-ring" />}
               </div>
 
-              {/* Index badge */}
               <span className="batch-thumb-idx">{idx + 1}</span>
 
-              {/* Remove button — only on hover */}
               <button
                 className="batch-thumb-remove"
                 onClick={e => { e.stopPropagation(); removeImage(img.id) }}
@@ -59,7 +76,6 @@ export default function BatchStrip() {
           )
         })}
 
-        {/* Add more */}
         <button className="batch-add-btn" onClick={handleAddMore} title="Add images to batch">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

@@ -104,13 +104,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
       const lut = window.__frescavaGetCurrentLUT?.()
       const images = await Promise.all(
         batch.map(async img => {
-          const sessionPresetId = getActiveSession()?.sharedPresetId ?? null
-          const sessionPresetIntensity = getActiveSession()?.sharedPresetIntensity ?? 1
-          const imgParams = {
-            ...img.adjustments,
-            presetId: sessionPresetId,
-            presetIntensity: sessionPresetIntensity,
-          }
+          const imgParams = img.adjustments
           let canvasDataURL: string | undefined
           if (exportMode === 'full-res') {
             const result = await renderFullRes({

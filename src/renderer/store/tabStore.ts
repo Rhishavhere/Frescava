@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useEditStore, DEFAULT_EDIT_STATE } from './editStore'
+import { usePresetStore } from './presetStore'
 import type { EditState } from '@shared/types'
 
 // Lazy imports to avoid circular deps
@@ -17,25 +18,14 @@ const openConfirm = (title: string, message: string, onConfirm: () => void) => {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type BatchAdjustments = Omit<EditState,
-  'imagePath' | 'imageWidth' | 'imageHeight' | 'presetId' | 'presetIntensity'
->
+/** Full per-image edit state (preset + user adjustments) */
+export type BatchAdjustments = Omit<EditState, 'imagePath' | 'imageWidth' | 'imageHeight'>
 
-const DEFAULT_ADJUSTMENTS: BatchAdjustments = {
-  exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
-  temperature: 0, tint: 0, vibrance: 0, saturation: 0,
-  sharpness: 0, noiseReduction: 0, clarity: 0, texture: 0, lensBlur: 0,
-  fade: { enabled: false, blackLift: 0.05, whiteCeiling: 0.97 },
-  grain: { enabled: false, type: 'fine', intensity: 0.3, size: 1.0, roughness: 0.5, luminosityMode: true, highlightReduction: 0.4 },
-  vignette: { enabled: false, shape: 'oval', strength: 0.5, feather: 0.5, midpoint: 0.7, exposure: 0 },
-  halation: { enabled: false, color: '#FF4422', radius: 40, threshold: 0.75, intensity: 0.4, blendMode: 'screen' },
-  chromaticAberration: { enabled: false, amount: 3, radialFalloff: true },
-  bloom: { enabled: false, threshold: 0.75, intensity: 0.3, radius: 15, character: 'soft' },
-  lensDistortion: { enabled: false, amount: 0 },
-  lightLeak: { enabled: false, textureFile: null, color: '#FFA050', colorStrength: 0.5, position: [0, 0], opacity: 0.5, blendMode: 'screen' },
-  dustScratches: { enabled: false, textureFile: null, opacity: 0.3, blendMode: 'screen' },
-  border: { enabled: false, type: null, textureFile: null, color: '#FFFFFF', width: 0.04, bottomWeight: 1, cornerRadius: 0, expandCanvas: false },
-}
+const deepClone = <T>(o: T): T => JSON.parse(JSON.stringify(o))
+
+const DEFAULT_BATCH_ADJUSTMENTS: BatchAdjustments = deepClone(DEFAULT_EDIT_STATE) as BatchAdjustments
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface BatchImage {
   id: string
@@ -51,47 +41,38 @@ export interface BatchImage {
 
 export interface EditorSession {
   id: string
-  label: string               // first image name or "Session N"
+  /** Display label (first image name or session title) */
+  label: string
   activeImageId: string | null
   images: BatchImage[]
-  sharedPresetId: string | null
-  sharedPresetIntensity: number
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 interface SessionStore {
-  sessions: EditorSession[]
-  activeSessionId: string | null
+  /** At most one editor session (single batch) */
+  session: EditorSession | null
 
-  /** Create a brand-new session (from Home) with one or more images */
+  /** Create session or add to the current batch if one exists */
   openSession: (results: Array<{ path: string; dataURL: string; width: number; height: number }>) => void
-  /** Add images to the currently active session batch */
   addToSession: (results: Array<{ path: string; dataURL: string; width: number; height: number }>) => void
-  /** Close an entire session (shows confirm if dirty) */
-  closeSession: (id: string) => void
-  /** Force-close without dirty check (used after confirm) */
-  forceCloseSession: (id: string) => void
-  /** Switch the active session */
-  switchSession: (id: string) => void
+  closeSession: () => void
+  forceCloseSession: () => void
 
-  /** Switch the active image within the current session */
   setActiveImage: (imageId: string) => void
-  /** Remove an image from the current batch (shows confirm if dirty) */
   removeImage: (imageId: string) => void
-  /** Force-remove without dirty check */
   forceRemoveImage: (imageId: string) => void
 
-  /** Apply a preset to ALL images in the current session */
-  applyPresetToAll: (presetId: string | null, intensity: number) => void
+  /**
+   * Copies the current image's full edit state (preset + all adjustments) to every other
+   * image in the batch. Does not change the active image's stored row (it's the source of truth in edit store).
+   */
+  applyCurrentEditToAll: () => void
 
-  /** Get all images in the active session (for export) */
   getActiveBatch: () => BatchImage[]
   getActiveSession: () => EditorSession | null
 
-  /** Mark the active image as having unsaved edits */
   markActiveImageDirty: () => void
-  /** Mark the active image as clean (just saved) */
   markActiveImageClean: () => void
 }
 
@@ -106,200 +87,131 @@ function makeImage(result: { path: string; dataURL: string; width: number; heigh
     imageDataURL: result.dataURL,
     imageWidth: result.width,
     imageHeight: result.height,
-    adjustments: { ...DEFAULT_ADJUSTMENTS },
+    adjustments: deepClone(DEFAULT_BATCH_ADJUSTMENTS),
     isDirty: false,
   }
 }
 
-function syncEditStore(session: EditorSession) {
-  const img = session.images.find(i => i.id === session.activeImageId)
-  if (!img) return
-  const es = useEditStore.getState()
-  es.loadImage(img.imagePath, img.imageWidth, img.imageHeight, img.imageDataURL)
-  es.resetAll()
-  // Restore per-image adjustments
-  Object.entries(img.adjustments).forEach(([k, v]) => {
-    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
-      Object.entries(v as Record<string, unknown>).forEach(([sk, sv]) => {
-        es.setNestedParam(k as any, sk, sv)
-      })
-    } else {
-      es.setParam(k as any, v as any)
-    }
-  })
-  // Restore shared preset
-  es.setParam('presetId', session.sharedPresetId)
-  es.setParam('presetIntensity', session.sharedPresetIntensity)
+function saveCurrentImageAdjustments(): BatchAdjustments {
+  const { params } = useEditStore.getState()
+  return deepClone(params) as BatchAdjustments
 }
 
-function saveCurrentImageAdjustments(session: EditorSession): BatchAdjustments {
-  const { params } = useEditStore.getState()
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { presetId: _p, presetIntensity: _i, ...adjustments } = params
-  return adjustments as BatchAdjustments
+function syncEditStore(sess: EditorSession): void {
+  const img = sess.images.find(i => i.id === sess.activeImageId)
+  if (!img) return
+  useEditStore.getState().loadImage(img.imagePath, img.imageWidth, img.imageHeight, img.imageDataURL)
+  useEditStore.setState({
+    params: deepClone(img.adjustments),
+    history: [],
+    historyIndex: -1,
+  })
+  usePresetStore.getState().selectPreset(img.adjustments.presetId)
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
-  sessions: [],
-  activeSessionId: null,
+  session: null,
 
   openSession: (results) => {
-    const { sessions, activeSessionId } = get()
+    if (!results.length) return
+    const { session } = get()
 
-    // Flush current image adjustments back into the current session
-    if (activeSessionId) {
-      const current = sessions.find(s => s.id === activeSessionId)
-      if (current?.activeImageId) {
-        const adj = saveCurrentImageAdjustments(current)
-        set(s => ({
-          sessions: s.sessions.map(sess =>
-            sess.id === activeSessionId ? {
-              ...sess,
-              images: sess.images.map(img =>
-                img.id === current.activeImageId ? { ...img, adjustments: adj } : img
-              ),
-            } : sess
-          ),
-        }))
-      }
+    if (session && session.images.length > 0) {
+      get().addToSession(results)
+      return
     }
 
     const images = results.map(makeImage)
     const sessionId = makeId()
     const newSession: EditorSession = {
       id: sessionId,
-      label: images[0]?.label ?? 'New Session',
+      label: images[0]?.label ?? 'Session',
       activeImageId: images[0]?.id ?? null,
       images,
-      sharedPresetId: null,
-      sharedPresetIntensity: 1,
     }
-
-    set(s => ({ sessions: [...s.sessions, newSession], activeSessionId: sessionId }))
+    set({ session: newSession })
     syncEditStore(newSession)
-    resetSavePath()   // new image = no saved path yet, next Save will prompt Save As
+    resetSavePath()
   },
 
   addToSession: (results) => {
-    const { sessions, activeSessionId } = get()
-    if (!activeSessionId) {
+    if (!results.length) return
+    const { session } = get()
+    if (!session) {
       get().openSession(results)
       return
     }
 
-    const current = sessions.find(s => s.id === activeSessionId)
-    if (!current) return
-
-    const newImages = results.map(r => {
-      const img = makeImage(r)
-      // Inherit shared preset
-      return img
-    })
-
-    set(s => ({
-      sessions: s.sessions.map(sess =>
-        sess.id === activeSessionId
-          ? { ...sess, images: [...sess.images, ...newImages] }
-          : sess
+    const adj = saveCurrentImageAdjustments()
+    const withFlush: EditorSession = {
+      ...session,
+      images: session.images.map(img =>
+        img.id === session.activeImageId ? { ...img, adjustments: adj } : img
       ),
-    }))
-    // No auto-switch — user stays on current image
+    }
+
+    const newImages = results.map(makeImage)
+    set({
+      session: {
+        ...withFlush,
+        images: [...withFlush.images, ...newImages],
+      },
+    })
   },
 
-  closeSession: (id) => {
-    const { sessions } = get()
-    const session = sessions.find(s => s.id === id)
-    const hasDirty = session?.images.some(img => img.isDirty) ?? false
-
+  closeSession: () => {
+    const { session } = get()
+    if (!session) return
+    const hasDirty = session.images.some(img => img.isDirty)
     if (hasDirty) {
-      const dirtyCount = session!.images.filter(i => i.isDirty).length
+      const dirtyCount = session.images.filter(i => i.isDirty).length
       openConfirm(
         'Unsaved Changes',
-        `${dirtyCount} image${dirtyCount > 1 ? 's have' : ' has'} unsaved edits. Closing this session will discard them.`,
-        () => get().forceCloseSession(id),
+        `${dirtyCount} image${dirtyCount > 1 ? 's have' : ' has'} unsaved edits. Closing will discard them.`,
+        () => get().forceCloseSession()
       )
       return
     }
-    get().forceCloseSession(id)
+    get().forceCloseSession()
   },
 
-  forceCloseSession: (id) => {
-    const { sessions, activeSessionId } = get()
-    const idx = sessions.findIndex(s => s.id === id)
-    const newSessions = sessions.filter(s => s.id !== id)
-    set({ sessions: newSessions })
-
-    if (activeSessionId === id) {
-      const next = newSessions[Math.min(idx, newSessions.length - 1)]
-      if (next) {
-        get().switchSession(next.id)
-      } else {
-        set({ activeSessionId: null })
-        useEditStore.getState().loadImage('', 0, 0, '')
-      }
-    }
-  },
-
-  switchSession: (id) => {
-    const { sessions, activeSessionId } = get()
-    if (activeSessionId === id) return
-
-    // Save current adjustments
-    const current = sessions.find(s => s.id === activeSessionId)
-    if (current?.activeImageId) {
-      const adj = saveCurrentImageAdjustments(current)
-      set(s => ({
-        sessions: s.sessions.map(sess =>
-          sess.id === activeSessionId ? {
-            ...sess,
-            images: sess.images.map(img =>
-              img.id === current.activeImageId ? { ...img, adjustments: adj } : img
-            ),
-          } : sess
-        ),
-      }))
-    }
-
-    const next = sessions.find(s => s.id === id)
-    if (!next) return
-    set({ activeSessionId: id })
-    syncEditStore(next)
+  forceCloseSession: () => {
+    set({ session: null })
+    useEditStore.getState().loadImage('', 0, 0, '')
+    usePresetStore.getState().selectPreset(null)
   },
 
   setActiveImage: (imageId) => {
-    const { sessions, activeSessionId } = get()
-    const session = sessions.find(s => s.id === activeSessionId)
+    const { session } = get()
     if (!session || session.activeImageId === imageId) return
 
-    // Save current adjustments
-    const adj = saveCurrentImageAdjustments(session)
-    set(s => ({
-      sessions: s.sessions.map(sess =>
-        sess.id === activeSessionId ? {
-          ...sess,
+    const adj = saveCurrentImageAdjustments()
+    set(s => {
+      if (!s.session) return s
+      return {
+        session: {
+          ...s.session,
           activeImageId: imageId,
-          images: sess.images.map(img =>
-            img.id === session.activeImageId ? { ...img, adjustments: adj } : img
+          images: s.session.images.map(img =>
+            img.id === s.session!.activeImageId ? { ...img, adjustments: adj } : img
           ),
-        } : sess
-      ),
-    }))
+        },
+      }
+    })
 
-    const updated = get().sessions.find(s => s.id === activeSessionId)!
+    const updated = get().session!
     syncEditStore(updated)
   },
 
   removeImage: (imageId) => {
-    const { sessions, activeSessionId } = get()
-    const session = sessions.find(s => s.id === activeSessionId)
+    const { session } = get()
     if (!session) return
-
     const img = session.images.find(i => i.id === imageId)
     if (img?.isDirty) {
       openConfirm(
         'Unsaved Changes',
         `"${img.label}" has unsaved edits. Remove it anyway?`,
-        () => get().forceRemoveImage(imageId),
+        () => get().forceRemoveImage(imageId)
       )
       return
     }
@@ -307,93 +219,89 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   forceRemoveImage: (imageId) => {
-    const { sessions, activeSessionId } = get()
-    const session = sessions.find(s => s.id === activeSessionId)
+    const { session } = get()
     if (!session) return
 
     const newImages = session.images.filter(i => i.id !== imageId)
     const wasActive = session.activeImageId === imageId
-    const newActiveId = wasActive
-      ? (newImages[0]?.id ?? null)
-      : session.activeImageId
+    const newActiveId = wasActive ? (newImages[0]?.id ?? null) : session.activeImageId
+
+    if (!newImages.length) {
+      get().forceCloseSession()
+      return
+    }
 
     set(s => ({
-      sessions: s.sessions.map(sess =>
-        sess.id === activeSessionId
-          ? { ...sess, images: newImages, activeImageId: newActiveId }
-          : sess
-      ),
+      session: s.session
+        ? { ...s.session, images: newImages, activeImageId: newActiveId }
+        : null,
     }))
 
     if (wasActive && newActiveId) {
-      const updated = get().sessions.find(s => s.id === activeSessionId)!
-      syncEditStore(updated)
-    } else if (!newImages.length) {
-      useEditStore.getState().loadImage('', 0, 0, '')
+      const upd = get().session!
+      syncEditStore(upd)
     }
   },
 
-  applyPresetToAll: (presetId, intensity) => {
-    const { activeSessionId } = get()
-    if (!activeSessionId) return
-    set(s => ({
-      sessions: s.sessions.map(sess =>
-        sess.id === activeSessionId
-          ? { ...sess, sharedPresetId: presetId, sharedPresetIntensity: intensity }
-          : sess
-      ),
-    }))
-    // Also update editStore for the current image
-    useEditStore.getState().setParam('presetId', presetId)
-    useEditStore.getState().setParam('presetIntensity', intensity)
+  applyCurrentEditToAll: () => {
+    const { session } = get()
+    if (!session?.activeImageId || session.images.length < 2) return
+    const snapshot = saveCurrentImageAdjustments()
+    const activeId = session.activeImageId
+    set(s => {
+      if (!s.session) return s
+      return {
+        session: {
+          ...s.session,
+          images: s.session.images.map(img => {
+            if (img.id === activeId) {
+              return { ...img, adjustments: deepClone(snapshot) }
+            }
+            return { ...img, adjustments: deepClone(snapshot), isDirty: true }
+          }),
+        },
+      }
+    })
   },
 
   getActiveBatch: () => {
-    const { sessions, activeSessionId } = get()
-    return sessions.find(s => s.id === activeSessionId)?.images ?? []
+    return get().session?.images ?? []
   },
 
   getActiveSession: () => {
-    const { sessions, activeSessionId } = get()
-    return sessions.find(s => s.id === activeSessionId) ?? null
+    return get().session
   },
 
   markActiveImageDirty: () => {
-    const { sessions, activeSessionId } = get()
-    const session = sessions.find(s => s.id === activeSessionId)
+    const { session } = get()
     if (!session?.activeImageId) return
-    set(s => ({
-      sessions: s.sessions.map(sess =>
-        sess.id === activeSessionId
-          ? {
-              ...sess,
-              images: sess.images.map(img =>
-                img.id === session.activeImageId ? { ...img, isDirty: true } : img
-              ),
-            }
-          : sess
-      ),
-    }))
+    const id = session.activeImageId
+    set(s => {
+      if (!s.session) return s
+      return {
+        session: {
+          ...s.session,
+          images: s.session.images.map(img => (img.id === id ? { ...img, isDirty: true } : img)),
+        },
+      }
+    })
   },
 
   markActiveImageClean: () => {
-    const { sessions, activeSessionId } = get()
-    const session = sessions.find(s => s.id === activeSessionId)
+    const { session } = get()
     if (!session?.activeImageId) return
-    set(s => ({
-      sessions: s.sessions.map(sess =>
-        sess.id === activeSessionId
-          ? {
-              ...sess,
-              images: sess.images.map(img =>
-                img.id === session.activeImageId ? { ...img, isDirty: false } : img
-              ),
-            }
-          : sess
-      ),
-    }))
+    const id = session.activeImageId
+    set(s => {
+      if (!s.session) return s
+      return {
+        session: {
+          ...s.session,
+          images: s.session.images.map(img => (img.id === id ? { ...img, isDirty: false } : img)),
+        },
+      }
+    })
   },
 }))
 
-// ─── Keep backward compat: export as useTabStore ──────────────────────────────
+// ─── Backward compat export ────────────────────────────────────────────────────
 export { useSessionStore as useTabStore }

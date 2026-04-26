@@ -556,6 +556,30 @@ input[type='range']:focus::-webkit-slider-thumb {
 }
 .batch-strip-inner::-webkit-scrollbar { display: none; }
 
+.batch-apply-all-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid #111;
+  background: #fff;
+  color: #111;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, opacity 0.12s;
+}
+.batch-apply-all-btn:hover:not(:disabled) {
+  background: #111;
+  color: #fff;
+}
+.batch-apply-all-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .batch-preset-badge {
   flex-shrink: 0;
   padding: 0 8px;
@@ -575,6 +599,7 @@ input[type='range']:focus::-webkit-slider-thumb {
 .batch-thumb:hover { transform: translateY(-2px); }
 
 .batch-thumb-img {
+  position: relative;
   width: 52px;
   height: 52px;
   border-radius: 3px;
@@ -589,6 +614,7 @@ input[type='range']:focus::-webkit-slider-thumb {
 .batch-thumb-ring {
   position: absolute;
   inset: -2px;
+  z-index: 1;
   border: 2px solid #111;
   border-radius: 4px;
   pointer-events: none;
@@ -646,6 +672,16 @@ input[type='range']:focus::-webkit-slider-thumb {
 .frescava-editor.dark .batch-strip {
   background: #0f0f12;
   border-top-color: rgba(255,255,255,0.08);
+}
+.frescava-editor.dark .batch-apply-all-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #18181b;
+  color: #e4e4e7;
+}
+.frescava-editor.dark .batch-apply-all-btn:hover:not(:disabled) {
+  background: var(--editor-accent, #8B5C2A);
+  border-color: var(--editor-accent, #8B5C2A);
+  color: #fff;
 }
 .frescava-editor.dark .batch-preset-badge {
   border-right-color: rgba(255,255,255,0.08);

@@ -1,5 +1,6 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useMemo } from 'react'
 import { useEditStore, DEFAULT_EDIT_STATE } from '../../store/editStore'
+import { useSessionStore } from '../../store/tabStore'
 import { RenderPipeline } from '../../lib/RenderPipeline'
 import { usePresetStore } from '../../store/presetStore'
 
@@ -17,7 +18,14 @@ export default function ImageCanvas() {
   const currentLUTDataRef = useRef<{ data: Float32Array; size: number } | null>(null)
 
   const { imagePath, imageDataURL, params, showOriginal, compareMode } = useEditStore()
+  const session = useSessionStore(s => s.session)
+  const activeImageDirty = useMemo(() => {
+    if (!session?.activeImageId) return false
+    return session.images.find(i => i.id === session.activeImageId)?.isDirty ?? false
+  }, [session])
   const { getPresetById } = usePresetStore()
+
+  const activeFileLabel = imagePath ? imagePath.replace(/^.*[\\/]/, '') : ''
 
   // ── Initialize WebGL pipeline ──────────────────────────────────────────────
   useEffect(() => {
@@ -275,8 +283,22 @@ export default function ImageCanvas() {
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full flex items-center justify-center canvas-container ${compareMode ? 'gap-4 px-6' : ''}`}
+      className={`relative w-full h-full flex items-center justify-center canvas-container ${compareMode ? 'gap-4 px-6' : ''}`}
     >
+      {activeFileLabel && (
+        <div
+          className="absolute top-3 left-3 z-20 pointer-events-none max-w-[min(90%,32rem)] flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/90 dark:bg-zinc-950/90 text-[11px] font-medium text-text-primary dark:text-zinc-100 shadow-panel border border-black/5 dark:border-white/10 backdrop-blur-sm"
+          title={activeFileLabel + (activeImageDirty ? ' — unsaved edits' : '')}
+        >
+          <span className="truncate">{activeFileLabel}</span>
+          {activeImageDirty && (
+            <span
+              className="h-2 w-2 shrink-0 rounded-full bg-amber-500 dark:bg-amber-400 ring-1 ring-white/60 dark:ring-zinc-900/80"
+              aria-label="Unsaved edits"
+            />
+          )}
+        </div>
+      )}
       <div className={compareMode ? 'relative' : 'hidden'}>
         <canvas
           ref={originalCanvasRef}
