@@ -1,4 +1,5 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import type { FileOpenResult, FrescavaAPI } from '../../src/shared/types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = {
@@ -35,6 +36,21 @@ const api = {
     close: () => ipcRenderer.invoke('app:close'),
     isMaximized: (): Promise<boolean> => ipcRenderer.invoke('app:isMaximized'),
   },
+  window: {
+    openEditor: (opts?: { files?: FileOpenResult[] }) => ipcRenderer.invoke('window:openEditor', opts),
+    openHome: () => ipcRenderer.invoke('window:openHome'),
+    getLaunchPayload: () =>
+      ipcRenderer.invoke('window:getLaunchPayload') as Promise<
+        { type: 'files'; files: FileOpenResult[] } | { type: 'empty' } | null
+      >,
+    onEditorOpenFiles: (cb: (files: FileOpenResult[]) => void) => {
+      const handler = (_e: IpcRendererEvent, files: FileOpenResult[]) => {
+        cb(files)
+      }
+      ipcRenderer.on('editor:openFiles', handler)
+      return () => ipcRenderer.removeListener('editor:openFiles', handler)
+    },
+  },
 }
 
-contextBridge.exposeInMainWorld('frame', api)
+contextBridge.exposeInMainWorld('frame', api satisfies FrescavaAPI)

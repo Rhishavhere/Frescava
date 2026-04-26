@@ -6,6 +6,11 @@ import TitleBar from './components/ui/TitleBar'
 import Editor from './pages/Editor'
 import Home from './pages/Home'
 
+function getWindowModeFromHash(): 'home' | 'editor' {
+  const h = (window.location.hash || '').replace(/^#/, '')
+  return h === 'editor' ? 'editor' : 'home'
+}
+
 function TemplatesStub() {
   return (
     <div className="flex-1 flex items-center justify-center" style={{ background: '#F6F2EC' }}>
@@ -42,8 +47,25 @@ function ExploreStub() {
   )
 }
 
-export default function App() {
+/** Home / startup hub: separate window from the photo editor. */
+function FrescavaHomeShell() {
   const { activeTab, setActiveTab } = useUIStore()
+
+  return (
+    <div className="flex flex-col h-screen bg-white overflow-hidden">
+      <TitleBar variant="home" activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {activeTab === 'home' && <Home />}
+        {activeTab === 'templates' && <TemplatesStub />}
+        {activeTab === 'canvas' && <CanvasStub />}
+        {activeTab === 'explore' && <ExploreStub />}
+      </div>
+    </div>
+  )
+}
+
+/** Maximized editor window: grading workspace only. */
+function FrescavaEditorShell() {
   const { setShowOriginal } = useEditStore()
   const { loadPresets } = usePresetStore()
 
@@ -51,7 +73,6 @@ export default function App() {
     loadPresets()
   }, [loadPresets])
 
-  // Global keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.code === 'Space' &&
         !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
@@ -78,14 +99,18 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-white overflow-hidden">
-      <TitleBar activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="flex-1 overflow-hidden flex flex-col">
-        {activeTab === 'home' && <Home />}
-        {activeTab === 'editor' && <Editor />}
-        {activeTab === 'templates' && <TemplatesStub />}
-        {activeTab === 'canvas' && <CanvasStub />}
-        {activeTab === 'explore' && <ExploreStub />}
+      <TitleBar variant="editor" />
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <Editor />
       </div>
     </div>
   )
+}
+
+export default function App() {
+  const mode = getWindowModeFromHash()
+  if (mode === 'editor') {
+    return <FrescavaEditorShell />
+  }
+  return <FrescavaHomeShell />
 }

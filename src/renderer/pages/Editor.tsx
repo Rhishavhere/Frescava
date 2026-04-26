@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useUIStore } from '../store/uiStore'
 import { useEditStore } from '../store/editStore'
 import { useSessionStore } from '../store/tabStore'
@@ -21,6 +22,22 @@ const PANEL_TABS = [
   { id: 'effects' as const, label: 'Effects' },
 ] as const
 
+function EditorWindowSessionBootstrap() {
+  useEffect(() => {
+    const off = window.frame.window.onEditorOpenFiles((files) => {
+      if (files.length) useSessionStore.getState().openSession(files)
+    })
+    void (async () => {
+      const payload = await window.frame.window.getLaunchPayload()
+      if (payload?.type === 'files' && payload.files.length > 0) {
+        useSessionStore.getState().openSession(payload.files)
+      }
+    })()
+    return off
+  }, [])
+  return null
+}
+
 export default function Editor() {
   const { rightPanelTab, setRightPanelTab, editorWorkspace } = useUIStore()
   const imagePath = useEditStore(s => s.imagePath)
@@ -34,6 +51,7 @@ export default function Editor() {
 
   return (
     <>
+      <EditorWindowSessionBootstrap />
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Left: preset column — full strip on main, stub on Text / Templates */}

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type AppTab = 'home' | 'editor' | 'templates' | 'canvas' | 'explore'
+type AppTab = 'home' | 'templates' | 'canvas' | 'explore'
 type RightPanelTab = 'light' | 'color' | 'detail' | 'effects'
 
 export type EditorWorkspace = 'main' | 'text' | 'templates'

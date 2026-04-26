@@ -1,4 +1,3 @@
-import { useSessionStore } from '../store/tabStore'
 import { useUIStore } from '../store/uiStore'
 
 const COL_1 = [
@@ -38,13 +37,11 @@ function MarqueeColumn({ images, direction }: { images: string[]; direction: 'up
 
 export default function Home() {
   const { setActiveTab } = useUIStore()
-  const { openSession } = useSessionStore()
 
   const handleOpenImage = async () => {
     const results = await window.frame.file.openMultiple()
     if (!results.length) return
-    openSession(results.map(r => ({ path: r.path, dataURL: r.dataURL, width: r.width, height: r.height })))
-    setActiveTab('editor')
+    void window.frame.window.openEditor({ files: results })
   }
 
   return (
@@ -84,7 +81,13 @@ export default function Home() {
           {/* Sub Navigation Links */}
           <div className="mt-12 flex gap-8 text-[11px] font-semibold tracking-[0.2em] uppercase text-black/40">
             <button onClick={handleOpenImage} className="hover:text-black transition-colors hover:scale-105 transform duration-300">OPEN</button>
-            <button onClick={() => setActiveTab('editor')} className="hover:text-black transition-colors hover:scale-105 transform duration-300">EDITOR</button>
+            <button
+              type="button"
+              onClick={() => void window.frame.window.openEditor()}
+              className="hover:text-black transition-colors hover:scale-105 transform duration-300"
+            >
+              EDITOR
+            </button>
             <button onClick={() => setActiveTab('canvas')} className="hover:text-black transition-colors hover:scale-105 transform duration-300">CANVAS</button>
           </div>
         </div>

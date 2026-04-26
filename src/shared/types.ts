@@ -295,6 +295,18 @@ export interface FrescavaAPI {
     close: () => void
     isMaximized: () => Promise<boolean>
   }
+  /**
+   * Multi-window: Home vs Editor are separate BrowserWindows.
+   */
+  window: {
+    openEditor: (opts?: { files?: FileOpenResult[] }) => Promise<void>
+    openHome: () => Promise<void>
+    getLaunchPayload: () => Promise<
+      { type: 'files'; files: FileOpenResult[] } | { type: 'empty' } | null
+    >
+    /** New batch opened from Home while the editor window is already open */
+    onEditorOpenFiles: (cb: (files: FileOpenResult[]) => void) => () => void
+  }
 }
 
 export interface FileOpenResult {
