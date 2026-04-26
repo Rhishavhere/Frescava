@@ -216,7 +216,13 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
           <>
             <button
               type="button"
-              className={toolBtn(showOriginal && !compareMode)}
+              className={`btn-icon transition-opacity ${
+                compareMode
+                  ? 'opacity-40 !cursor-not-allowed text-text-placeholder'
+                  : showOriginal
+                    ? 'bg-surface-200 text-text-primary'
+                    : ''
+              }`}
               onMouseDown={() => {
                 if (!compareMode) setShowOriginal(true)
               }}

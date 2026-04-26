@@ -1,89 +1,121 @@
 import { useEditStore } from '../../store/editStore'
 import { useSessionStore } from '../../store/tabStore'
 import { usePresetStore } from '../../store/presetStore'
+import { Slider } from '../ui'
+import type { PresetEffectState } from '@shared/types'
 
-type PresetFilters = ReturnType<typeof useEditStore.getState>['params']['presetFilters']
+const EFFECT_ORDER: (keyof PresetEffectState)[] = [
+  'grain',
+  'vignette',
+  'fade',
+  'halation',
+  'bloom',
+  'chromaticAberration',
+  'lightLeak',
+  'dustScratches',
+  'lensDistortion',
+  'border',
+]
 
-function MonoSliderRow({
+const EFFECT_LABEL: Record<keyof PresetEffectState, string> = {
+  fade: 'Fade',
+  grain: 'Grain',
+  vignette: 'Vignette',
+  halation: 'Halation',
+  chromaticAberration: 'Chrom. Ab.',
+  bloom: 'Bloom',
+  lensDistortion: 'Lens',
+  lightLeak: 'Light Leak',
+  dustScratches: 'Dust',
+  border: 'Border',
+}
+
+type PresetFilters = NonNullable<ReturnType<typeof useEditStore.getState>['params']>['presetFilters']
+
+function sortedPresetFilterKeys(fp: PresetEffectState): (keyof PresetEffectState)[] {
+  const present = (Object.keys(fp) as (keyof PresetEffectState)[]).filter(k => fp[k] != null)
+  return present.sort(
+    (a, b) => EFFECT_ORDER.indexOf(a) - EFFECT_ORDER.indexOf(b) || String(a).localeCompare(String(b))
+  )
+}
+
+function PresetEffectCard({
   label,
-  value,
-  min,
-  max,
-  step,
-  unit,
-  onChange,
+  enabled,
+  onToggle,
 }: {
   label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  unit?: string
-  onChange: (value: number) => void
+  enabled: boolean
+  onToggle: () => void
 }) {
-  const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(2).replace(/\.00$/, '')
-  const safeRange = max - min || 1
-  const pct = ((value - min) / safeRange) * 100
-
   return (
-    <div className="rounded-full border border-border bg-white px-3 py-2 flex items-center gap-3">
-      <span className="text-[11px] font-semibold text-text-secondary whitespace-nowrap min-w-[112px]">
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`relative text-left rounded-md border transition-colors pl-1.5 pr-5 py-1 min-h-[2.35rem] sm:min-h-[2.5rem] ${
+        enabled
+          ? 'bg-surface-100 border-border'
+          : 'bg-surface-50/90 border-border'
+      }`}
+    >
+      <span
+        className={`text-[9px] font-medium leading-tight pr-0.5 block ${
+          enabled ? 'text-text-primary' : 'text-text-muted'
+        }`}
+      >
         {label}
       </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        style={{
-          height: 8,
-          borderRadius: 999,
-          background: `linear-gradient(to right, #111111 ${pct}%, #E6E8F2 ${pct}%)`,
-        }}
-        className="flex-1 cursor-grab active:cursor-grabbing"
-      />
-      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-100 text-text-primary min-w-[52px] text-right">
-        {rounded}
-        {unit ?? ''}
+      <span
+        className={`mt-0.5 block text-[7px] font-mono leading-none tracking-tight pl-0.5 ${
+          enabled ? 'text-text-secondary' : 'text-text-muted'
+        }`}
+      >
+        {enabled ? 'on' : 'off'}
       </span>
-    </div>
+      <span
+        className="absolute top-1 right-1.5 flex h-1.5 w-1.5 items-center justify-center"
+        aria-hidden
+      >
+        {enabled ? (
+          <span className="h-1.5 w-1.5 rounded-full bg-text-primary" />
+        ) : (
+          <span className="h-1.5 w-1.5 rounded-full border border-surface-300 bg-white" />
+        )}
+      </span>
+    </button>
   )
 }
 
 export default function PresetSettingsPanel() {
-  const { params, setPresetFilterParam, setPresetIntensity } = useEditStore()
+  const { params, setPresetFilterParam, setPresetIntensity, pushHistory } = useEditStore()
   const { markActiveImageDirty } = useSessionStore()
   const { getPresetById } = usePresetStore()
 
   const preset = params.presetId ? getPresetById(params.presetId) : null
   if (!preset) return null
 
-  const filterParams = params.presetFilters
+  const filterParams = params.presetFilters as PresetFilters
+  const keys = sortedPresetFilterKeys(filterParams)
+  const intensityPct = params.presetIntensity * 100
 
-  const set = (effectKey: keyof PresetFilters, paramKey: string, value: unknown) => {
-    setPresetFilterParam(effectKey, paramKey, value)
-    if (paramKey !== 'enabled') {
-      setPresetFilterParam(effectKey, 'enabled', true)
+  const setEnabled = (effectKey: keyof PresetEffectState, value: boolean) => {
+    setPresetFilterParam(effectKey, 'enabled', value)
+    markActiveImageDirty()
+  }
+
+  const resetAllPresetEffects = () => {
+    for (const k of keys) {
+      setPresetFilterParam(k, 'enabled', false)
     }
     markActiveImageDirty()
   }
 
   return (
-    <div className="flex flex-col border-t border-border mt-1 p-2.5 gap-2 bg-[#F5F6FD]">
-      <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-border bg-white">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-          Preset Settings
-        </span>
-        <span className="ml-auto text-[10px] text-text-secondary font-semibold truncate max-w-[120px]">
-          {preset.name}
-        </span>
-      </div>
-
-      <MonoSliderRow
-        label="Overall Intensity"
-        value={params.presetIntensity * 100}
+    <div className="flex flex-col border-t border-border mt-1 pt-2.5 px-4 pb-3 gap-3">
+      <h3 className="text-sm font-medium text-text-primary leading-snug">{preset.name}</h3>
+      <Slider
+        label="Overall intensity"
+        value={Math.round(intensityPct * 10) / 10}
         min={0}
         max={100}
         step={0.1}
@@ -92,135 +124,42 @@ export default function PresetSettingsPanel() {
           setPresetIntensity(v / 100)
           markActiveImageDirty()
         }}
+        onChangeEnd={() => {
+          pushHistory()
+        }}
       />
 
-      {filterParams.fade && (
+      {keys.length > 0 && (
         <>
-          <MonoSliderRow
-            label="Fade Black Lift"
-            value={filterParams.fade.blackLift * 100}
-            min={0}
-            max={30}
-            step={0.1}
-            unit="%"
-            onChange={v => set('fade', 'blackLift', v / 100)}
-          />
-          <MonoSliderRow
-            label="Fade White Ceiling"
-            value={filterParams.fade.whiteCeiling * 100}
-            min={70}
-            max={100}
-            step={0.1}
-            unit="%"
-            onChange={v => set('fade', 'whiteCeiling', v / 100)}
-          />
+          <div className="h-px w-full bg-border" />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+              Preset effects
+            </span>
+            <button
+              type="button"
+              onClick={resetAllPresetEffects}
+              className="text-[10px] font-medium uppercase tracking-wider text-text-muted hover:text-text-primary"
+            >
+              Reset all
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+            {keys.map((key) => {
+              const block = filterParams[key]
+              if (!block) return null
+              const enabled = !!(block as { enabled?: boolean }).enabled
+              return (
+                <PresetEffectCard
+                  key={String(key)}
+                  label={EFFECT_LABEL[key]}
+                  enabled={enabled}
+                  onToggle={() => setEnabled(key, !enabled)}
+                />
+              )
+            })}
+          </div>
         </>
-      )}
-
-      {filterParams.grain && (
-        <MonoSliderRow
-          label="Grain Opacity"
-          value={(filterParams.grain.opacity ?? 0) * 100}
-          min={0}
-          max={100}
-          step={0.1}
-          unit="%"
-          onChange={v => set('grain', 'opacity', v / 100)}
-        />
-      )}
-
-      {filterParams.vignette && (
-        <MonoSliderRow
-          label="Vignette Strength"
-          value={filterParams.vignette.strength * 100}
-          min={0}
-          max={100}
-          step={0.1}
-          unit="%"
-          onChange={v => set('vignette', 'strength', v / 100)}
-        />
-      )}
-
-      {filterParams.halation && (
-        <MonoSliderRow
-          label="Halation Intensity"
-          value={filterParams.halation.intensity * 100}
-          min={0}
-          max={100}
-          step={0.1}
-          unit="%"
-          onChange={v => set('halation', 'intensity', v / 100)}
-        />
-      )}
-
-      {filterParams.chromaticAberration && (
-        <MonoSliderRow
-          label="Chromatic Amount"
-          value={filterParams.chromaticAberration.amount}
-          min={0}
-          max={20}
-          step={0.01}
-          onChange={v => set('chromaticAberration', 'amount', v)}
-        />
-      )}
-
-      {filterParams.bloom && (
-        <MonoSliderRow
-          label="Bloom Intensity"
-          value={filterParams.bloom.intensity * 100}
-          min={0}
-          max={100}
-          step={0.1}
-          unit="%"
-          onChange={v => set('bloom', 'intensity', v / 100)}
-        />
-      )}
-
-      {filterParams.lensDistortion && (
-        <MonoSliderRow
-          label="Lens Distortion"
-          value={filterParams.lensDistortion.amount * 100}
-          min={-100}
-          max={100}
-          step={0.1}
-          unit="%"
-          onChange={v => set('lensDistortion', 'amount', v / 100)}
-        />
-      )}
-
-      {filterParams.lightLeak && (
-        <MonoSliderRow
-          label="Light Leak Opacity"
-          value={filterParams.lightLeak.opacity * 100}
-          min={0}
-          max={100}
-          step={0.1}
-          unit="%"
-          onChange={v => set('lightLeak', 'opacity', v / 100)}
-        />
-      )}
-
-      {filterParams.dustScratches && (
-        <MonoSliderRow
-          label="Dust Opacity"
-          value={(filterParams.dustScratches.opacity ?? 0) * 100}
-          min={0}
-          max={100}
-          step={0.1}
-          unit="%"
-          onChange={v => set('dustScratches', 'opacity', v / 100)}
-        />
-      )}
-
-      {filterParams.border && (
-        <MonoSliderRow
-          label="Border Width"
-          value={(filterParams.border.width ?? 0.04) * 200}
-          min={0}
-          max={60}
-          step={0.1}
-          onChange={v => set('border', 'width', v / 200)}
-        />
       )}
     </div>
   )
