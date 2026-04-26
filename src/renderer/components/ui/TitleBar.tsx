@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import logoPng from '../../../assets/Logo.png'
 
 type HomeTab = 'home' | 'templates' | 'canvas' | 'explore' | 'settings'
 
@@ -206,13 +207,5 @@ export default function TitleBar(props: TitleBarProps) {
 }
 
 function FrescavaLogo({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="24" height="24" rx="6" fill="#111111" />
-      <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="1.5" />
-      <path d="M12 7V5M12 19V17M7 12H5M19 12H17M8.5 8.5L7 7M16.5 16.5L17 17M8.5 15.5L7 17M16.5 8.5L17 7"
-        stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-      <circle cx="12" cy="12" r="2" fill="white" />
-    </svg>
-  )
+  return <img src={logoPng} alt="" className={`${className ?? ''} object-contain`} aria-hidden />
 }

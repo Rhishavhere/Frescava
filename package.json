@@ -50,12 +50,14 @@
     "appId": "co.frescava.desktop",
     "productName": "Frescava",
     "copyright": "Copyright © 2025 Frescava",
+    "icon": "src/assets/Logo.png",
     "directories": {
       "output": "dist-app"
     },
     "files": [
       "out/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "Logo.ico"
     ],
     "asarUnpack": [
       "assets/models/**/*"
@@ -76,6 +78,7 @@
       "frame": false
     },
     "win": {
+      "icon": "Logo.ico",
       "target": [
         "nsis"
       ],

@@ -1,4 +1,5 @@
 import { useUIStore } from '../store/uiStore'
+import logoPng from '../../assets/Logo.png'
 
 const COL_1 = [
   'https://images.unsplash.com/photo-1730956473717-b1bb69fc595e?q=80&w=707&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
@@ -75,6 +76,12 @@ export default function Home() {
 
         {/* Center Canvas */}
         <div className="flex-1 flex flex-col items-center justify-center">
+          <img
+            src={logoPng}
+            alt=""
+            className="h-20 w-20 md:h-24 md:w-24 object-contain mb-6 select-none pointer-events-none"
+            aria-hidden
+          />
           <div className="relative inline-flex items-start">
             <h1 className="font-kenoky text-[clamp(5rem,14vw,16rem)] leading-[0.9] tracking-[-0.02em] text-black">
               frescava

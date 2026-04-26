@@ -99,6 +99,12 @@ function getRendererBaseUrlWithHash(hash: 'home' | 'editor'): string {
   return `${fileUrl}#${hash}`
 }
 
+function windowIconPath(): string | undefined {
+  const p = join(__dirname, '../../Logo.ico')
+  if (fs.existsSync(p)) return p
+  return undefined
+}
+
 function buildBrowserWindowOptions(): Electron.BrowserWindowConstructorOptions {
   return {
     width: 1440,
@@ -110,6 +116,7 @@ function buildBrowserWindowOptions(): Electron.BrowserWindowConstructorOptions {
     trafficLightPosition: { x: 16, y: 12 },
     backgroundColor: '#FFFFFF',
     show: false,
+    icon: windowIconPath(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -139,9 +146,7 @@ function createHomeWindow(): void {
   })
   w.once('ready-to-show', () => w.show())
   w.loadURL(getRendererBaseUrlWithHash('home'))
-  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    w.webContents.openDevTools({ mode: 'detach' })
-  } else if (!isDev) {
+  if (!isDev) {
     w.setContentProtection(true)
   }
 }
@@ -174,9 +179,7 @@ function createEditorWindow(): void {
     w.show()
   })
   w.loadURL(getRendererBaseUrlWithHash('editor'))
-  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    w.webContents.openDevTools({ mode: 'detach' })
-  } else if (!isDev) {
+  if (!isDev) {
     w.setContentProtection(true)
   }
 }
