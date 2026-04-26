@@ -34,6 +34,7 @@ export default function ImageCanvas() {
 
       // Expose canvas capture method globally so Toolbar can access it without prop-drilling
       window.__frescavaGetCanvasDataURL = () => pipeline.getCanvasDataURL()
+      window.__frescavaGetLumaHistogram = () => pipeline.getLumaHistogram256()
       // Expose current LUT for full-res export reuse
       window.__frescavaGetCurrentLUT = () => currentLUTDataRef.current
     } catch (e) {
@@ -42,6 +43,7 @@ export default function ImageCanvas() {
 
     return () => {
       window.__frescavaGetCanvasDataURL = undefined
+      window.__frescavaGetLumaHistogram = undefined
       window.__frescavaGetCurrentLUT = undefined
       if (pipelineRef.current) {
         pipelineRef.current.destroy()
@@ -231,6 +233,7 @@ export default function ImageCanvas() {
         imageHeight: editState.imageHeight,
         ...state,
       })
+      window.dispatchEvent(new CustomEvent('frescava-canvas-repaint'))
     })
   }, [showOriginal, compareMode])
 

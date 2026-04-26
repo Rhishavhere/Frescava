@@ -6,6 +6,7 @@ import PresetStrip from '../components/editor/PresetStrip'
 import AdjustmentPanel from '../components/editor/AdjustmentPanel'
 import EffectsPanel from '../components/editor/EffectsPanel'
 import PresetSettingsPanel from '../components/editor/PresetSettingsPanel'
+import AdjustmentHistogram from '../components/editor/AdjustmentHistogram'
 import { PresetColumnStub, InspectorColumnStub } from '../components/editor/EditorWorkspaceStubs'
 import DropZone from '../components/editor/DropZone'
 import Toolbar from '../components/editor/Toolbar'
@@ -54,6 +55,7 @@ export default function Editor() {
           <aside className="w-72 shrink-0 flex flex-col border-l border-border bg-white overflow-hidden">
             {isMainWorkspace ? (
               <>
+                <AdjustmentHistogram />
                 <div className="flex border-b border-border px-0.5 shrink-0">
                   {PANEL_TABS.map(tab => (
                     <button

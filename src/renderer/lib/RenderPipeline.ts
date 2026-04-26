@@ -726,6 +726,34 @@ export class RenderPipeline {
     return this.outputCanvas.toDataURL(type, quality)
   }
 
+  /**
+   * Luminance histogram: raw per-bin pixel counts (256 bins), Rec. 709 luma.
+   * Unnormalized so the UI can apply perceptual scaling (log, sqrt, etc.).
+   * Call after `render()`; uses readPixels on the default framebuffer.
+   */
+  getLumaHistogram256(): number[] {
+    if (!this.width || !this.height) {
+      return Array.from({ length: 256 }, () => 0)
+    }
+    const gl = this.gl
+    const w = this.width
+    const h = this.height
+    const pixels = new Uint8Array(w * h * 4)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+    const counts = new Uint32Array(256)
+    const n = w * h * 4
+    for (let i = 0; i < n; i += 4) {
+      const r = pixels[i]!
+      const g = pixels[i + 1]!
+      const b = pixels[i + 2]!
+      const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) | 0
+      const bin = y > 255 ? 255 : y < 0 ? 0 : y
+      counts[bin]!++
+    }
+    return Array.from(counts)
+  }
+
   // ── Resize ─────────────────────────────────────────────────────────────────
 
   resize(w: number, h: number): void {

@@ -11,6 +11,7 @@ declare global {
   interface Window {
     __frescavaGetCanvasDataURL?: () => string
     __frescavaGetCurrentLUT?: () => { data: Float32Array; size: number } | null
+    __frescavaGetLumaHistogram?: () => number[] | null
   }
 }
 
