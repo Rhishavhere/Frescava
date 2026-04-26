@@ -55,6 +55,7 @@ export default function App() {
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.code === 'Space' &&
         !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+      if (useEditStore.getState().compareMode) return
       e.preventDefault()
       setShowOriginal(true)
     }
