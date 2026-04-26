@@ -22,10 +22,13 @@ const PANEL_TABS = [
 
 export default function Editor() {
   const { rightPanelTab, setRightPanelTab, editorWorkspace } = useUIStore()
-  const { imagePath, imageDataURL } = useEditStore()
+  const imagePath = useEditStore(s => s.imagePath)
+  const imageDataURL = useEditStore(s => s.imageDataURL)
+  const presetId = useEditStore(s => s.params.presetId)
   const { sessions } = useSessionStore()
 
   const hasImage = !!imagePath && !!imageDataURL
+  const showPresetDock = hasImage && !!presetId
   const isMainWorkspace = editorWorkspace === 'main'
 
   return (
@@ -48,7 +51,7 @@ export default function Editor() {
           </div>
 
           {/* Right: inspector — adjustments on main, stub otherwise */}
-          <aside className="w-80 shrink-0 flex flex-col border-l border-border bg-white overflow-hidden">
+          <aside className="w-72 shrink-0 flex flex-col border-l border-border bg-white overflow-hidden">
             {isMainWorkspace ? (
               <>
                 <div className="flex border-b border-border px-0.5 shrink-0">
@@ -65,18 +68,24 @@ export default function Editor() {
                     </button>
                   ))}
                 </div>
-                <div className="flex-1 overflow-y-auto right-panel-scroll">
+                <div className="flex-1 flex flex-col min-h-0">
                   {!hasImage ? (
-                    <div className="flex items-center justify-center h-full text-text-muted">
+                    <div className="flex flex-1 items-center justify-center text-text-muted overflow-y-auto right-panel-scroll">
                       <p className="text-xs text-center px-6">Open a photo to start editing</p>
                     </div>
                   ) : (
                     <>
-                      {rightPanelTab !== 'effects' && (
-                        <AdjustmentPanel activeSection={rightPanelTab} />
+                      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden right-panel-scroll">
+                        {rightPanelTab !== 'effects' && (
+                          <AdjustmentPanel activeSection={rightPanelTab} />
+                        )}
+                        {rightPanelTab === 'effects' && <EffectsPanel />}
+                      </div>
+                      {showPresetDock && (
+                        <div className="shrink-0 min-h-0 max-h-[45%] border-t border-border overflow-y-auto overflow-x-hidden bg-surface-50">
+                          <PresetSettingsPanel />
+                        </div>
                       )}
-                      {rightPanelTab === 'effects' && <EffectsPanel />}
-                      <PresetSettingsPanel />
                     </>
                   )}
                 </div>
