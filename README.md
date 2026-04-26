@@ -7,11 +7,11 @@ This README is the entrypoint to the documentation set and reflects the current 
 ## Current Product State
 
 Implemented now:
-- Home flow for opening one or multiple images
+- Home **Open** for multiple images **or** a Frescava **`.frex`** project (same dialog)
 - Editor with preset strip, adjustment panel, effects panel, and preset settings
 - WebGL preview renderer with multi-pass effect pipeline
-- Batch/session workflows (multiple editor sessions and multi-image strips)
-- Project save/load via `.frex` files
+- **Single** editor session with a **batch** strip (per-image full edit state; **Apply to all** copies the active look to other images in the batch)
+- Project save/load via `.frex` files; opening a project hydrates the saved edit state
 - Export via Sharp (single and batch)
 - Electron frameless shell and typed preload bridge
 
@@ -67,6 +67,5 @@ npm run typecheck
 
 ## Important Notes
 
-- The app currently supports JPEG/PNG/WebP import and JPEG/PNG export.
+- The app supports JPEG/PNG/WebP import and JPEG/PNG export; the Home open dialog also lists **`.frex`** projects.
 - There is no formal test suite configured yet in this repository.
-- `src/renderer/pages/Editor.tsx` is currently modified in the working tree (local in-progress changes).

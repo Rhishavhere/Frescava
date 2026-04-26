@@ -4,6 +4,8 @@ This document captures how runtime state moves through Frescava.
 
 ## Store Topology
 
+The editor’s domain state is split across the stores below. `editStore` holds the **active** image’s working copy; `useSessionStore` holds the **batch** of images and per-image snapshots when not active.
+
 ## `editStore`
 
 File: `src/renderer/store/editStore.ts`
@@ -24,15 +26,15 @@ Important behavior:
 File: `src/renderer/store/tabStore.ts`
 
 Owns:
-- multiple editor sessions
-- active session id
-- active image id per session
-- per-image adjustments and dirty state
-- shared preset id/intensity across session
+- **one** editor session at a time (`session: EditorSession | null`) — there are no multi-window session tabs
+- `activeImageId` within that session
+- per-image data: `BatchImage` stores **full** edit parameters (`BatchAdjustments` = the same shape as `editStore.params`, including `presetId`, `presetIntensity`, and `presetFilters`) plus a dirty flag
 
 Important behavior:
-- switching image/session flushes current `editStore.params` back into session image adjustments
-- then hydrates `editStore` from selected image snapshot
+- **Switching the active image** in the batch flushes current `editStore.params` into the previous image’s `adjustments`, then hydrates `editStore` (and `presetStore.selectedPresetId`) from the newly selected image.
+- **New opens** (Home, DropZone, “Add images”) add to the current batch or create the only session; there is no separate “tab per batch.”
+- **Apply to all** (batch strip): copies the current image’s full params to every other image in the batch and marks those others dirty (requires at least two images).
+- Presets and sliders affect **only the active image** until the user uses Apply to all.
 
 ## `presetStore`
 
@@ -66,10 +68,10 @@ Owns:
 
 ## Edit Lifecycle
 
-1. User opens image(s) from Home or DropZone.
-2. Main returns preview metadata via IPC.
-3. Session store creates/updates session and image entries.
-4. Edit store is hydrated with selected image.
+1. User opens image(s) and/or a **`.frex`** from Home (see `file:openForEditor`) or images from DropZone / editor toolbar.
+2. Main returns preview metadata via IPC, or a **project** payload is passed to the editor to hydrate (see **Project open from Home** below).
+3. Session store creates or extends the **single** session and image entries.
+4. Edit store is hydrated with the selected image.
 5. UI controls mutate `editStore.params`.
 6. `ImageCanvas` triggers `RenderPipeline.render(params)` on change.
 7. Save/export/project actions serialize params as needed.
@@ -118,18 +120,26 @@ Until that timeline exists, treat the current system as a **practical but basic*
 
 ## Session and Batch Synchronization
 
-The synchronization challenge is preserving unsaved edits when switching:
+The synchronization challenge is preserving unsaved edits when switching images:
 
-- Before switch:
-  - current `editStore.params` are saved into active `BatchImage.adjustments`
-- After switch:
-  - selected image adjustments are copied back into `editStore`
-  - shared preset id/intensity are also restored into `editStore`
+- **Before** switching the active image:
+  - current `editStore.params` are written into the active `BatchImage.adjustments`
+- **After** switching:
+  - the selected image’s `adjustments` (full preset + manual stack) are loaded into `editStore` and the preset list selection is synced
 
-Dirty tracking:
-- editing marks active image as dirty
-- save/export flows can mark active image clean
-- removal/close actions can trigger confirm modal if dirty
+**Dirty tracking**
+
+- Edits mark the **active** image as dirty in the session store.
+- A small **unsaved** indicator is shown on the **canvas** next to the active filename (not on batch thumbnails).
+- Save/export flows can mark the **active** image clean (`markActiveImageClean`); the `.frex` model still serializes the **current** image’s state from `editStore` (see Toolbar `buildProjectFile`) unless extended later for full multi-image projects.
+- Removing an image or closing the session can trigger a confirm if any image in the batch is dirty.
+
+## Project open from Home (.frex)
+
+File: `src/renderer/lib/hydrateProject.ts` — `loadProjectIntoEditor(filePath, project)`
+
+- Clears the session, opens the project’s `imagePath` via `file:load`, builds one batch image, merges `ProjectFile.editState` with `DEFAULT_EDIT_STATE` (recursive merge for nested objects), and sets `projectStore.currentFilePath` to the `.frex` path.
+- Invoked from the editor bootstrap when the launch payload is `{ type: 'project', ... }` or when the main process sends `editor:openProject` (editor already open).
 
 ## Project save vs image export
 

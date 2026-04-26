@@ -20,7 +20,7 @@ Authoritative structure guide for contributors and agents.
   - app startup lifecycle
   - browser window creation and native behaviors
   - `frescava://` protocol registration and temp preview serving
-  - base file loading IPC handlers
+  - base file loading IPC handlers (`file:open`, `file:openMultiple`, `file:openForEditor`, `file:load`, `file:loadFull`) and window routing for the editor (`window:openEditor`, launch payload, `editor:openFiles`, `editor:openProject`)
 - `ipc/assets.ts`
   - lists presets from `assets/presets/*/preset.json`
   - parses LUTs from `assets/luts/free`
@@ -34,7 +34,7 @@ Authoritative structure guide for contributors and agents.
 ### `electron/preload`
 
 - `index.ts`
-  - exposes `window.frame` API
+  - exposes `window.frame` API including `file.openForEditor` and `window.onEditorOpenProject`
   - isolates renderer from Node/Electron internals
 
 ## Renderer Layer
@@ -46,20 +46,19 @@ Authoritative structure guide for contributors and agents.
 
 ### `src/renderer/pages`
 
-- `Home.tsx` - open/create session entry UX
+- `Home.tsx` — entry UX; **Open** uses `file.openForEditor()` (images and/or `.frex` projects)
 - `Editor.tsx` - main editing layout orchestration
 
 ### `src/renderer/components/editor`
 
 - `DropZone.tsx` - import target when no image loaded
-- `ImageCanvas.tsx` - render surface orchestration + pipeline interaction
-- `PresetStrip.tsx` - preset browser/selection
+- `ImageCanvas.tsx` - WebGL preview; shows active **filename + unsaved dot** on canvas
+- `PresetStrip.tsx` - preset browser/selection (active image only; use batch **Apply to all** to propagate)
 - `PresetSettingsPanel.tsx` - active preset effect controls
 - `AdjustmentPanel.tsx` - light/color/detail controls
 - `EffectsPanel.tsx` - user effect controls
 - `Toolbar.tsx` - actions (open/save/export etc.)
-- `EditorTabBar.tsx` - session switching UI
-- `BatchStrip.tsx` - image switching within session
+- `BatchStrip.tsx` - batch thumbnails, **Apply to all**, add images
 
 ### `src/renderer/components/ui`
 
@@ -70,7 +69,7 @@ Shared shell and UX controls, including:
 ### `src/renderer/store`
 
 - `editStore.ts` - active image + params + history + before/after toggle
-- `tabStore.ts` - multi-session and multi-image orchestration (`useSessionStore`)
+- `tabStore.ts` - single session + batch images (`useSessionStore`); per-image `adjustments`; dirty flags
 - `presetStore.ts` - preset loading/favorites/selection
 - `projectStore.ts` - save/load state and current file tracking
 - `uiStore.ts` - tab, panel, modal, and general UI state
@@ -80,6 +79,7 @@ Shared shell and UX controls, including:
 - `RenderPipeline.ts` - WebGL2 multi-pass renderer
 - `shaders.ts` - GLSL shader source blocks
 - `fullResRender.ts` - full-resolution rendering helper path for export workflows
+- `hydrateProject.ts` - apply a loaded `ProjectFile` + image into `editStore` / session / `projectStore`
 
 ## Shared Contracts
 

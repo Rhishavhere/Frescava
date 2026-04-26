@@ -20,7 +20,7 @@ Primary entry: `electron/main/index.ts`
 Responsibilities:
 - Create frameless BrowserWindow and app lifecycle wiring
 - Register app IPC channels (`app:minimize`, `app:maximize`, `app:close`, `app:isMaximized`)
-- Handle file open/load channels (`file:open`, `file:openMultiple`, `file:load`, `file:loadFull`)
+- Handle file open/load channels (`file:open`, `file:openMultiple`, `file:openForEditor`, `file:load`, `file:loadFull`)
 - Serve temporary preview files via `frescava://` custom protocol
 - Register sub-handler modules:
   - `electron/main/ipc/assets.ts`
@@ -65,14 +65,14 @@ Responsibilities:
 `src/renderer/pages/Editor.tsx` composes a three-column workspace:
 
 - **Left**: `PresetStrip`
-- **Center**: `Toolbar`, `EditorTabBar`, `ImageCanvas`/`DropZone`, `BatchStrip`
+- **Center**: `Toolbar`, `ImageCanvas` / `DropZone`, `BatchStrip` (no session tab bar; a single session holds the whole batch)
 - **Right**: tabbed `AdjustmentPanel`/`EffectsPanel` + `PresetSettingsPanel`
 
 ## Data and State Architecture
 
 Core stores:
 - `editStore`: image + edit params + history + original toggle
-- `tabStore` (`useSessionStore` alias): multi-session and batch image orchestration
+- `tabStore` (`useSessionStore` alias): **one** session and a **batch** of images; each image stores a full `BatchAdjustments` snapshot; **Apply to all** propagates the active image’s params to the others
 - `presetStore`: preset list, selected preset, favorites
 - `projectStore`: save/load path and project operations
 - `uiStore`: active tab, panel tab, confirm modal, UI states
@@ -117,8 +117,8 @@ Current implemented shader families:
 ### Import
 
 Main process image load behavior:
-- `file:open` / `file:openMultiple`: chooses image via dialog then uses `loadImageFile()`
-- `loadImageFile()` writes a preview JPEG into temp and returns `frescava://load/<name>` URL
+- `file:open` / `file:openMultiple` / `file:openForEditor`: image paths use `loadImageFile()` (preview in temp, `frescava://` URL)
+- `file:openForEditor` (used from Home “Open”): if the user selects any **`.frex`**, the first `.frex` is read as JSON; otherwise all selected image paths are loaded as previews
 - `file:loadFull` returns base64 full-resolution rotated JPEG
 
 ### Assets
@@ -152,6 +152,8 @@ Channel set in `electron/main/ipc/projects.ts`:
 Storage location:
 - User documents: `Frescava Projects`
 - File extension: `.frex` JSON
+
+Opening a `.frex` from Home does **not** use `projects:load` directly; main embeds the parsed `ProjectFile` in the editor launch payload or `editor:openProject` event. The renderer applies it with `src/renderer/lib/hydrateProject.ts` (`loadProjectIntoEditor`).
 
 ## Security Posture (Current)
 

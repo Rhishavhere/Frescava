@@ -18,12 +18,12 @@ Frescava is a creator-first desktop editor optimized for:
 Status: **implemented (core)**
 
 Implemented:
-- image import/open single + multiple
-- preset browsing and application
+- image import: one or many photos, or a **`.frex`** project from Home
+- preset browsing and application (per image; optional **Apply to all** for the whole batch)
 - exposure/color/detail adjustments
 - effects controls (fade, grain, vignette, halation, CA, bloom, lens, leaks, dust, borders)
 - before/after hold-to-view behavior
-- batch strip with per-image adjustments in a session
+- batch strip: switch images, add to batch, **Apply to all** (preset + full adjustments), unsaved indicator on the **canvas title**
 - project save/load and export
 
 Planned improvements:

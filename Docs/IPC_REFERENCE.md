@@ -20,6 +20,15 @@ All calls are made through `window.frame` exposed in `electron/preload/index.ts`
 - Response: `FileOpenResult[]`
 - Behavior: opens native dialog with multi-select
 
+### `file:openForEditor`
+
+- Request: none
+- Response: `OpenForEditorResult` (see `src/shared/types.ts`)
+  - `{ kind: 'empty' }` — cancelled or no selection
+  - `{ kind: 'project'; filePath: string; project: ProjectFile }` — user picked at least one `.frex`; the **first** `.frex` in the selection wins (image files in the same multi-select are ignored in that case)
+  - `{ kind: 'images'; files: FileOpenResult[] }` — only raster files (all paths run through the same preview pipeline as `openMultiple`)
+- Behavior: **Home “Open”** uses this to support both Frescava projects and photos in one dialog (filters include `frex`, `jpg`, `jpeg`, `png`, `webp`).
+
 ### `file:load`
 
 - Request: `(path: string)`
@@ -106,6 +115,32 @@ All calls are made through `window.frame` exposed in `electron/preload/index.ts`
 - Response: `ProjectFile`
 - Behavior: reads and parses project JSON
 
+## `window` (multi-window editor)
+
+Implemented in `electron/main/index.ts` and exposed on `window.frame.window` in preload.
+
+### `window:openEditor`
+
+- Request: optional
+  - `{ files: FileOpenResult[] }` — open or focus the editor and load these images into the batch (merging into an existing session when already open is handled in the session store / `openSession` flow)
+  - `{ project: { filePath: string; project: ProjectFile } }` — load a saved `.frex` (hydration in renderer via `loadProjectIntoEditor`)
+  - `undefined` — open/focus empty editor
+- Response: void
+- Behavior: may set a **pending launch payload** for a new editor window, or `webContents.send` to an existing editor (`editor:openFiles` / `editor:openProject`).
+
+### `window:getLaunchPayload`
+
+- Request: none
+- Response: `{ type: 'files'; files: FileOpenResult[] } | { type: 'empty' } | { type: 'project'; filePath: string; project: ProjectFile } | null`
+- Behavior: **consume-once** payload read when the editor window starts (then cleared in main).
+
+### `window:…` (renderer event subscriptions)
+
+- `onEditorOpenFiles` / IPC `editor:openFiles` — new batch from Home while editor is already running
+- `onEditorOpenProject` / IPC `editor:openProject` — new `.frex` while editor is already running
+
+(Other `window:*` methods: `openHome`, `getHomeLaunchView`, `onHomeOpenView` — see preload.)
+
 ## `app`
 
 ### `app:minimize`
@@ -133,6 +168,7 @@ All calls are made through `window.frame` exposed in `electron/preload/index.ts`
 
 Primary shared interfaces live in `src/shared/types.ts`:
 - `FrescavaAPI`
+- `OpenForEditorResult`
 - `FileOpenResult`
 - `ExportOptions`
 - `ExportResult`
