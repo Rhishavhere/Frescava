@@ -310,11 +310,6 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
 
       {/* ── Right: labels for Save + Export only ── */}
       <div className="flex items-center gap-1.5 shrink-0 no-drag">
-        {params.presetId && (
-          <span className="hidden sm:inline text-[10px] text-text-muted dark:text-zinc-500 truncate max-w-[100px]">
-            {params.presetId} ·{Math.round(params.presetIntensity * 100)}%
-          </span>
-        )}
         {showExportSuccess && <span className="text-xs text-green-600 dark:text-emerald-400 font-medium hidden sm:inline">✓</span>}
         {hasImage && (
           <div className="relative group">
@@ -322,7 +317,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
               variant="ghost"
               size="sm"
               onClick={handleSave}
-              title="Save project (Documents/Frescava Projects)"
+              title="Save project"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path
@@ -335,13 +330,13 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
               </svg>
               Save
             </Button>
-            <button
+            {/* <button
               type="button"
               onClick={handleSaveAs}
               className="absolute right-0 top-full mt-0.5 whitespace-nowrap bg-white border border-border rounded shadow-md px-2.5 py-1.5 text-[11px] text-text-secondary dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 hover:bg-surface-50 dark:hover:bg-zinc-800 z-40 hidden group-hover:block"
             >
               Save As…
-            </button>
+            </button> */}
           </div>
         )}
         <div className="relative">
@@ -443,7 +438,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                     />
                     <polyline strokeLinecap="round" strokeLinejoin="round" points="17 21 17 13 7 13 7 21" />
                   </svg>
-                  Save As… (browse)
+                  Export Save File (.frex)
                 </button>
               </div>
               <div className="fixed inset-0 -z-10" onClick={() => setShowExportMenu(false)} aria-hidden />

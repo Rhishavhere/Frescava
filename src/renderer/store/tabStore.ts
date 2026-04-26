@@ -24,7 +24,7 @@ export type BatchAdjustments = Omit<EditState,
 const DEFAULT_ADJUSTMENTS: BatchAdjustments = {
   exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
   temperature: 0, tint: 0, vibrance: 0, saturation: 0,
-  sharpness: 0, noiseReduction: 0, clarity: 0, texture: 0,
+  sharpness: 0, noiseReduction: 0, clarity: 0, texture: 0, lensBlur: 0,
   fade: { enabled: false, blackLift: 0.05, whiteCeiling: 0.97 },
   grain: { enabled: false, type: 'fine', intensity: 0.3, size: 1.0, roughness: 0.5, luminosityMode: true, highlightReduction: 0.4 },
   vignette: { enabled: false, shape: 'oval', strength: 0.5, feather: 0.5, midpoint: 0.7, exposure: 0 },

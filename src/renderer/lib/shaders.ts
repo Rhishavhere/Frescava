@@ -555,6 +555,25 @@ void main() {
 }
 `
 
+// ─── Detail — Lens blur: mix sharp (adjustment pass) with separable Gaussian defocus
+export const LENS_BLUR_COMPOSITE_FRAG = /* glsl */`#version 300 es
+precision mediump float;
+uniform sampler2D u_sharp;
+uniform sampler2D u_blur;
+in vec2 v_texCoord;
+out vec4 fragColor;
+
+/** 0 = sharp, 1 = full defocus (already paired with matching blur pass radius in JS) */
+uniform float u_strength;
+
+void main() {
+  vec4 s = texture(u_sharp, v_texCoord);
+  vec4 b = texture(u_blur, v_texCoord);
+  vec3 c = mix(s.rgb, b.rgb, clamp(u_strength, 0.0, 1.0));
+  fragColor = vec4(c, s.a);
+}
+`
+
 // ─── Halation — Pass 3: screen composite ─────────────────────────────────────
 
 export const HALATION_COMPOSITE_FRAG = /* glsl */`#version 300 es

@@ -47,6 +47,10 @@ export function registerExportHandlers(): void {
           const sigma = 0.5 + (opts.editState.sharpness / 100) * 1.5
           pipeline = pipeline.sharpen({ sigma })
         }
+        if (opts.editState.lensBlur > 0) {
+          const sigma = 0.25 + (opts.editState.lensBlur / 100) * 2.5
+          pipeline = pipeline.blur(sigma)
+        }
       }
 
       if (opts.maxDimension) {
@@ -103,6 +107,10 @@ export function registerExportHandlers(): void {
           pipeline = pipeline.modulate({ brightness, saturation: satMult }).linear(alpha, beta)
           if (imgOpts.editState.sharpness > 0) {
             pipeline = pipeline.sharpen({ sigma: 0.5 + (imgOpts.editState.sharpness / 100) * 1.5 })
+          }
+          if (imgOpts.editState.lensBlur > 0) {
+            const sigma = 0.25 + (imgOpts.editState.lensBlur / 100) * 2.5
+            pipeline = pipeline.blur(sigma)
           }
         }
         const basename = imgOpts.imagePath.split(/[\\/]/).pop() ?? 'export'

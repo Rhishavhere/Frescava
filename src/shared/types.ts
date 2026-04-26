@@ -29,6 +29,7 @@ export interface EditState {
   noiseReduction: number // 0–100
   clarity: number        // -100 to 100
   texture: number        // -100 to 100
+  lensBlur: number        // 0–100  shallow-DoF style defocus (after other detail)
 
   // Effects
   fade: FadeParams

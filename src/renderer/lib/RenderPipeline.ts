@@ -8,6 +8,7 @@ import {
   HALATION_EXTRACT_FRAG,
   BLUR_H_FRAG,
   BLUR_V_FRAG,
+  LENS_BLUR_COMPOSITE_FRAG,
   HALATION_COMPOSITE_FRAG,
   CA_FRAG,
   LENS_DIST_FRAG,
@@ -93,6 +94,7 @@ export class RenderPipeline {
   private progHalExtract: WebGLProgram
   private progBlurH: WebGLProgram
   private progBlurV: WebGLProgram
+  private progLensBlurComp: WebGLProgram
   private progHalComposite: WebGLProgram
   private progCA: WebGLProgram
   private progLensDist: WebGLProgram
@@ -142,6 +144,7 @@ export class RenderPipeline {
     this.progHalExtract = createProgram(gl, HALATION_EXTRACT_FRAG)
     this.progBlurH = createProgram(gl, BLUR_H_FRAG)
     this.progBlurV = createProgram(gl, BLUR_V_FRAG)
+    this.progLensBlurComp = createProgram(gl, LENS_BLUR_COMPOSITE_FRAG)
     this.progHalComposite = createProgram(gl, HALATION_COMPOSITE_FRAG)
     this.progCA = createProgram(gl, CA_FRAG)
     this.progLensDist = createProgram(gl, LENS_DIST_FRAG)
@@ -152,7 +155,7 @@ export class RenderPipeline {
     const programs = [
       this.progFade,
       this.progAdjust, this.progLUT, this.progGrain, this.progVignette,
-      this.progHalExtract, this.progBlurH, this.progBlurV, this.progHalComposite,
+      this.progHalExtract, this.progBlurH, this.progBlurV, this.progLensBlurComp, this.progHalComposite,
       this.progCA, this.progLensDist, this.progPassthrough, this.progOverlay,
     ]
     for (const prog of programs) {
@@ -377,6 +380,10 @@ export class RenderPipeline {
     // LAYER 2: USER ADJUSTMENTS (Exposure, Contrast, Temp, Tint)
     // ─────────────────────────────────────────────────────────────────────────────
     current = this.runAdjustments(current, state)
+    const lb = state.lensBlur ?? 0
+    if (lb > 0) {
+      current = this.runLensBlur(current, lb / 100)
+    }
 
     // ─────────────────────────────────────────────────────────────────────────────
     // LAYER 3: USER CUSTOM EFFECTS (Mathematical pass on top of everything)
@@ -492,6 +499,63 @@ export class RenderPipeline {
     gl.uniform2f(u('u_texelSize'), 1 / this.width, 1 / this.height)
     this.draw()
     return tex
+  }
+
+  /**
+   * Shallow-depth defocus: separable Gaussian blur of the adjustment pass, mixed with the sharp result.
+   * Preserves the sharp image in `halTexture` while ping-pong buffers are used for blur; safe before
+   * user halation/bloom which reuse the same hal FBOs later in the frame.
+   */
+  private runLensBlur(sharp: WebGLTexture, strength01: number): WebGLTexture {
+    if (strength01 <= 0) return sharp
+    const gl = this.gl
+    const texelW = 1 / this.width
+    const texelH = 1 / this.height
+    // Gaussian radius in pixels (matches existing blur passes; max 32 in shader)
+    const radius = Math.max(1, Math.round(0.5 + strength01 * strength01 * 28))
+
+    // Keep a copy of the sharp image for the final mix (blur overwrites one ping-pong target)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.halFBO!)
+    gl.useProgram(this.progPassthrough)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, sharp)
+    gl.uniform1i(gl.getUniformLocation(this.progPassthrough, 'u_image'), 0)
+    gl.bindVertexArray(this.vaos.get(this.progPassthrough)!)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.bindVertexArray(null)
+
+    // Horizontal blur
+    const { fbo: fboH, tex: texH } = this.getNextFBO()
+    this.bindProgram(this.progBlurH, sharp, fboH)
+    gl.uniform1f(gl.getUniformLocation(this.progBlurH, 'u_radius'), radius)
+    gl.uniform2f(gl.getUniformLocation(this.progBlurH, 'u_texelSize'), texelW, texelH)
+    this.draw()
+
+    // Vertical blur
+    const { fbo: fboV, tex: texBlur } = this.getNextFBO()
+    this.bindProgram(this.progBlurV, texH, fboV)
+    gl.uniform1f(gl.getUniformLocation(this.progBlurV, 'u_radius'), radius)
+    gl.uniform2f(gl.getUniformLocation(this.progBlurV, 'u_texelSize'), texelW, texelH)
+    this.draw()
+
+    // Composite sharp (halTexture) + blurred (texBlur) → next ping-pong target
+    const { fbo: fboOut, tex: texOut } = this.getNextFBO()
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fboOut)
+    gl.useProgram(this.progLensBlurComp)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, this.halTexture!)
+    gl.uniform1i(gl.getUniformLocation(this.progLensBlurComp, 'u_sharp'), 0)
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, texBlur)
+    gl.uniform1i(gl.getUniformLocation(this.progLensBlurComp, 'u_blur'), 1)
+    gl.uniform1f(gl.getUniformLocation(this.progLensBlurComp, 'u_strength'), strength01)
+    gl.bindVertexArray(this.vaos.get(this.progLensBlurComp)!)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.bindVertexArray(null)
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, null)
+    gl.activeTexture(gl.TEXTURE0)
+    return texOut
   }
 
   private runGrain(input: WebGLTexture, s: EditState): WebGLTexture {

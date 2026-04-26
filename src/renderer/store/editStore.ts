@@ -28,6 +28,7 @@ export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'i
   noiseReduction: 0,
   clarity: 0,
   texture: 0,
+  lensBlur: 0,
 
   // Effects
   fade: { enabled: false, blackLift: 0.05, whiteCeiling: 0.97 },

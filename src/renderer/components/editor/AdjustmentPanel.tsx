@@ -31,6 +31,7 @@ const DETAIL_SLIDERS = [
   { key: 'noiseReduction', label: 'Noise Reduction',  min: 0,    max: 100, step: 1 },
   { key: 'clarity',        label: 'Clarity',          min: -100, max: 100, step: 1 },
   { key: 'texture',        label: 'Texture',          min: -100, max: 100, step: 1 },
+  { key: 'lensBlur',       label: 'Lens Blur',        min: 0,    max: 100, step: 1 },
 ] as const
 
 export default function AdjustmentPanel({ activeSection }: AdjustmentPanelProps) {
