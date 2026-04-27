@@ -69,10 +69,10 @@ export default function Editor() {
           {/* Center: same canvas + batch for all in-editor modes; toolbar switches workspace panels */}
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <Toolbar hasImage={hasImage} />
-            <div className="flex-1 canvas-container overflow-hidden min-h-0">
+            <div className="flex-1 flex-col canvas-container overflow-hidden min-h-0">
               {hasImage ? <ImageCanvas /> : <DropZone />}
+              <BatchStrip />
             </div>
-            <BatchStrip />
           </div>
 
           {/* Right: inspector — adjustments on main, stub otherwise */}

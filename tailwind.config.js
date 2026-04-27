@@ -5,6 +5,20 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Frescava dark palette (overrides default zinc scale)
+        zinc: {
+          '50': '#f6f6f8',
+          '100': '#ececf0',
+          '200': '#dbdbe1',
+          '300': '#c7c7cf',
+          '400': '#b2b2bb',
+          '500': '#95959f',
+          '600': '#707079',
+          '700': '#5e5d62',
+          '800': '#353540',
+          '900': '#232326',
+          '950': '#19191b',
+        },
         // Frescava white/fresh palette
         surface: {
           DEFAULT: '#FFFFFF',

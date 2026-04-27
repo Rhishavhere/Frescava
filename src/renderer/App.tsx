@@ -137,7 +137,7 @@ function FrescavaEditorShell() {
     <div
       className={
         isDark
-          ? 'frescava-editor dark flex flex-col h-screen overflow-hidden bg-[#09090b] text-zinc-100 antialiased'
+          ? 'frescava-editor dark flex flex-col h-screen overflow-hidden bg-[#19191b] text-zinc-100 antialiased'
           : 'frescava-editor flex flex-col h-screen overflow-hidden bg-[#f5f5f5] text-text-primary antialiased'
       }
     >
