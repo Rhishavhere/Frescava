@@ -6,6 +6,9 @@ type RightPanelTab = 'light' | 'color' | 'detail' | 'effects'
 
 export type EditorWorkspace = 'main' | 'text' | 'templates'
 
+/** Left dock tool rail (first column); second column shows that category. */
+export type LeftDockTool = 'effects' | 'filters' | 'text' | 'brush' | 'more'
+
 interface ConfirmOptions {
   title: string
   message: string
@@ -35,6 +38,10 @@ interface UIStore {
   /** In-editor tool mode: main photo tools vs text vs templates (same session; different side panels) */
   editorWorkspace: EditorWorkspace
   setEditorWorkspace: (w: EditorWorkspace) => void
+
+  /** Left column tool selection (main workspace only) */
+  leftDockTool: LeftDockTool
+  setLeftDockTool: (t: LeftDockTool) => void
 
   // Right inspector tab (main workspace)
   rightPanelTab: RightPanelTab
@@ -78,6 +85,9 @@ export const useUIStore = create<UIStore>((set, get) => ({
 
   editorWorkspace: 'main' as EditorWorkspace,
   setEditorWorkspace: (w) => set({ editorWorkspace: w }),
+
+  leftDockTool: 'effects' as LeftDockTool,
+  setLeftDockTool: (t) => set({ leftDockTool: t }),
 
   rightPanelTab: 'light',
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),

@@ -49,7 +49,12 @@ function useHistogramPaths(heights: number[] | null) {
  * Updates when the canvas fires `frescava-canvas-repaint` (same frame as the preview).
  * Uses d3-scale-friendly mapping (log1p) and d3-shape smooth area for display.
  */
-export default function AdjustmentHistogram() {
+type AdjustmentHistogramProps = {
+  /** Floating on canvas vs legacy right-inspector strip */
+  variant?: 'overlay' | 'inspector'
+}
+
+export default function AdjustmentHistogram({ variant = 'overlay' }: AdjustmentHistogramProps) {
   const [counts, setCounts] = useState<number[] | null>(null)
   const baseId = useId().replace(/:/g, '')
   const gradId = `hist-fill-${baseId}`
@@ -70,13 +75,22 @@ export default function AdjustmentHistogram() {
     return () => window.removeEventListener('frescava-canvas-repaint', onRepaint)
   }, [])
 
+  const shell =
+    variant === 'overlay'
+      ? 'backdrop-blur-sm p-1.5 pointer-events-none'
+      : 'shrink-0 border-b border-border dark:border-zinc-800/60 bg-surface-50 dark:bg-zinc-950/80 p-1'
+
   return (
     <div
-      className="shrink-0 border-b border-border dark:border-zinc-800/60 bg-surface-50 dark:bg-zinc-950/80 p-1"
+      className={shell}
       role="img"
       aria-label="Luminance histogram of the current preview"
     >
-      <div className="h-20 w-full rounded-sm overflow-hidden bg-white dark:bg-zinc-900/50 border border-border/60 dark:border-zinc-800/60 pt-6">
+      <div
+        className={`h-16 w-full overflow-hidden bg-white dark:bg-transparent ${
+          variant === 'overlay' ? 'pt-0' : 'pt-6'
+        }`}
+      >
         {heights && fillPath ? (
           <svg
             className="w-full h-full text-text-primary dark:text-white block"
@@ -87,7 +101,7 @@ export default function AdjustmentHistogram() {
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="currentColor" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="currentColor" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="currentColor" stopOpacity="0.01" />
               </linearGradient>
             </defs>
             <path d={fillPath} fill={`url(#${gradId})`} />
@@ -95,7 +109,7 @@ export default function AdjustmentHistogram() {
               <path
                 d={linePath}
                 fill="none"
-                stroke="currentColor"
+                stroke="none"
                 strokeOpacity="0.5"
                 strokeWidth={0.35}
                 vectorEffect="non-scaling-stroke"

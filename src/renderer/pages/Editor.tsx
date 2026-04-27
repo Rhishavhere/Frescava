@@ -4,7 +4,7 @@ import { useEditStore } from '../store/editStore'
 import { useSessionStore } from '../store/tabStore'
 import { loadProjectIntoEditor } from '../lib/hydrateProject'
 import ImageCanvas from '../components/editor/ImageCanvas'
-import PresetStrip from '../components/editor/PresetStrip'
+import EditorLeftPanel from '../components/editor/EditorLeftPanel'
 import AdjustmentPanel from '../components/editor/AdjustmentPanel'
 import EffectsPanel from '../components/editor/EffectsPanel'
 import PresetSettingsPanel from '../components/editor/PresetSettingsPanel'
@@ -61,17 +61,31 @@ export default function Editor() {
       <EditorWindowSessionBootstrap />
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 flex overflow-hidden min-h-0">
-          {/* Left: preset column — full strip on main, stub on Text / Templates */}
-          <aside className="w-48 shrink-0 flex flex-col border-r border-border dark:border-zinc-800/60 bg-surface-50 dark:bg-zinc-950/90 overflow-hidden">
-            {isMainWorkspace ? <PresetStrip /> : <PresetColumnStub mode={editorWorkspace} />}
+          {/* Left: tool rail + category (Effects hosts preset library) — stub for Text / Templates workspace */}
+          <aside
+            className={`w-60 sm:w-64 shrink-0 flex flex-col border-r border-border dark:border-zinc-800/60 overflow-hidden min-h-0 ${
+              isMainWorkspace ? '' : 'bg-surface-50 dark:bg-zinc-950/90'
+            }`}
+          >
+            {isMainWorkspace ? <EditorLeftPanel /> : <PresetColumnStub mode={editorWorkspace} />}
           </aside>
 
           {/* Center: same canvas + batch for all in-editor modes; toolbar switches workspace panels */}
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <Toolbar hasImage={hasImage} />
-            <div className="flex-1 flex-col canvas-container overflow-hidden min-h-0">
+            <div className="flex-1 relative flex-col canvas-container overflow-hidden min-h-0">
               {hasImage ? <ImageCanvas /> : <DropZone />}
               <BatchStrip />
+              {hasImage && isMainWorkspace && (
+                <div className="absolute top-3 right-3 z-[25] w-[min(220px,42vw)] bg-transparent">
+                  <AdjustmentHistogram variant="overlay" />
+                </div>
+              )}
+              {showPresetDock && isMainWorkspace && (
+                <div className="absolute left-3 top-24 z-20 w-[140px] max-w-[calc(100%-1.5rem)] rounded-xl border border-border/80 dark:border-zinc-700/70 bg-white/95 dark:bg-zinc-950/90 shadow-xl backdrop-blur-sm overflow-visible">
+                  <PresetSettingsPanel />
+                </div>
+              )}
             </div>
           </div>
 
@@ -79,7 +93,6 @@ export default function Editor() {
           <aside className="w-72 shrink-0 flex flex-col border-l border-border dark:border-zinc-800/60 bg-white dark:bg-zinc-950/95 overflow-hidden">
             {isMainWorkspace ? (
               <>
-                <AdjustmentHistogram />
                 <div className="flex border-b border-border px-0.5 shrink-0">
                   {PANEL_TABS.map(tab => (
                     <button
@@ -107,11 +120,6 @@ export default function Editor() {
                         )}
                         {rightPanelTab === 'effects' && <EffectsPanel />}
                       </div>
-                      {showPresetDock && (
-                        <div className="shrink-0 min-h-0 max-h-[45%] border-t border-border dark:border-zinc-800/60 overflow-y-auto overflow-x-hidden bg-surface-50 dark:bg-zinc-900/50">
-                          <PresetSettingsPanel />
-                        </div>
-                      )}
                     </>
                   )}
                 </div>

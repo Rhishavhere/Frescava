@@ -44,7 +44,7 @@ export default function PresetStrip() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex items-center justify-between shrink-0">
-        <span className="text-[11px] font-semibold text-text-muted dark:text-zinc-500 uppercase tracking-wider">Presets</span>
+        <span className="text-[11px] font-semibold text-text-muted dark:text-zinc-500 uppercase tracking-wider">Effects</span>
         <button
           onClick={() => setShowFavOnly(v => !v)}
           className={`text-text-muted hover:text-text-primary transition-colors dark:text-zinc-500 dark:hover:text-zinc-200 ${showFavOnly ? 'text-film' : ''}`}

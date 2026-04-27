@@ -183,28 +183,21 @@ export default function PresetSettingsPanel() {
   }
 
   return (
-    <div className="flex flex-col pt-2.5 px-4 pb-3 gap-3 mb-20">
+    <div className="flex flex-col pt-2.5 px-4 pb-2 gap-3 mb-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold text-text-muted dark:text-zinc-500 uppercase tracking-wider">
           Preset effects
         </span>
-        <button
-          type="button"
-          onClick={resetAllPresetEffects}
-          className="text-[10px] font-medium uppercase tracking-wider text-text-muted dark:text-zinc-500 hover:text-text-primary dark:hover:text-zinc-200"
-        >
-          Reset all
-        </button>
       </div>
       <div className="h-px w-full bg-border dark:bg-zinc-800/80" />
       
       <Slider
-        label="Overall intensity"
+        label="Intensity"
         value={Math.round(intensityPct * 10) / 10}
         min={0}
         max={100}
         step={0.1}
-        unit="%"
+        unit=""
         onChange={v => {
           setPresetIntensity(v / 100)
           markActiveImageDirty()
@@ -217,7 +210,7 @@ export default function PresetSettingsPanel() {
       {keys.length > 0 && (
         <>
           
-          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+          <div className="grid grid-cols-1 gap-1 sm:gap-1.5">
             {keys.map((key) => {
               const block = filterParams[key]
               if (!block) return null
