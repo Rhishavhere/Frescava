@@ -15,7 +15,7 @@ import {
   PASSTHROUGH_FRAG,
   OVERLAY_FRAG,
 } from './shaders'
-import type { EditState } from '@shared/types'
+import type { ColorBalanceState, CurvesState, EditState, HslMixerState, SplitToningState } from '@shared/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -73,6 +73,90 @@ function setupQuad(gl: WebGL2RenderingContext, prog: WebGLProgram): WebGLVertexA
   return vao
 }
 
+const IDENTITY_CURVE = [
+  { x: 0, y: 0 }, { x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 },
+  { x: 0.75, y: 0.75 }, { x: 1, y: 1 },
+]
+const DEFAULT_CURVES: CurvesState = {
+  master: IDENTITY_CURVE,
+  red: IDENTITY_CURVE,
+  green: IDENTITY_CURVE,
+  blue: IDENTITY_CURVE,
+}
+
+const DEFAULT_SPLIT: SplitToningState = {
+  shadows: { hue: 0, saturation: 0 },
+  midtones: { hue: 0, saturation: 0 },
+  highlights: { hue: 0, saturation: 0 },
+}
+
+const DEFAULT_BALANCE: ColorBalanceState = {
+  shadows: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+  midtones: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+  highlights: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+}
+
+const HSL_BANDS = ['red', 'orange', 'yellow', 'green', 'aqua', 'blue', 'purple', 'magenta'] as const
+
+const DEFAULT_HSL = Object.fromEntries(
+  HSL_BANDS.map(b => [b, { hue: 0, saturation: 0, luminance: 0 }])
+) as HslMixerState
+
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0))
+}
+
+// Catmull-Rom cubic spline — matches the visual curve shown in the UI (d3 curveMonotoneX
+// produces near-identical results for smooth monotone data).  Using Catmull-Rom with
+// endpoint clamping (ghost point = mirror of neighbour) gives a smooth, exact-pass-through
+// interpolant with no overshoot for well-ordered control points.
+function sampleCurve(points: CurvesState['master'] | undefined, x: number): number {
+  const pts = (points && points.length >= 2 ? points : IDENTITY_CURVE)
+    .map(p => ({ x: clamp01(p.x), y: clamp01(p.y) }))
+    .sort((a, b) => a.x - b.x)
+
+  const n = pts.length
+  if (x <= pts[0]!.x) return pts[0]!.y
+  if (x >= pts[n - 1]!.x) return pts[n - 1]!.y
+
+  // Find segment: pts[i-1].x <= x < pts[i].x
+  let i = 1
+  while (i < n - 1 && pts[i]!.x < x) i++
+
+  const p0 = pts[Math.max(0, i - 2)]!
+  const p1 = pts[i - 1]!
+  const p2 = pts[i]!
+  const p3 = pts[Math.min(n - 1, i + 1)]!
+
+  const dx = p2.x - p1.x
+  if (dx < 1e-10) return p1.y
+
+  const t = (x - p1.x) / dx
+  const t2 = t * t
+  const t3 = t2 * t
+
+  const y = 0.5 * (
+    2 * p1.y
+    + (-p0.y + p2.y) * t
+    + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2
+    + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+  )
+  return clamp01(y)
+}
+
+function buildCurveTextureData(curves: CurvesState | undefined): Uint8Array {
+  const c = curves ?? DEFAULT_CURVES
+  const data = new Uint8Array(256 * 4)
+  for (let i = 0; i < 256; i++) {
+    const x = i / 255
+    data[i * 4] = Math.round(clamp01(sampleCurve(c.master, x)) * 255)
+    data[i * 4 + 1] = Math.round(clamp01(sampleCurve(c.red, x)) * 255)
+    data[i * 4 + 2] = Math.round(clamp01(sampleCurve(c.green, x)) * 255)
+    data[i * 4 + 3] = Math.round(clamp01(sampleCurve(c.blue, x)) * 255)
+  }
+  return data
+}
+
 // ─── RenderPipeline class ─────────────────────────────────────────────────────
 
 export class RenderPipeline {
@@ -110,6 +194,9 @@ export class RenderPipeline {
   // LUT 3D texture
   private lutTexture: WebGLTexture | null = null
   private lutSize: number = 33
+
+  // 256x1 RGBA texture: master/R/G/B curve lookup tables.
+  private curveTexture: WebGLTexture | null = null
 
   // Overlay textures
   private overlayTextures: Map<string, WebGLTexture> = new Map()
@@ -246,6 +333,26 @@ export class RenderPipeline {
       this.gl.deleteTexture(this.lutTexture)
       this.lutTexture = null
     }
+  }
+
+  private updateCurveTexture(curves: CurvesState | undefined): void {
+    const gl = this.gl
+    const data = buildCurveTextureData(curves)
+    gl.activeTexture(gl.TEXTURE2)
+    if (!this.curveTexture) {
+      this.curveTexture = gl.createTexture()
+      gl.bindTexture(gl.TEXTURE_2D, this.curveTexture)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    } else {
+      gl.bindTexture(gl.TEXTURE_2D, this.curveTexture)
+    }
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data)
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4)
+    gl.activeTexture(gl.TEXTURE0)
   }
 
   // ── Load Overlay Texture ───────────────────────────────────────────────────
@@ -481,6 +588,10 @@ export class RenderPipeline {
     const prog = this.progAdjust
     this.bindProgram(prog, input, fbo)
     const u = (name: string) => gl.getUniformLocation(prog, name)
+    this.updateCurveTexture(s.curves ?? DEFAULT_CURVES)
+    gl.activeTexture(gl.TEXTURE2)
+    gl.bindTexture(gl.TEXTURE_2D, this.curveTexture)
+    gl.uniform1i(u('u_curves'), 2)
     gl.uniform1f(u('u_exposure'), s.exposure)
     gl.uniform1f(u('u_contrast'), s.contrast / 100)
     gl.uniform1f(u('u_highlights'), s.highlights / 100)
@@ -497,7 +608,26 @@ export class RenderPipeline {
     gl.uniform1f(u('u_texture'), s.texture / 100)
     gl.uniform1f(u('u_noiseReduction'), s.noiseReduction / 100)
     gl.uniform2f(u('u_texelSize'), 1 / this.width, 1 / this.height)
+    const st = s.splitToning ?? DEFAULT_SPLIT
+    gl.uniform1f(u('u_splitShHue'), st.shadows.hue / 360)
+    gl.uniform1f(u('u_splitShSat'), st.shadows.saturation / 100)
+    gl.uniform1f(u('u_splitMidHue'), st.midtones.hue / 360)
+    gl.uniform1f(u('u_splitMidSat'), st.midtones.saturation / 100)
+    gl.uniform1f(u('u_splitHiHue'), st.highlights.hue / 360)
+    gl.uniform1f(u('u_splitHiSat'), st.highlights.saturation / 100)
+    const balance = s.colorBalance ?? DEFAULT_BALANCE
+    gl.uniform3f(u('u_balanceSh'), balance.shadows.cyanRed / 100, balance.shadows.magentaGreen / 100, balance.shadows.yellowBlue / 100)
+    gl.uniform3f(u('u_balanceMid'), balance.midtones.cyanRed / 100, balance.midtones.magentaGreen / 100, balance.midtones.yellowBlue / 100)
+    gl.uniform3f(u('u_balanceHi'), balance.highlights.cyanRed / 100, balance.highlights.magentaGreen / 100, balance.highlights.yellowBlue / 100)
+    gl.uniform1f(u('u_dehaze'), (s.dehaze ?? 0) / 100)
+    const hsl = s.hslMixer ?? DEFAULT_HSL
+    gl.uniform1fv(u('u_hslHue'), new Float32Array(HSL_BANDS.map(b => hsl[b].hue / 100)))
+    gl.uniform1fv(u('u_hslSat'), new Float32Array(HSL_BANDS.map(b => hsl[b].saturation / 100)))
+    gl.uniform1fv(u('u_hslLum'), new Float32Array(HSL_BANDS.map(b => hsl[b].luminance / 100)))
     this.draw()
+    gl.activeTexture(gl.TEXTURE2)
+    gl.bindTexture(gl.TEXTURE_2D, null)
+    gl.activeTexture(gl.TEXTURE0)
     return tex
   }
 
@@ -852,6 +982,7 @@ export class RenderPipeline {
     const gl = this.gl
     if (this.sourceTexture) gl.deleteTexture(this.sourceTexture)
     if (this.lutTexture) gl.deleteTexture(this.lutTexture)
+    if (this.curveTexture) gl.deleteTexture(this.curveTexture)
     if (this.halTexture) gl.deleteTexture(this.halTexture)
     if (this.halTexture2) gl.deleteTexture(this.halTexture2)
     this.fbTextures.forEach(t => gl.deleteTexture(t))

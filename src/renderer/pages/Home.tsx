@@ -76,12 +76,6 @@ export default function Home() {
 
         {/* Center Canvas */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <img
-            src={logoPng}
-            alt=""
-            className="h-20 w-20 md:h-24 md:w-24 object-contain mb-6 select-none pointer-events-none"
-            aria-hidden
-          />
           <div className="relative inline-flex items-start">
             <h1 className="font-kenoky text-[clamp(5rem,14vw,16rem)] leading-[0.9] tracking-[-0.02em] text-black">
               frescava

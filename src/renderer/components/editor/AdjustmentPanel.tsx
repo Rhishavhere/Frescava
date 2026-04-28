@@ -1,6 +1,7 @@
 import { useEditStore } from '../../store/editStore'
 import { useSessionStore } from '../../store/tabStore'
 import { Slider, PanelSection } from '../ui'
+import AdvancedAdjustmentsSection from './AdvancedAdjustmentsSection'
 
 type Section = 'light' | 'color' | 'detail'
 
@@ -71,6 +72,10 @@ export default function AdjustmentPanel({ activeSection }: AdjustmentPanelProps)
           })}
         </div>
       </PanelSection>
+
+      <div className="px-4 pb-2 border-t border-border/60 dark:border-zinc-800/50 pt-3">
+        <AdvancedAdjustmentsSection />
+      </div>
 
       {/* Quick reset all */}
       <div className="px-4 pb-4">

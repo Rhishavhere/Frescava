@@ -138,6 +138,22 @@ uniform float u_texture;       // -1..1
 uniform float u_noiseReduction;// 0..1
 uniform vec2  u_texelSize;     // 1/width, 1/height
 
+// Advanced grading: curve LUT texture stores master/R/G/B in RGBA across 256 samples.
+uniform sampler2D u_curves;
+uniform float u_splitShHue;   // 0-1  (hue/360)
+uniform float u_splitShSat;   // 0-1  (sat/100)
+uniform float u_splitMidHue;
+uniform float u_splitMidSat;
+uniform float u_splitHiHue;
+uniform float u_splitHiSat;
+uniform vec3  u_balanceSh;    // -1..1 RGB-ish balance for shadows
+uniform vec3  u_balanceMid;   // -1..1 RGB-ish balance for midtones
+uniform vec3  u_balanceHi;    // -1..1 RGB-ish balance for highlights
+uniform float u_dehaze;       // -1..1
+uniform float u_hslHue[8];    // red, orange, yellow, green, aqua, blue, purple, magenta
+uniform float u_hslSat[8];
+uniform float u_hslLum[8];
+
 // sRGB <-> linear helpers
 float srgbToLinear(float v) {
   return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4);
@@ -208,6 +224,79 @@ float applyWhites(float l, float amount) {
 float applyBlacks(float l, float amount) {
   float mask = 1.0 - smoothstep(0.0, 0.3, l);
   return l + amount * 0.3 * mask;
+}
+
+float curveChannel(vec4 v, int channel) {
+  if (channel == 0) return v.r;
+  if (channel == 1) return v.g;
+  if (channel == 2) return v.b;
+  return v.a;
+}
+
+float sampleCurve(float t, int channel) {
+  float x = clamp(t, 0.0, 1.0) * 255.0;
+  int i0 = int(floor(x));
+  int i1 = min(i0 + 1, 255);
+  float f = fract(x);
+  vec4 a = texelFetch(u_curves, ivec2(i0, 0), 0);
+  vec4 b = texelFetch(u_curves, ivec2(i1, 0), 0);
+  return mix(curveChannel(a, channel), curveChannel(b, channel), f);
+}
+
+void nudgeHslSplit(inout vec3 rgb, float targetHue, float satNorm, float mask) {
+  if (mask * satNorm < 0.001) return;
+  vec3 h = rgbToHsl(rgb);
+  float dh = targetHue - h.x;
+  if (dh > 0.5) dh -= 1.0;
+  if (dh < -0.5) dh += 1.0;
+  float strength = satNorm * mask;
+  // Max ~20 degrees of hue shift at full strength — matches Lightroom / Resolve feel.
+  h.x = fract(h.x + dh * strength * 0.22);
+  // Gentle saturation push that respects areas already saturated.
+  h.y = clamp(h.y + strength * 0.20 * (1.0 - h.y * 0.6), 0.0, 1.0);
+  rgb = hslToRgb(h);
+}
+
+float hueDistance(float a, float b) {
+  float d = abs(a - b);
+  return min(d, 1.0 - d);
+}
+
+float hslBandCenter(int i) {
+  if (i == 0) return 0.0 / 360.0;    // red
+  if (i == 1) return 30.0 / 360.0;   // orange
+  if (i == 2) return 60.0 / 360.0;   // yellow
+  if (i == 3) return 120.0 / 360.0;  // green
+  if (i == 4) return 180.0 / 360.0;  // aqua
+  if (i == 5) return 230.0 / 360.0;  // blue
+  if (i == 6) return 275.0 / 360.0;  // purple
+  return 315.0 / 360.0;              // magenta
+}
+
+void applyHslMixer(inout vec3 rgb) {
+  vec3 h = rgbToHsl(rgb);
+  for (int i = 0; i < 8; i++) {
+    float mask = 1.0 - smoothstep(0.035, 0.105, hueDistance(h.x, hslBandCenter(i)));
+    h.x = fract(h.x + u_hslHue[i] * mask * 0.075);
+    h.y = clamp(h.y + u_hslSat[i] * mask * 0.45, 0.0, 1.0);
+    h.z = clamp(h.z + u_hslLum[i] * mask * 0.28, 0.0, 1.0);
+  }
+  rgb = hslToRgb(h);
+}
+
+void applyDehaze(inout vec3 rgb, float amount) {
+  if (abs(amount) < 0.0001) return;
+  float l = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+  rgb = clamp((rgb - 0.5) * (1.0 + amount * 0.42) + 0.5, 0.0, 1.0);
+  vec3 h = rgbToHsl(rgb);
+  h.y = clamp(h.y + amount * 0.18 * (1.0 - h.y), 0.0, 1.0);
+  h.z = clamp(h.z - amount * 0.10 * smoothstep(0.45, 1.0, l), 0.0, 1.0);
+  rgb = hslToRgb(h);
+}
+
+void applyBalance(inout vec3 rgb, vec3 balance, float mask) {
+  if (mask < 0.0001) return;
+  rgb = clamp(rgb + balance * mask * 0.12, 0.0, 1.0);
 }
 
 void main() {
@@ -325,6 +414,35 @@ void main() {
     vec3 hslC = rgbToHsl(rgb);
     float midMask = smoothstep(0.1, 0.5, hslC.z) * (1.0 - smoothstep(0.5, 0.9, hslC.z));
     rgb = clamp(rgb + clarityDetail * u_clarity * midMask * 2.0, 0.0, 1.0);
+  }
+
+  // ── HSL color mixer + dehaze before final curves ────────────────────────
+  applyHslMixer(rgb);
+  applyDehaze(rgb, u_dehaze);
+
+  // ── Master luma curve (on HSL luminance) ─────────────────────────────────
+  {
+    vec3 hCurve = rgbToHsl(rgb);
+    hCurve.z = sampleCurve(hCurve.z, 0);
+    hCurve.z = clamp(hCurve.z, 0.0, 1.0);
+    rgb = hslToRgb(hCurve);
+    rgb.r = sampleCurve(rgb.r, 1);
+    rgb.g = sampleCurve(rgb.g, 2);
+    rgb.b = sampleCurve(rgb.b, 3);
+  }
+
+  // ── Split toning (wheels) — luma-weighted HSL nudge per zone ────────────
+  {
+    float L = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+    float mSh = (1.0 - smoothstep(0.0, 0.38, L)) * smoothstep(0.0, 0.06, L);
+    float mMid = smoothstep(0.22, 0.42, L) * (1.0 - smoothstep(0.55, 0.78, L));
+    float mHi = smoothstep(0.55, 0.88, L);
+    nudgeHslSplit(rgb, u_splitShHue,  u_splitShSat,  mSh);
+    nudgeHslSplit(rgb, u_splitMidHue, u_splitMidSat, mMid);
+    nudgeHslSplit(rgb, u_splitHiHue,  u_splitHiSat,  mHi);
+    applyBalance(rgb, u_balanceSh, mSh);
+    applyBalance(rgb, u_balanceMid, mMid);
+    applyBalance(rgb, u_balanceHi, mHi);
   }
 
   fragColor = vec4(clamp(rgb, 0.0, 1.0), color.a);
