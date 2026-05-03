@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { AppAppearance, EditorUiPreferences } from '@shared/types'
 
 type AppTab = 'home' | 'templates' | 'canvas' | 'explore' | 'settings'
-type RightPanelTab = 'light' | 'color' | 'detail' | 'effects'
+type RightPanelTab = 'light' | 'detail' | 'effects'
 
 export type EditorWorkspace = 'main' | 'text' | 'templates'
 

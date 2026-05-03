@@ -1,8 +1,14 @@
 import { useEditStore } from '../../store/editStore'
 import { useSessionStore } from '../../store/tabStore'
-import { Slider, PanelSection } from '../ui'
+import { PanelSection } from '../ui'
+import AdvancedAdjustmentsSection from './AdvancedAdjustmentsSection'
+import {
+  AdjustmentSliderRow,
+  type AdjustmentSliderVariant,
+} from './AdjustmentSliderRow'
 
-type Section = 'light' | 'color' | 'detail'
+/** Light tab = former Light + Color; Detail unchanged. */
+type Section = 'light' | 'detail'
 
 interface AdjustmentPanelProps {
   activeSection: Section
@@ -26,6 +32,9 @@ const COLOR_SLIDERS = [
   { key: 'saturation',  label: 'Saturation',  min: -100, max: 100, step: 1 },
 ] as const
 
+/** Combined Light panel (tonality + chroma). Order: exposure…blacks, then temp…saturation. */
+const LIGHT_PANEL_SLIDERS = [...LIGHT_SLIDERS, ...COLOR_SLIDERS] as const
+
 const DETAIL_SLIDERS = [
   { key: 'sharpness',      label: 'Sharpness',       min: 0,    max: 100, step: 1 },
   { key: 'noiseReduction', label: 'Noise Reduction',  min: 0,    max: 100, step: 1 },
@@ -34,45 +43,90 @@ const DETAIL_SLIDERS = [
   { key: 'lensBlur',       label: 'Lens Blur',        min: 0,    max: 100, step: 1 },
 ] as const
 
+type SliderParamKey =
+  | (typeof LIGHT_PANEL_SLIDERS)[number]['key']
+  | (typeof DETAIL_SLIDERS)[number]['key']
+
+/** Fallback when no per-slider override is set */
+const DEFAULT_ADJUSTMENT_SLIDER_VARIANT: Record<Section, AdjustmentSliderVariant> = {
+  light: 'pill',
+  detail: 'line',
+}
+
+/**
+ * Per-parameter style overrides — former Color sliders stay line sliders by default.
+ */
+export const ADJUSTMENT_SLIDER_VARIANT_OVERRIDES: Partial<
+  Record<SliderParamKey, AdjustmentSliderVariant>
+> = {
+  temperature: 'line',
+  tint: 'line',
+  vibrance: 'line',
+  saturation: 'line',
+}
+
+type SliderDef =
+  | (typeof LIGHT_SLIDERS)[number]
+  | (typeof COLOR_SLIDERS)[number]
+  | (typeof DETAIL_SLIDERS)[number]
+
 export default function AdjustmentPanel({ activeSection }: AdjustmentPanelProps) {
   const { params, setParam, resetParam, pushHistory } = useEditStore()
   const { markActiveImageDirty } = useSessionStore()
 
-  const sliders =
-    activeSection === 'light'  ? LIGHT_SLIDERS  :
-    activeSection === 'color'  ? COLOR_SLIDERS  :
-    DETAIL_SLIDERS
+  const sliders = activeSection === 'light' ? LIGHT_PANEL_SLIDERS : DETAIL_SLIDERS
+  const sectionDefault = DEFAULT_ADJUSTMENT_SLIDER_VARIANT[activeSection]
+
+  const sliderRow = (slider: SliderDef) => {
+    const value = params[slider.key as keyof typeof params] as number
+    const variant =
+      ADJUSTMENT_SLIDER_VARIANT_OVERRIDES[slider.key as SliderParamKey] ?? sectionDefault
+
+    return (
+      <AdjustmentSliderRow
+        key={slider.key}
+        variant={variant}
+        label={slider.label}
+        value={value}
+        min={slider.min}
+        max={slider.max}
+        step={slider.step}
+        onChange={(v) => {
+          setParam(slider.key as keyof typeof params, v as never)
+          markActiveImageDirty()
+        }}
+        onChangeEnd={() => pushHistory()}
+        onReset={() => {
+          resetParam(slider.key as keyof typeof params)
+          markActiveImageDirty()
+        }}
+      />
+    )
+  }
 
   return (
     <div className="panel-slide-right">
       <PanelSection>
-        <div className="flex flex-col gap-5">
-          {sliders.map((slider) => {
-            const value = params[slider.key as keyof typeof params] as number
-            return (
-              <SliderRow
-                key={slider.key}
-                label={slider.label}
-                value={value}
-                min={slider.min}
-                max={slider.max}
-                step={slider.step}
-                onChange={(v) => {
-                  setParam(slider.key as keyof typeof params, v as never)
-                  markActiveImageDirty()
-                }}
-                onChangeEnd={() => pushHistory()}
-                onReset={() => {
-                  resetParam(slider.key as keyof typeof params)
-                  markActiveImageDirty()
-                }}
-              />
-            )
-          })}
-        </div>
+        {activeSection === 'light' ? (
+          <div className="flex flex-col">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+              {LIGHT_SLIDERS.map(slider => sliderRow(slider))}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5">
+              {COLOR_SLIDERS.map(slider => sliderRow(slider))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {DETAIL_SLIDERS.map(slider => sliderRow(slider))}
+          </div>
+        )}
       </PanelSection>
 
-      {/* Quick reset all */}
+      <div className="px-4 pb-2 border-t border-border/60 dark:border-zinc-800/50 pt-3">
+        <AdvancedAdjustmentsSection />
+      </div>
+
       <div className="px-4 pb-4">
         <button
           className="w-full text-xs text-text-muted dark:text-zinc-500 hover:text-text-primary dark:hover:text-zinc-200 py-1 transition-colors"
@@ -86,65 +140,4 @@ export default function AdjustmentPanel({ activeSection }: AdjustmentPanelProps)
     </div>
   )
 }
-
-// ─── Slider row with double-click reset ───────────────────────────────────────
-
-function SliderRow({
-  label, value, min, max, step, onChange, onChangeEnd, onReset
-}: {
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  onChange: (v: number) => void
-  onChangeEnd: () => void
-  onReset: () => void
-}) {
-  const pct = ((value - min) / (max - min)) * 100
-  const displayVal = step < 1
-    ? value.toFixed(2)
-    : (value > 0 ? `+${value}` : `${value}`)
-
-  const isModified = value !== 0
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <label
-          className={`text-xs font-medium transition-colors cursor-pointer select-none ${
-            isModified ? 'text-text-primary dark:text-zinc-100' : 'text-text-secondary dark:text-zinc-500'
-          }`}
-          onDoubleClick={onReset}
-          title="Double-click to reset"
-        >
-          {label}
-        </label>
-        <button
-          onDoubleClick={onReset}
-          title="Double-click to reset"
-          className={`text-xs font-mono tabular-nums text-right min-w-[36px] transition-colors cursor-default ${
-            isModified ? 'text-accent font-medium dark:text-[color:var(--editor-accent-mid)]' : 'text-text-muted dark:text-zinc-600'
-          }`}
-        >
-          {displayVal}
-        </button>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        style={{
-          background: `linear-gradient(to right, ${isModified ? 'var(--frescava-adj-modified)' : 'var(--frescava-range-fill)'} ${pct}%, var(--frescava-range-track) ${pct}%)`
-        }}
-        className="w-full"
-        onChange={e => onChange(parseFloat(e.target.value))}
-        onMouseUp={onChangeEnd}
-        onTouchEnd={onChangeEnd}
-        onDoubleClick={onReset}
-      />
-    </div>
-  )
-}
+

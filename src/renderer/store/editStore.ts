@@ -4,6 +4,10 @@ import type { EditState } from '@shared/types'
 
 // ─── Default edit state ───────────────────────────────────────────────────────
 
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'imageHeight'> = {
   presetId: null,
   presetIntensity: 1.0,
@@ -29,6 +33,34 @@ export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'i
   clarity: 0,
   texture: 0,
   lensBlur: 0,
+
+  curves: {
+    master: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    red: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    green: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    blue: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+  },
+  splitToning: {
+    shadows: { hue: 0, saturation: 0 },
+    midtones: { hue: 0, saturation: 0 },
+    highlights: { hue: 0, saturation: 0 },
+  },
+  colorBalance: {
+    shadows: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+    midtones: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+    highlights: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+  },
+  hslMixer: {
+    red: { hue: 0, saturation: 0, luminance: 0 },
+    orange: { hue: 0, saturation: 0, luminance: 0 },
+    yellow: { hue: 0, saturation: 0, luminance: 0 },
+    green: { hue: 0, saturation: 0, luminance: 0 },
+    aqua: { hue: 0, saturation: 0, luminance: 0 },
+    blue: { hue: 0, saturation: 0, luminance: 0 },
+    purple: { hue: 0, saturation: 0, luminance: 0 },
+    magenta: { hue: 0, saturation: 0, luminance: 0 },
+  },
+  dehaze: 0,
 
   // Effects
   fade: { enabled: false, blackLift: 0.05, whiteCeiling: 0.97 },
@@ -101,7 +133,7 @@ export const useEditStore = create<EditStore>()(
     imageWidth: 0,
     imageHeight: 0,
     imageDataURL: null,
-    params: { ...DEFAULT_EDIT_STATE },
+    params: deepClone(DEFAULT_EDIT_STATE),
     history: [],
     historyIndex: -1,
     showOriginal: false,
@@ -113,7 +145,7 @@ export const useEditStore = create<EditStore>()(
         state.imageWidth = width
         state.imageHeight = height
         state.imageDataURL = dataURL
-        state.params = { ...DEFAULT_EDIT_STATE }
+        state.params = deepClone(DEFAULT_EDIT_STATE)
         state.history = []
         state.historyIndex = -1
         state.showOriginal = false
@@ -188,14 +220,14 @@ export const useEditStore = create<EditStore>()(
         state.history.splice(state.historyIndex + 1)
         state.history.push(entry)
         state.historyIndex = state.history.length - 1
-        state.params = { ...DEFAULT_EDIT_STATE }
+        state.params = deepClone(DEFAULT_EDIT_STATE)
       })
     },
 
     resetParam: (key) => {
       set(state => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(state.params as any)[key] = (DEFAULT_EDIT_STATE as any)[key]
+        ;(state.params as any)[key] = deepClone((DEFAULT_EDIT_STATE as any)[key])
       })
     },
 
