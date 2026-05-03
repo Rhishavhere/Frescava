@@ -17,7 +17,6 @@ import ConfirmModal from '../components/ui/ConfirmModal'
 
 const PANEL_TABS = [
   { id: 'light' as const, label: 'Light' },
-  { id: 'color' as const, label: 'Color' },
   { id: 'detail' as const, label: 'Detail' },
   { id: 'effects' as const, label: 'Effects' },
 ] as const

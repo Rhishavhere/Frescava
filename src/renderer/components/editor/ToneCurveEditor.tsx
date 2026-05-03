@@ -4,7 +4,7 @@ import { evaluateToneCurve, normalizeCurvePoints } from '@shared/curveMath'
 
 const PAD = 14
 const W = 256
-const H = 180
+const H = 148
 const GRID_FRACS = [0.25, 0.5, 0.75] as const
 const KNOT_HIT_PX = 18
 /** Click within this distance (SVG units) adds a knot on the curve (Photoshop-style). */
