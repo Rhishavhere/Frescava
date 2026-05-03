@@ -87,7 +87,7 @@ export default function Home() {
 
           {/* Sub Navigation Links */}
           <div className="mt-12 flex gap-8 text-[11px] font-semibold tracking-[0.2em] uppercase text-black/40">
-            <button onClick={handleOpenImage} className="hover:text-black transition-colors hover:scale-105 transform duration-300">OPEN</button>
+            <button onClick={handleOpenImage} className="hover:text-black transition-colors hover:scale-105 transform duration-300">PHOTO</button>
             <button
               type="button"
               onClick={() => void window.frame.window.openEditor()}
