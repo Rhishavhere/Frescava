@@ -243,18 +243,54 @@ float sampleCurve(float t, int channel) {
   return mix(curveChannel(a, channel), curveChannel(b, channel), f);
 }
 
-void nudgeHslSplit(inout vec3 rgb, float targetHue, float satNorm, float mask) {
-  if (mask * satNorm < 0.001) return;
-  vec3 h = rgbToHsl(rgb);
-  float dh = targetHue - h.x;
-  if (dh > 0.5) dh -= 1.0;
-  if (dh < -0.5) dh += 1.0;
-  float strength = satNorm * mask;
-  // Max ~20 degrees of hue shift at full strength — matches Lightroom / Resolve feel.
-  h.x = fract(h.x + dh * strength * 0.22);
-  // Gentle saturation push that respects areas already saturated.
-  h.y = clamp(h.y + strength * 0.20 * (1.0 - h.y * 0.6), 0.0, 1.0);
-  rgb = hslToRgb(h);
+// ── Split toning: chroma-offset model (Resolve / Lightroom-ish) ───────────
+// Sequential HSL "hue spins" behave badly on low-saturation pixels (unstable hue,
+// complements, harsh zone edges).  Instead: luminance-orthogonal chroma axis from
+// the wheel hue at full saturation, smooth overlapping luma masks, one summed RGB
+// offset per pixel, optional Rec.709 luma preservation.
+
+vec3 splitChromaAxis(float hue01) {
+  vec3 ref = hslToRgb(vec3(hue01, 1.0, 0.5));
+  float y = dot(ref, vec3(0.2126, 0.7152, 0.0722));
+  vec3 chr = ref - vec3(y);
+  float len = length(chr);
+  return len > 1e-4 ? chr / len : vec3(0.0);
+}
+
+void splitToningRgbOffset(inout vec3 rgb) {
+  float satSh = u_splitShSat;
+  float satMid = u_splitMidSat;
+  float satHi = u_splitHiSat;
+  if ((satSh + satMid + satHi) < 1e-5) return;
+
+  float L = clamp(dot(rgb, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+
+  // Wide overlapping smooth masks — softer transitions between zones (less banding).
+  float wSh = 1.0 - smoothstep(0.035, 0.48, L);
+  float wMid = smoothstep(0.08, 0.36, L) * (1.0 - smoothstep(0.38, 0.82, L));
+  float wHi = smoothstep(0.44, 0.96, L);
+
+  vec3 axSh = splitChromaAxis(u_splitShHue);
+  vec3 axMid = splitChromaAxis(u_splitMidHue);
+  vec3 axHi = splitChromaAxis(u_splitHiHue);
+
+  vec3 chr = axSh * (satSh * wSh) + axMid * (satMid * wMid) + axHi * (satHi * wHi);
+  float m = length(chr);
+  if (m < 1e-6) return;
+
+  // Clamp combined chroma impulse so overlaps do not explode.
+  float chrCap = 0.92;
+  if (m > chrCap) chr *= chrCap / m;
+
+  vec3 tinted = rgb + chr * 0.16;
+  tinted = clamp(tinted, 0.0, 1.0);
+
+  float l0 = L;
+  float l1 = max(dot(tinted, vec3(0.2126, 0.7152, 0.0722)), 1e-6);
+  if (l0 > 1e-5)
+    tinted = clamp(tinted * (l0 / l1), 0.0, 1.0);
+
+  rgb = tinted;
 }
 
 float hueDistance(float a, float b) {
@@ -431,15 +467,14 @@ void main() {
     rgb.b = sampleCurve(rgb.b, 3);
   }
 
-  // ── Split toning (wheels) — luma-weighted HSL nudge per zone ────────────
+  // ── Split toning — single-pass chroma offsets + color balance ────────────
   {
-    float L = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
-    float mSh = (1.0 - smoothstep(0.0, 0.38, L)) * smoothstep(0.0, 0.06, L);
-    float mMid = smoothstep(0.22, 0.42, L) * (1.0 - smoothstep(0.55, 0.78, L));
-    float mHi = smoothstep(0.55, 0.88, L);
-    nudgeHslSplit(rgb, u_splitShHue,  u_splitShSat,  mSh);
-    nudgeHslSplit(rgb, u_splitMidHue, u_splitMidSat, mMid);
-    nudgeHslSplit(rgb, u_splitHiHue,  u_splitHiSat,  mHi);
+    splitToningRgbOffset(rgb);
+
+    float L = clamp(dot(rgb, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+    float mSh = 1.0 - smoothstep(0.035, 0.48, L);
+    float mMid = smoothstep(0.08, 0.36, L) * (1.0 - smoothstep(0.38, 0.82, L));
+    float mHi = smoothstep(0.44, 0.96, L);
     applyBalance(rgb, u_balanceSh, mSh);
     applyBalance(rgb, u_balanceMid, mMid);
     applyBalance(rgb, u_balanceHi, mHi);
