@@ -35,10 +35,10 @@ export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'i
   lensBlur: 0,
 
   curves: {
-    master: [{ x: 0, y: 0 }, { x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 }, { x: 0.75, y: 0.75 }, { x: 1, y: 1 }],
-    red:    [{ x: 0, y: 0 }, { x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 }, { x: 0.75, y: 0.75 }, { x: 1, y: 1 }],
-    green:  [{ x: 0, y: 0 }, { x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 }, { x: 0.75, y: 0.75 }, { x: 1, y: 1 }],
-    blue:   [{ x: 0, y: 0 }, { x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 }, { x: 0.75, y: 0.75 }, { x: 1, y: 1 }],
+    master: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    red: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    green: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    blue: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
   },
   splitToning: {
     shadows: { hue: 0, saturation: 0 },

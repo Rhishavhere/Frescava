@@ -12,6 +12,7 @@ For overall app architecture, see `Docs/ARCHITECTURE.md`. For product direction,
 |--------|------|
 | **`src/shared/types.ts`** | `EditState` fields: `curves`, `splitToning`, `colorBalance`, `hslMixer`, `dehaze`, plus basic adjustments. |
 | **`src/renderer/store/editStore.ts`** | Defaults, undo/history, `setParam`, deep clones so defaults are not mutated. |
+| **`src/shared/curveMath.ts`** | Tone curve PCHIP evaluation, normalization, **1024-sample RGBA8 LUT** builder (`CURVE_LUT_WIDTH`). |
 | **`src/renderer/components/editor/`** | `ToneCurveEditor`, `AdvancedAdjustmentsSection` (wheels, balance, HSL, dehaze). |
 | **`src/renderer/lib/RenderPipeline.ts`** | Builds WebGL programs, uploads **curve LUT texture**, sets uniforms for split toning / balance / HSL / dehaze, runs passes. |
 | **`src/renderer/lib/shaders.ts`** | `ADJUSTMENTS_FRAG`: single fragment shader that runs the ordered adjustment pipeline per pixel. |
@@ -50,16 +51,27 @@ A **tone curve** maps input luminance or channel value \(x \in [0,1]\) to output
 
 ### UI (`ToneCurveEditor.tsx`)
 
-- **d3-shape** (`line` + `curveMonotoneX`, `area`) draws the interactive curve and fill.
-- Pointer coordinates are converted using **SVG viewBox vs bounding rect** so clicks stay accurate when the control is scaled.
-- Default identity includes **several interior points** on the diagonal so the user always sees draggable handles, not only invisible corners.
+- **Photoshop-style defaults:** only **`(0,0)` and `(1,1)`** — a single identity diagonal with **no interior knots** until you add them.
+- **Add knots:** click **near the drawn curve** (snaps the new point onto the evaluated spline at that input `x`).
+- **Drag:** knots use `setPointerCapture` on the SVG + window `pointermove`; `curvesRef` stays in sync with optimistic updates so Zustand/React batching cannot “eat” drags.
+- **Remove:** double-click an interior knot (endpoints are locked to `x ∈ {0,1}` and only move vertically in `y`).
+- The visible stroke is a **dense polyline** sampled with `evaluateToneCurve` from `@shared/curveMath` so the graph matches the GPU.
+
+### Shared math (`src/shared/curveMath.ts`)
+
+- **`normalizeCurvePoints`** — sort, clamp, fix endpoints, collapse duplicate `x`.
+- **`evaluateToneCurve`** — **monotone PCHIP** (piecewise cubic Hermite, Fritsch–Carlson-style slopes): passes through all knots, preserves monotonicity **without** Catmull–Rom overshoot (smoother grades, less harsh transitions).
+- **`buildCurveLutRGBA8`** — clamps each channel to \([0,1]\), stores **1024×1 RGBA UNSIGNED_BYTE** LUT (dense enough for LINEAR filtering with no float-texture quirks on Windows/WebGL).
 
 ### CPU → GPU (`RenderPipeline.ts`)
 
-- Control points are **not** sent as a long uniform array to the shader.
-- JavaScript samples each channel with a **Catmull–Rom spline** (smooth, passes through knots; aligned with the monotone curve the UI draws).
-- Samples are written to a **`256 × 1` RGBA texture**: R = master curve output, G/B/A = red/green/blue curve outputs for that input abscissa.
-- The fragment shader uses **`texelFetch`** + linear interpolation between texels for `sampleCurve`.
+- `updateCurveTexture` uploads **RGBA UNSIGNED_BYTE** with **LINEAR** filtering (widely compatible; **`RGBA32F`** uploads broke or tinted output on some ANGLE GPUs).
+- Shader samples with `texture()` and `u_curveLutWidth` so hardware interpolation works between texels → **no 8-bit posterization** from the old `Uint8Array` / 256-wide path.
+
+### Shader (`ADJUSTMENTS_FRAG`)
+
+- `uniform float u_curveLutWidth` (e.g. 1024).
+- `sampleCurve` uses `texture(u_curves, vec2(uCoord, 0.5))` with coordinates mapped to texel centers across the LUT width.
 
 ### Shader application
 
@@ -72,7 +84,6 @@ So master shapes **overall tone**; RGB curves shape **color vs tone** in display
 
 ### Future improvements (curves)
 
-- Higher bit-depth LUT or **analytic curve eval in shader** for even smoother extremes.
 - Optional **log / scene-linear** working space for the curve stage only.
 - Stricter **preview vs export** parity when export uses non-WebGL paths.
 
@@ -176,4 +187,4 @@ When you ship meaningful changes to advanced tools:
 - `src/renderer/lib/RenderPipeline.ts` — curve texture, uniform packing, draw calls.
 - `src/renderer/components/editor/ToneCurveEditor.tsx` — curve UI.
 - `src/renderer/components/editor/AdvancedAdjustmentsSection.tsx` — wheels, balance, HSL, dehaze UI.
-- `src/shared/types.ts` — type definitions for all of the above.
+- `src/shared/curveMath.ts` — monotone tone-curve sampling + LUT build (used by UI and pipeline).

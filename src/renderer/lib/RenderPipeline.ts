@@ -16,6 +16,7 @@ import {
   OVERLAY_FRAG,
 } from './shaders'
 import type { ColorBalanceState, CurvesState, EditState, HslMixerState, SplitToningState } from '@shared/types'
+import { buildCurveLutRGBA8, CURVE_LUT_WIDTH, defaultIdentityCurves } from '@shared/curveMath'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -73,16 +74,7 @@ function setupQuad(gl: WebGL2RenderingContext, prog: WebGLProgram): WebGLVertexA
   return vao
 }
 
-const IDENTITY_CURVE = [
-  { x: 0, y: 0 }, { x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 },
-  { x: 0.75, y: 0.75 }, { x: 1, y: 1 },
-]
-const DEFAULT_CURVES: CurvesState = {
-  master: IDENTITY_CURVE,
-  red: IDENTITY_CURVE,
-  green: IDENTITY_CURVE,
-  blue: IDENTITY_CURVE,
-}
+const DEFAULT_CURVES: CurvesState = defaultIdentityCurves()
 
 const DEFAULT_SPLIT: SplitToningState = {
   shadows: { hue: 0, saturation: 0 },
@@ -101,61 +93,6 @@ const HSL_BANDS = ['red', 'orange', 'yellow', 'green', 'aqua', 'blue', 'purple',
 const DEFAULT_HSL = Object.fromEntries(
   HSL_BANDS.map(b => [b, { hue: 0, saturation: 0, luminance: 0 }])
 ) as HslMixerState
-
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0))
-}
-
-// Catmull-Rom cubic spline — matches the visual curve shown in the UI (d3 curveMonotoneX
-// produces near-identical results for smooth monotone data).  Using Catmull-Rom with
-// endpoint clamping (ghost point = mirror of neighbour) gives a smooth, exact-pass-through
-// interpolant with no overshoot for well-ordered control points.
-function sampleCurve(points: CurvesState['master'] | undefined, x: number): number {
-  const pts = (points && points.length >= 2 ? points : IDENTITY_CURVE)
-    .map(p => ({ x: clamp01(p.x), y: clamp01(p.y) }))
-    .sort((a, b) => a.x - b.x)
-
-  const n = pts.length
-  if (x <= pts[0]!.x) return pts[0]!.y
-  if (x >= pts[n - 1]!.x) return pts[n - 1]!.y
-
-  // Find segment: pts[i-1].x <= x < pts[i].x
-  let i = 1
-  while (i < n - 1 && pts[i]!.x < x) i++
-
-  const p0 = pts[Math.max(0, i - 2)]!
-  const p1 = pts[i - 1]!
-  const p2 = pts[i]!
-  const p3 = pts[Math.min(n - 1, i + 1)]!
-
-  const dx = p2.x - p1.x
-  if (dx < 1e-10) return p1.y
-
-  const t = (x - p1.x) / dx
-  const t2 = t * t
-  const t3 = t2 * t
-
-  const y = 0.5 * (
-    2 * p1.y
-    + (-p0.y + p2.y) * t
-    + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2
-    + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
-  )
-  return clamp01(y)
-}
-
-function buildCurveTextureData(curves: CurvesState | undefined): Uint8Array {
-  const c = curves ?? DEFAULT_CURVES
-  const data = new Uint8Array(256 * 4)
-  for (let i = 0; i < 256; i++) {
-    const x = i / 255
-    data[i * 4] = Math.round(clamp01(sampleCurve(c.master, x)) * 255)
-    data[i * 4 + 1] = Math.round(clamp01(sampleCurve(c.red, x)) * 255)
-    data[i * 4 + 2] = Math.round(clamp01(sampleCurve(c.green, x)) * 255)
-    data[i * 4 + 3] = Math.round(clamp01(sampleCurve(c.blue, x)) * 255)
-  }
-  return data
-}
 
 // ─── RenderPipeline class ─────────────────────────────────────────────────────
 
@@ -195,7 +132,7 @@ export class RenderPipeline {
   private lutTexture: WebGLTexture | null = null
   private lutSize: number = 33
 
-  // 256x1 RGBA texture: master/R/G/B curve lookup tables.
+  // 1×CURVE_LUT_WIDTH RGBA8: master / R / G / B curve lookups.
   private curveTexture: WebGLTexture | null = null
 
   // Overlay textures
@@ -337,7 +274,8 @@ export class RenderPipeline {
 
   private updateCurveTexture(curves: CurvesState | undefined): void {
     const gl = this.gl
-    const data = buildCurveTextureData(curves)
+    const data = buildCurveLutRGBA8(curves)
+    const w = CURVE_LUT_WIDTH
     gl.activeTexture(gl.TEXTURE2)
     if (!this.curveTexture) {
       this.curveTexture = gl.createTexture()
@@ -349,9 +287,8 @@ export class RenderPipeline {
     } else {
       gl.bindTexture(gl.TEXTURE_2D, this.curveTexture)
     }
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data)
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data)
     gl.activeTexture(gl.TEXTURE0)
   }
 
@@ -592,6 +529,7 @@ export class RenderPipeline {
     gl.activeTexture(gl.TEXTURE2)
     gl.bindTexture(gl.TEXTURE_2D, this.curveTexture)
     gl.uniform1i(u('u_curves'), 2)
+    gl.uniform1f(u('u_curveLutWidth'), CURVE_LUT_WIDTH)
     gl.uniform1f(u('u_exposure'), s.exposure)
     gl.uniform1f(u('u_contrast'), s.contrast / 100)
     gl.uniform1f(u('u_highlights'), s.highlights / 100)

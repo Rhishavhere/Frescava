@@ -138,8 +138,9 @@ uniform float u_texture;       // -1..1
 uniform float u_noiseReduction;// 0..1
 uniform vec2  u_texelSize;     // 1/width, 1/height
 
-// Advanced grading: curve LUT texture stores master/R/G/B in RGBA across 256 samples.
+// Advanced grading: 1D curve LUT — master/R/G/B in RGBA (UNPACK to float in shader)
 uniform sampler2D u_curves;
+uniform float u_curveLutWidth;
 uniform float u_splitShHue;   // 0-1  (hue/360)
 uniform float u_splitShSat;   // 0-1  (sat/100)
 uniform float u_splitMidHue;
@@ -234,13 +235,11 @@ float curveChannel(vec4 v, int channel) {
 }
 
 float sampleCurve(float t, int channel) {
-  float x = clamp(t, 0.0, 1.0) * 255.0;
-  int i0 = int(floor(x));
-  int i1 = min(i0 + 1, 255);
-  float f = fract(x);
-  vec4 a = texelFetch(u_curves, ivec2(i0, 0), 0);
-  vec4 b = texelFetch(u_curves, ivec2(i1, 0), 0);
-  return mix(curveChannel(a, channel), curveChannel(b, channel), f);
+  float wtex = max(u_curveLutWidth, 2.0);
+  float denom = max(wtex - 1.0, 1.0);
+  float uCoord = ((clamp(t, 0.0, 1.0) * denom) + 0.5) / wtex;
+  vec4 samp = texture(u_curves, vec2(uCoord, 0.5));
+  return clamp(curveChannel(samp, channel), 0.0, 1.0);
 }
 
 // ── Split toning: chroma-offset model (Resolve / Lightroom-ish) ───────────
