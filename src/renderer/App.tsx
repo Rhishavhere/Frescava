@@ -149,12 +149,22 @@ function FrescavaEditorShell() {
   )
 }
 
+import { useAuthStore } from './store/authStore'
+import AuthModal from './components/auth/AuthModal'
+
 export default function App() {
   const mode = getWindowModeFromHash()
+  const checkSession = useAuthStore(s => s.checkSession)
+
+  useEffect(() => {
+    void checkSession()
+  }, [checkSession])
+
   return (
     <>
       <EditorUiBootstrap />
       {mode === 'editor' ? <FrescavaEditorShell /> : <FrescavaHomeShell />}
+      <AuthModal />
     </>
   )
 }

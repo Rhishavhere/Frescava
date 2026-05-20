@@ -87,6 +87,21 @@ const api = {
       return () => ipcRenderer.removeListener('editor:openProject', handler)
     },
   },
+  auth: {
+    signUp: (email, password, name) => ipcRenderer.invoke('auth:signUp', email, password, name),
+    signIn: (email, password) => ipcRenderer.invoke('auth:signIn', email, password),
+    signInWithGoogle: () => ipcRenderer.invoke('auth:signInWithGoogle'),
+    signOut: () => ipcRenderer.invoke('auth:signOut'),
+    getProfile: () => ipcRenderer.invoke('auth:getProfile'),
+    updateProfile: (name) => ipcRenderer.invoke('auth:updateProfile', name),
+    onAuthChange: (cb) => {
+      const handler = (_e: IpcRendererEvent, payload: { session: any; profile: any }) => {
+        cb(payload)
+      }
+      ipcRenderer.on('auth:changed', handler)
+      return () => ipcRenderer.removeListener('auth:changed', handler)
+    }
+  }
 }
 
 contextBridge.exposeInMainWorld('frame', api satisfies FrescavaAPI)

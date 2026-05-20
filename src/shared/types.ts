@@ -347,6 +347,15 @@ export interface FrescavaAPI {
     /** Open a saved `.frex` while the editor is already open */
     onEditorOpenProject: (cb: (payload: { filePath: string; project: ProjectFile }) => void) => () => void
   }
+  auth: {
+    signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; user?: any; profile?: any; error?: string }>
+    signIn: (email: string, password: string) => Promise<{ success: boolean; user?: any; profile?: any; error?: string }>
+    signInWithGoogle: () => Promise<{ success: boolean; error?: string }>
+    signOut: () => Promise<{ success: boolean; error?: string }>
+    getProfile: () => Promise<{ profile?: any; error?: string }>
+    updateProfile: (name: string) => Promise<{ success: boolean; profile?: any; error?: string }>
+    onAuthChange: (cb: (payload: { session: any; profile: any }) => void) => () => void
+  }
 }
 
 export interface FileOpenResult {

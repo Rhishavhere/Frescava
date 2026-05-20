@@ -1,4 +1,5 @@
 import { useUIStore } from '../store/uiStore'
+import { useAuthStore } from '../store/authStore'
 import logoPng from '../../assets/Logo.png'
 
 const COL_1 = [
@@ -12,8 +13,6 @@ const COL_2 = [
   'https://images.unsplash.com/photo-1696671294244-558d2365683d?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   'https://images.unsplash.com/photo-1702700484900-14d8d528b660?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
 ]
-
-
 
 function MarqueeColumn({ images, direction }: { images: string[]; direction: 'up' | 'down' }) {
   // Duplicate array carefully to ensure seamless loop
@@ -35,9 +34,9 @@ function MarqueeColumn({ images, direction }: { images: string[]; direction: 'up
   )
 }
 
-
 export default function Home() {
   const { setActiveTab } = useUIStore()
+  const { profile, isAuthenticated, setShowAuthModal, logout } = useAuthStore()
 
   const handleOpenImage = async () => {
     const result = await window.frame.file.openForEditor()
@@ -67,10 +66,34 @@ export default function Home() {
             <span>RHISHAV</span>
           </button>
 
-          <div className="flex gap-6">
+          <div className="flex gap-6 items-center">
             <button className="hover:opacity-60 transition-opacity">RECENTS +</button>
             <button className="hover:opacity-60 transition-opacity">COMMUNITY +</button>
-            <button className="hover:opacity-60 transition-opacity">CREATE +</button>
+            
+            {isAuthenticated && profile ? (
+              <div className="flex items-center gap-2">
+                <span className="font-sans font-bold bg-zinc-950 text-white px-2 py-0.5 rounded text-[8px] tracking-wider">
+                  {profile.role === 'pro' ? 'PRO' : profile.role === 'beta_tester' ? 'BETA' : 'FREE'}
+                </span>
+                <span className="text-black font-semibold">{profile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="text-black/40 hover:text-black transition-colors"
+                  title="Sign Out"
+                >
+                  (✕)
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(true)}
+                className="px-3.5 py-1.5 bg-black hover:bg-black/80 active:scale-95 text-white rounded-full transition-all flex items-center gap-1.5 font-bold"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
 

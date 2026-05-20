@@ -1,11 +1,72 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, protocol, net } from 'electron'
-import { join, basename } from 'path'
+import { join, basename, resolve } from 'path'
 import { pathToFileURL } from 'url'
 import * as fs from 'fs'
 import { registerExportHandlers } from './ipc/export'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerProjectHandlers } from './ipc/projects'
+import { registerAuthHandlers } from './ipc/auth'
+import { establishSupabaseSession } from './supabase'
 import type { FileOpenResult, AppAppearance, EditorUiPreferences, OpenHomeView, ProjectFile } from '@shared/types'
+
+// Single instance lock for deep-link protocol redirection handling
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (event, commandLine) => {
+    // Focus existing window
+    if (homeWindow && !homeWindow.isDestroyed()) {
+      if (homeWindow.isMinimized()) homeWindow.restore()
+      homeWindow.focus()
+    } else if (editorWindow && !editorWindow.isDestroyed()) {
+      if (editorWindow.isMinimized()) editorWindow.restore()
+      editorWindow.focus()
+    }
+
+    // Intercept deep link URL
+    const url = commandLine.find(arg => arg.startsWith('frescava://'))
+    if (url) {
+      void handleDeepLink(url)
+    }
+  })
+}
+
+// OS-specific deep link handler
+async function handleDeepLink(urlStr: string): Promise<void> {
+  try {
+    // Replace hash component with search component so URLSearchParams parses properly
+    const formattedUrl = urlStr.replace('#', '?')
+    const parsed = new URL(formattedUrl)
+    if (parsed.host === 'auth-callback') {
+      const accessToken = parsed.searchParams.get('access_token')
+      const refreshToken = parsed.searchParams.get('refresh_token')
+      if (accessToken && refreshToken) {
+        await establishSupabaseSession(accessToken, refreshToken)
+      }
+    }
+  } catch (e) {
+    console.error('[DeepLink] Parse failed:', e)
+  }
+}
+
+// macOS protocol event listener
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  void handleDeepLink(url)
+})
+
+// Register deep link scheme 'frescava://'
+// Works correctly in both dev (electron-vite) and production (packaged) on Windows
+if (process.defaultApp) {
+  // Running via `electron path/to/app` directly — pass the app path as an arg
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('frescava', process.execPath, [resolve(process.argv[1])])
+  }
+} else {
+  // Packaged app — execPath IS the app
+  app.setAsDefaultProtocolClient('frescava')
+}
 
 const isDev = process.env['ELECTRON_RENDERER_URL'] !== undefined || process.env['NODE_ENV'] === 'development'
 
@@ -399,6 +460,7 @@ app.whenReady().then(() => {
   registerExportHandlers()
   registerAssetHandlers()
   registerProjectHandlers()
+  registerAuthHandlers()
 
   createHomeWindow()
 
