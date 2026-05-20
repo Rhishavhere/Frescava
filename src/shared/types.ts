@@ -31,6 +31,16 @@ export interface EditState {
   texture: number        // -100 to 100
   lensBlur: number        // 0–100  shallow-DoF style defocus (after other detail)
 
+  /** Master + RGB tone curves. Points are normalized [0..1] and sorted by x. */
+  curves: CurvesState
+  /** Split toning: per-zone hue (0–360°) and saturation (0–100, 0 = off) */
+  splitToning: SplitToningState
+  /** Three-way channel color balance, values are -100..100. */
+  colorBalance: ColorBalanceState
+  /** HSL color mixer by hue family, values are -100..100. */
+  hslMixer: HslMixerState
+  dehaze: number // -100 to 100
+
   // Effects
   fade: FadeParams
   grain: GrainParams
@@ -58,6 +68,48 @@ export interface PresetEffectState {
   dustScratches?: DustScratchesParams
   border?: BorderParams
 }
+
+export interface SplitToningZone {
+  hue: number        // 0–360
+  saturation: number // 0–100
+}
+
+export interface SplitToningState {
+  shadows: SplitToningZone
+  midtones: SplitToningZone
+  highlights: SplitToningZone
+}
+
+export interface CurvePoint {
+  x: number // 0–1
+  y: number // 0–1
+}
+
+export type CurveChannel = 'master' | 'red' | 'green' | 'blue'
+
+export type CurvesState = Record<CurveChannel, CurvePoint[]>
+
+export interface ColorBalanceTriplet {
+  cyanRed: number // -100..100
+  magentaGreen: number // -100..100
+  yellowBlue: number // -100..100
+}
+
+export interface ColorBalanceState {
+  shadows: ColorBalanceTriplet
+  midtones: ColorBalanceTriplet
+  highlights: ColorBalanceTriplet
+}
+
+export type HslMixerBand = 'red' | 'orange' | 'yellow' | 'green' | 'aqua' | 'blue' | 'purple' | 'magenta'
+
+export interface HslMixerBandState {
+  hue: number // -100..100
+  saturation: number // -100..100
+  luminance: number // -100..100
+}
+
+export type HslMixerState = Record<HslMixerBand, HslMixerBandState>
 
 // ── Effect param types ──────────────────────────────────────────────────────
 

@@ -138,6 +138,23 @@ uniform float u_texture;       // -1..1
 uniform float u_noiseReduction;// 0..1
 uniform vec2  u_texelSize;     // 1/width, 1/height
 
+// Advanced grading: 1D curve LUT — master/R/G/B in RGBA (UNPACK to float in shader)
+uniform sampler2D u_curves;
+uniform float u_curveLutWidth;
+uniform float u_splitShHue;   // 0-1  (hue/360)
+uniform float u_splitShSat;   // 0-1  (sat/100)
+uniform float u_splitMidHue;
+uniform float u_splitMidSat;
+uniform float u_splitHiHue;
+uniform float u_splitHiSat;
+uniform vec3  u_balanceSh;    // -1..1 RGB-ish balance for shadows
+uniform vec3  u_balanceMid;   // -1..1 RGB-ish balance for midtones
+uniform vec3  u_balanceHi;    // -1..1 RGB-ish balance for highlights
+uniform float u_dehaze;       // -1..1
+uniform float u_hslHue[8];    // red, orange, yellow, green, aqua, blue, purple, magenta
+uniform float u_hslSat[8];
+uniform float u_hslLum[8];
+
 // sRGB <-> linear helpers
 float srgbToLinear(float v) {
   return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4);
@@ -208,6 +225,113 @@ float applyWhites(float l, float amount) {
 float applyBlacks(float l, float amount) {
   float mask = 1.0 - smoothstep(0.0, 0.3, l);
   return l + amount * 0.3 * mask;
+}
+
+float curveChannel(vec4 v, int channel) {
+  if (channel == 0) return v.r;
+  if (channel == 1) return v.g;
+  if (channel == 2) return v.b;
+  return v.a;
+}
+
+float sampleCurve(float t, int channel) {
+  float wtex = max(u_curveLutWidth, 2.0);
+  float denom = max(wtex - 1.0, 1.0);
+  float uCoord = ((clamp(t, 0.0, 1.0) * denom) + 0.5) / wtex;
+  vec4 samp = texture(u_curves, vec2(uCoord, 0.5));
+  return clamp(curveChannel(samp, channel), 0.0, 1.0);
+}
+
+// ── Split toning: chroma-offset model (Resolve / Lightroom-ish) ───────────
+// Sequential HSL "hue spins" behave badly on low-saturation pixels (unstable hue,
+// complements, harsh zone edges).  Instead: luminance-orthogonal chroma axis from
+// the wheel hue at full saturation, smooth overlapping luma masks, one summed RGB
+// offset per pixel, optional Rec.709 luma preservation.
+
+vec3 splitChromaAxis(float hue01) {
+  vec3 ref = hslToRgb(vec3(hue01, 1.0, 0.5));
+  float y = dot(ref, vec3(0.2126, 0.7152, 0.0722));
+  vec3 chr = ref - vec3(y);
+  float len = length(chr);
+  return len > 1e-4 ? chr / len : vec3(0.0);
+}
+
+void splitToningRgbOffset(inout vec3 rgb) {
+  float satSh = u_splitShSat;
+  float satMid = u_splitMidSat;
+  float satHi = u_splitHiSat;
+  if ((satSh + satMid + satHi) < 1e-5) return;
+
+  float L = clamp(dot(rgb, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+
+  // Wide overlapping smooth masks — softer transitions between zones (less banding).
+  float wSh = 1.0 - smoothstep(0.035, 0.48, L);
+  float wMid = smoothstep(0.08, 0.36, L) * (1.0 - smoothstep(0.38, 0.82, L));
+  float wHi = smoothstep(0.44, 0.96, L);
+
+  vec3 axSh = splitChromaAxis(u_splitShHue);
+  vec3 axMid = splitChromaAxis(u_splitMidHue);
+  vec3 axHi = splitChromaAxis(u_splitHiHue);
+
+  vec3 chr = axSh * (satSh * wSh) + axMid * (satMid * wMid) + axHi * (satHi * wHi);
+  float m = length(chr);
+  if (m < 1e-6) return;
+
+  // Clamp combined chroma impulse so overlaps do not explode.
+  float chrCap = 0.92;
+  if (m > chrCap) chr *= chrCap / m;
+
+  vec3 tinted = rgb + chr * 0.16;
+  tinted = clamp(tinted, 0.0, 1.0);
+
+  float l0 = L;
+  float l1 = max(dot(tinted, vec3(0.2126, 0.7152, 0.0722)), 1e-6);
+  if (l0 > 1e-5)
+    tinted = clamp(tinted * (l0 / l1), 0.0, 1.0);
+
+  rgb = tinted;
+}
+
+float hueDistance(float a, float b) {
+  float d = abs(a - b);
+  return min(d, 1.0 - d);
+}
+
+float hslBandCenter(int i) {
+  if (i == 0) return 0.0 / 360.0;    // red
+  if (i == 1) return 30.0 / 360.0;   // orange
+  if (i == 2) return 60.0 / 360.0;   // yellow
+  if (i == 3) return 120.0 / 360.0;  // green
+  if (i == 4) return 180.0 / 360.0;  // aqua
+  if (i == 5) return 230.0 / 360.0;  // blue
+  if (i == 6) return 275.0 / 360.0;  // purple
+  return 315.0 / 360.0;              // magenta
+}
+
+void applyHslMixer(inout vec3 rgb) {
+  vec3 h = rgbToHsl(rgb);
+  for (int i = 0; i < 8; i++) {
+    float mask = 1.0 - smoothstep(0.035, 0.105, hueDistance(h.x, hslBandCenter(i)));
+    h.x = fract(h.x + u_hslHue[i] * mask * 0.075);
+    h.y = clamp(h.y + u_hslSat[i] * mask * 0.45, 0.0, 1.0);
+    h.z = clamp(h.z + u_hslLum[i] * mask * 0.28, 0.0, 1.0);
+  }
+  rgb = hslToRgb(h);
+}
+
+void applyDehaze(inout vec3 rgb, float amount) {
+  if (abs(amount) < 0.0001) return;
+  float l = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+  rgb = clamp((rgb - 0.5) * (1.0 + amount * 0.42) + 0.5, 0.0, 1.0);
+  vec3 h = rgbToHsl(rgb);
+  h.y = clamp(h.y + amount * 0.18 * (1.0 - h.y), 0.0, 1.0);
+  h.z = clamp(h.z - amount * 0.10 * smoothstep(0.45, 1.0, l), 0.0, 1.0);
+  rgb = hslToRgb(h);
+}
+
+void applyBalance(inout vec3 rgb, vec3 balance, float mask) {
+  if (mask < 0.0001) return;
+  rgb = clamp(rgb + balance * mask * 0.12, 0.0, 1.0);
 }
 
 void main() {
@@ -325,6 +449,34 @@ void main() {
     vec3 hslC = rgbToHsl(rgb);
     float midMask = smoothstep(0.1, 0.5, hslC.z) * (1.0 - smoothstep(0.5, 0.9, hslC.z));
     rgb = clamp(rgb + clarityDetail * u_clarity * midMask * 2.0, 0.0, 1.0);
+  }
+
+  // ── HSL color mixer + dehaze before final curves ────────────────────────
+  applyHslMixer(rgb);
+  applyDehaze(rgb, u_dehaze);
+
+  // ── Master luma curve (on HSL luminance) ─────────────────────────────────
+  {
+    vec3 hCurve = rgbToHsl(rgb);
+    hCurve.z = sampleCurve(hCurve.z, 0);
+    hCurve.z = clamp(hCurve.z, 0.0, 1.0);
+    rgb = hslToRgb(hCurve);
+    rgb.r = sampleCurve(rgb.r, 1);
+    rgb.g = sampleCurve(rgb.g, 2);
+    rgb.b = sampleCurve(rgb.b, 3);
+  }
+
+  // ── Split toning — single-pass chroma offsets + color balance ────────────
+  {
+    splitToningRgbOffset(rgb);
+
+    float L = clamp(dot(rgb, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+    float mSh = 1.0 - smoothstep(0.035, 0.48, L);
+    float mMid = smoothstep(0.08, 0.36, L) * (1.0 - smoothstep(0.38, 0.82, L));
+    float mHi = smoothstep(0.44, 0.96, L);
+    applyBalance(rgb, u_balanceSh, mSh);
+    applyBalance(rgb, u_balanceMid, mMid);
+    applyBalance(rgb, u_balanceHi, mHi);
   }
 
   fragColor = vec4(clamp(rgb, 0.0, 1.0), color.a);
