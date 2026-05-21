@@ -14,6 +14,7 @@ import {
   LENS_DIST_FRAG,
   PASSTHROUGH_FRAG,
   OVERLAY_FRAG,
+  ZOOM_BLUR_FRAG,
 } from './shaders'
 import type { ColorBalanceState, CurvesState, EditState, HslMixerState, SplitToningState } from '@shared/types'
 import { buildCurveLutRGBA8, CURVE_LUT_WIDTH, defaultIdentityCurves } from '@shared/curveMath'
@@ -121,6 +122,7 @@ export class RenderPipeline {
   private progLensDist: WebGLProgram
   private progPassthrough: WebGLProgram
   private progOverlay: WebGLProgram
+  private progZoomBlur: WebGLProgram
 
   // VAOs
   private vaos: Map<WebGLProgram, WebGLVertexArrayObject> = new Map()
@@ -174,13 +176,14 @@ export class RenderPipeline {
     this.progLensDist = createProgram(gl, LENS_DIST_FRAG)
     this.progPassthrough = createProgram(gl, PASSTHROUGH_FRAG)
     this.progOverlay = createProgram(gl, OVERLAY_FRAG)
+    this.progZoomBlur = createProgram(gl, ZOOM_BLUR_FRAG)
 
     // Setup VAOs for each program
     const programs = [
       this.progFade,
       this.progAdjust, this.progLUT, this.progGrain, this.progVignette,
       this.progHalExtract, this.progBlurH, this.progBlurV, this.progLensBlurComp, this.progHalComposite,
-      this.progCA, this.progLensDist, this.progPassthrough, this.progOverlay,
+      this.progCA, this.progLensDist, this.progPassthrough, this.progOverlay, this.progZoomBlur,
     ]
     for (const prog of programs) {
       this.vaos.set(prog, setupQuad(gl, prog))
@@ -413,6 +416,18 @@ export class RenderPipeline {
         }
       }
 
+      // Preset Blur
+      if (pf.blur?.enabled && (pf.blur.radius ?? 0) > 0) {
+        const radius01 = pf.blur.radius / 100
+        if (pf.blur.type === 'gaussian') {
+          current = this.runGaussianBlur(current, radius01)
+        } else if (pf.blur.type === 'lens') {
+          current = this.runLensBlur(current, radius01)
+        } else if (pf.blur.type === 'zoom') {
+          current = this.runZoomBlur(current, radius01, [0.5, 0.5])
+        }
+      }
+
       // 11. Preset Border
       if (pf.border?.enabled && this.overlayTextures.has('border')) {
         current = this.runOverlay(current, this.overlayTextures.get('border')!, {
@@ -429,9 +444,14 @@ export class RenderPipeline {
     // LAYER 2: USER ADJUSTMENTS (Exposure, Contrast, Temp, Tint)
     // ─────────────────────────────────────────────────────────────────────────────
     current = this.runAdjustments(current, state)
-    const lb = state.lensBlur ?? 0
-    if (lb > 0) {
-      current = this.runLensBlur(current, lb / 100)
+    if ((state.gaussianBlur ?? 0) > 0) {
+      current = this.runGaussianBlur(current, state.gaussianBlur / 100)
+    }
+    if ((state.lensBlur ?? 0) > 0) {
+      current = this.runLensBlur(current, state.lensBlur / 100)
+    }
+    if ((state.zoomBlur ?? 0) > 0) {
+      current = this.runZoomBlur(current, state.zoomBlur / 100, [0.5, 0.5])
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -461,6 +481,18 @@ export class RenderPipeline {
     // User Lens Distortion
     if (state.lensDistortion.enabled && state.lensDistortion.amount !== 0) {
       current = this.runLensDist(current, state)
+    }
+
+    // User Blur Effect
+    if (state.blur?.enabled && (state.blur.radius ?? 0) > 0) {
+      const radius01 = state.blur.radius / 100
+      if (state.blur.type === 'gaussian') {
+        current = this.runGaussianBlur(current, radius01)
+      } else if (state.blur.type === 'lens') {
+        current = this.runLensBlur(current, radius01)
+      } else if (state.blur.type === 'zoom') {
+        current = this.runZoomBlur(current, radius01, [0.5, 0.5])
+      }
     }
 
     // User Vignette
@@ -629,6 +661,41 @@ export class RenderPipeline {
     gl.bindTexture(gl.TEXTURE_2D, null)
     gl.activeTexture(gl.TEXTURE0)
     return texOut
+  }
+
+  private runGaussianBlur(input: WebGLTexture, strength01: number): WebGLTexture {
+    if (strength01 <= 0) return input
+    const gl = this.gl
+    const texelW = 1 / this.width
+    const texelH = 1 / this.height
+    const radius = Math.max(1, Math.round(0.5 + strength01 * strength01 * 28))
+
+    // Horizontal blur
+    const { fbo: fboH, tex: texH } = this.getNextFBO()
+    this.bindProgram(this.progBlurH, input, fboH)
+    gl.uniform1f(gl.getUniformLocation(this.progBlurH, 'u_radius'), radius)
+    gl.uniform2f(gl.getUniformLocation(this.progBlurH, 'u_texelSize'), texelW, texelH)
+    this.draw()
+
+    // Vertical blur
+    const { fbo: fboV, tex: texBlur } = this.getNextFBO()
+    this.bindProgram(this.progBlurV, texH, fboV)
+    gl.uniform1f(gl.getUniformLocation(this.progBlurV, 'u_radius'), radius)
+    gl.uniform2f(gl.getUniformLocation(this.progBlurV, 'u_texelSize'), texelW, texelH)
+    this.draw()
+
+    return texBlur
+  }
+
+  private runZoomBlur(input: WebGLTexture, strength01: number, center: [number, number] = [0.5, 0.5]): WebGLTexture {
+    if (strength01 <= 0) return input
+    const gl = this.gl
+    const { fbo, tex } = this.getNextFBO()
+    this.bindProgram(this.progZoomBlur, input, fbo)
+    gl.uniform1f(gl.getUniformLocation(this.progZoomBlur, 'u_strength'), strength01)
+    gl.uniform2f(gl.getUniformLocation(this.progZoomBlur, 'u_center'), center[0], center[1])
+    this.draw()
+    return tex
   }
 
   private runGrain(input: WebGLTexture, s: EditState): WebGLTexture {

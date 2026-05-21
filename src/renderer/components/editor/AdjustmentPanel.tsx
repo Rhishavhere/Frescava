@@ -41,6 +41,8 @@ const DETAIL_SLIDERS = [
   { key: 'clarity',        label: 'Clarity',          min: -100, max: 100, step: 1 },
   { key: 'texture',        label: 'Texture',          min: -100, max: 100, step: 1 },
   { key: 'lensBlur',       label: 'Lens Blur',        min: 0,    max: 100, step: 1 },
+  { key: 'gaussianBlur',   label: 'Gaussian Blur',    min: 0,    max: 100, step: 1 },
+  { key: 'zoomBlur',       label: 'Zoom Blur',        min: 0,    max: 100, step: 1 },
 ] as const
 
 type SliderParamKey =

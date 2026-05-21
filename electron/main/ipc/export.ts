@@ -51,6 +51,14 @@ export function registerExportHandlers(): void {
           const sigma = 0.25 + (opts.editState.lensBlur / 100) * 2.5
           pipeline = pipeline.blur(sigma)
         }
+        if (opts.editState.gaussianBlur > 0) {
+          const sigma = 0.25 + (opts.editState.gaussianBlur / 100) * 2.5
+          pipeline = pipeline.blur(sigma)
+        }
+        if (opts.editState.zoomBlur > 0) {
+          const sigma = 0.25 + (opts.editState.zoomBlur / 100) * 1.5
+          pipeline = pipeline.blur(sigma)
+        }
       }
 
       if (opts.maxDimension) {
@@ -110,6 +118,14 @@ export function registerExportHandlers(): void {
           }
           if (imgOpts.editState.lensBlur > 0) {
             const sigma = 0.25 + (imgOpts.editState.lensBlur / 100) * 2.5
+            pipeline = pipeline.blur(sigma)
+          }
+          if (imgOpts.editState.gaussianBlur > 0) {
+            const sigma = 0.25 + (imgOpts.editState.gaussianBlur / 100) * 2.5
+            pipeline = pipeline.blur(sigma)
+          }
+          if (imgOpts.editState.zoomBlur > 0) {
+            const sigma = 0.25 + (imgOpts.editState.zoomBlur / 100) * 1.5
             pipeline = pipeline.blur(sigma)
           }
         }

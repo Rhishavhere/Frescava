@@ -131,6 +131,14 @@ function normalizePreset(raw: PresetDef, folderName: string): Preset {
     }
   }
 
+  if (raw.blur) {
+    defaults.blur = {
+      enabled: raw.blur.enabled ?? false,
+      type: raw.blur.type ?? 'gaussian',
+      radius: raw.blur.radius ?? 20,
+    }
+  }
+
   return {
     id: raw.id,
     name: raw.name,

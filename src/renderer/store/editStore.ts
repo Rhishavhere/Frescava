@@ -33,6 +33,8 @@ export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'i
   clarity: 0,
   texture: 0,
   lensBlur: 0,
+  gaussianBlur: 0,
+  zoomBlur: 0,
 
   curves: {
     master: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
@@ -73,6 +75,7 @@ export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'i
   lightLeak: { enabled: false, textureFile: null, color: '#FFA050', colorStrength: 0.5, position: [0, 0], opacity: 0.5, blendMode: 'screen' },
   dustScratches: { enabled: false, textureFile: null, opacity: 0.3, blendMode: 'screen' },
   border: { enabled: false, type: null, textureFile: null, color: '#FFFFFF', width: 0.04, bottomWeight: 1, cornerRadius: 0, expandCanvas: false },
+  blur: { enabled: false, type: 'gaussian', radius: 20 },
 }
 
 // ─── Store types ──────────────────────────────────────────────────────────────
@@ -196,7 +199,7 @@ export const useEditStore = create<EditStore>()(
         
         const EFFECT_KEYS = [
           'fade', 'grain', 'vignette', 'halation', 'chromaticAberration',
-          'bloom', 'lensDistortion', 'lightLeak', 'dustScratches', 'border',
+          'bloom', 'lensDistortion', 'lightLeak', 'dustScratches', 'border', 'blur',
         ] as const
 
         state.params.presetId = presetId

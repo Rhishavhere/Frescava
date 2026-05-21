@@ -29,6 +29,7 @@ const EFFECT_ORDER: (keyof PresetEffectState)[] = [
   'lightLeak',
   'dustScratches',
   'lensDistortion',
+  'blur',
   'border',
 ]
 
@@ -43,6 +44,7 @@ const EFFECT_LABEL: Record<keyof PresetEffectState, string> = {
   lightLeak: 'Light Leak',
   dustScratches: 'Dust',
   border: 'Border',
+  blur: 'Blur',
 }
 
 type PresetFilters = NonNullable<ReturnType<typeof useEditStore.getState>['params']>['presetFilters']
@@ -58,6 +60,7 @@ const DEFAULT_EDIT_STATE: Record<keyof PresetEffectState, any> = {
   lightLeak: { enabled: false, textureFile: null as string | null, color: '#FFA050', colorStrength: 0.5, position: [0, 0] as [number, number], opacity: 0.5, blendMode: 'screen' as const },
   dustScratches: { enabled: false, textureFile: null as string | null, opacity: 0.3, blendMode: 'screen' as const },
   border: { enabled: false, type: null as string | null, textureFile: null as string | null, color: '#FFFFFF', width: 0.04, bottomWeight: 1, cornerRadius: 0, expandCanvas: false },
+  blur: { enabled: false, type: 'gaussian' as const, radius: 20 },
 }
 
 function sortedPresetFilterKeys(fp: PresetEffectState): (keyof PresetEffectState)[] {
@@ -120,6 +123,10 @@ function formatPresetEffectValue(
       const br = block as BorderParams
       if (br.type) return br.type
       return br.textureFile ? 'texture' : `${Math.round((br.width ?? 0) * 100)}% w`
+    }
+    case 'blur': {
+      const bl = block as any
+      return `${bl.type || 'gaussian'} · ${Math.round(bl.radius ?? 0)}%`
     }
     default:
       return '—'
@@ -369,7 +376,7 @@ export default function PresetSettingsPanel() {
     const effects: any = {}
     const EFFECT_KEYS = [
       'fade', 'grain', 'vignette', 'halation', 'chromaticAberration',
-      'bloom', 'lensDistortion', 'lightLeak', 'dustScratches', 'border'
+      'bloom', 'lensDistortion', 'lightLeak', 'dustScratches', 'border', 'blur'
     ] as const
 
     for (const key of EFFECT_KEYS) {
@@ -1026,6 +1033,34 @@ export default function PresetSettingsPanel() {
                 className="rounded border-border dark:border-zinc-700 text-text-primary focus:ring-text-primary h-3.5 w-3.5"
               />
             </div>
+          </div>
+        )
+      }
+      case 'blur': {
+        const bl = data as any
+        return (
+          <div className="flex flex-col gap-3 p-3 bg-surface-50 dark:bg-zinc-900/40 rounded-b-md border-x border-b border-border dark:border-zinc-800/80 -mt-1.5 mb-2 text-xs">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="font-medium text-text-secondary dark:text-zinc-400">Blur Type</span>
+              <select
+                value={bl.type || 'gaussian'}
+                onChange={e => setVal('type', e.target.value)}
+                className="text-[11px] bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded px-1.5 py-0.5 focus:outline-none"
+              >
+                <option value="gaussian">Gaussian</option>
+                <option value="lens">Lens Blur</option>
+                <option value="zoom">Zoom Blur</option>
+              </select>
+            </div>
+            <Slider
+              label="Radius"
+              value={bl.radius ?? 20}
+              min={0}
+              max={100}
+              step={1}
+              onChange={v => setVal('radius', v)}
+              onChangeEnd={setValEnd}
+            />
           </div>
         )
       }

@@ -30,6 +30,8 @@ export interface EditState {
   clarity: number        // -100 to 100
   texture: number        // -100 to 100
   lensBlur: number        // 0–100  shallow-DoF style defocus (after other detail)
+  gaussianBlur: number   // 0–100
+  zoomBlur: number       // 0–100
 
   /** Master + RGB tone curves. Points are normalized [0..1] and sorted by x. */
   curves: CurvesState
@@ -52,6 +54,7 @@ export interface EditState {
   lightLeak: LightLeakParams
   dustScratches: DustScratchesParams
   border: BorderParams
+  blur: BlurParams
 }
 
 // ── Shared Preset Effect block (Layer 1) ────────────────────────────────────
@@ -67,6 +70,7 @@ export interface PresetEffectState {
   lightLeak?: LightLeakParams
   dustScratches?: DustScratchesParams
   border?: BorderParams
+  blur?: BlurParams
 }
 
 export interface SplitToningZone {
@@ -198,6 +202,12 @@ export interface BorderParams {
   expandCanvas: boolean
 }
 
+export interface BlurParams {
+  enabled: boolean
+  type: 'gaussian' | 'lens' | 'zoom'
+  radius: number // 0..100
+}
+
 // ─── Preset Definition (new rich schema) ─────────────────────────────────────
 
 /**
@@ -228,6 +238,7 @@ export interface PresetDef {
   lightLeak: Partial<LightLeakParams>
   dustScratches: Partial<DustScratchesParams>
   border: Partial<BorderParams>
+  blur: Partial<BlurParams>
 
   /** UI-only metadata */
   ui: {

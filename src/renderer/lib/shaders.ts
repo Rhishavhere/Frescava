@@ -802,3 +802,34 @@ void main() {
 }
 `
 
+// ─── Radial Zoom Blur ──────────────────────────────────────────────────────────
+export const ZOOM_BLUR_FRAG = /* glsl */`#version 300 es
+precision mediump float;
+uniform sampler2D u_image;
+in vec2 v_texCoord;
+out vec4 fragColor;
+
+uniform float u_strength; // 0..1
+uniform vec2 u_center;    // zoom center (UV)
+
+void main() {
+  vec4 color = vec4(0.0);
+  float totalWeight = 0.0;
+  vec2 direction = v_texCoord - u_center;
+  
+  const int SAMPLES = 20;
+  for (int i = 0; i < SAMPLES; i++) {
+    float t = float(i) / float(SAMPLES - 1);
+    // Scale offset based on strength and distance from center
+    vec2 sampleUV = v_texCoord - direction * u_strength * 0.22 * t;
+    sampleUV = clamp(sampleUV, vec2(0.0), vec2(1.0));
+    
+    float weight = 1.0 - t * 0.4;
+    color += texture(u_image, sampleUV) * weight;
+    totalWeight += weight;
+  }
+  
+  fragColor = color / totalWeight;
+}
+`
+
