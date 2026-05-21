@@ -36,49 +36,57 @@ loadEnv()
 const supabaseUrl = process.env['MAIN_VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'] || ''
 const supabaseAnonKey = process.env['MAIN_VITE_SUPABASE_ANON_KEY'] || process.env['SUPABASE_ANON_KEY'] || ''
 
-const sessionFilePath = join(app.getPath('userData'), 'auth_session.dat')
+// ─────────────────────────────────────────────────────────────
+//  Proper multi-key encrypted storage (needed for PKCE flow)
+//  Stores a JSON map encrypted with safeStorage (Windows DPAPI)
+// ─────────────────────────────────────────────────────────────
+const storageFilePath = join(app.getPath('userData'), 'auth_store.dat')
 
-// Custom storage provider using Electron safeStorage DPAPI encryption
-const secureStorage = {
-  getItem(key: string): string | null {
-    try {
-      if (!fs.existsSync(sessionFilePath)) return null
-      const encrypted = fs.readFileSync(sessionFilePath)
-      if (encrypted.length === 0) return null
-      if (safeStorage.isEncryptionAvailable()) {
-        return safeStorage.decryptString(encrypted)
-      }
-      return encrypted.toString('utf8')
-    } catch (e) {
-      console.error('[secureStorage] Failed to decrypt session:', e)
-      return null
-    }
-  },
-  setItem(key: string, value: string): void {
-    try {
-      let buffer: Buffer
-      if (safeStorage.isEncryptionAvailable()) {
-        buffer = safeStorage.encryptString(value)
-      } else {
-        buffer = Buffer.from(value, 'utf8')
-      }
-      fs.writeFileSync(sessionFilePath, buffer)
-    } catch (e) {
-      console.error('[secureStorage] Failed to encrypt session:', e)
-    }
-  },
-  removeItem(key: string): void {
-    try {
-      if (fs.existsSync(sessionFilePath)) {
-        fs.unlinkSync(sessionFilePath)
-      }
-    } catch (e) {
-      console.error('[secureStorage] Failed to remove session file:', e)
-    }
+function readStorageMap(): Record<string, string> {
+  try {
+    if (!fs.existsSync(storageFilePath)) return {}
+    const encrypted = fs.readFileSync(storageFilePath)
+    if (encrypted.length === 0) return {}
+    const raw = safeStorage.isEncryptionAvailable()
+      ? safeStorage.decryptString(encrypted)
+      : encrypted.toString('utf8')
+    return JSON.parse(raw) as Record<string, string>
+  } catch {
+    return {}
   }
 }
 
-// Initialize Supabase Client
+function writeStorageMap(data: Record<string, string>): void {
+  try {
+    const json = JSON.stringify(data)
+    const buffer = safeStorage.isEncryptionAvailable()
+      ? safeStorage.encryptString(json)
+      : Buffer.from(json, 'utf8')
+    fs.writeFileSync(storageFilePath, buffer)
+  } catch (e) {
+    console.error('[secureStorage] Write failed:', e)
+  }
+}
+
+const secureStorage = {
+  getItem(key: string): string | null {
+    return readStorageMap()[key] ?? null
+  },
+  setItem(key: string, value: string): void {
+    const data = readStorageMap()
+    data[key] = value
+    writeStorageMap(data)
+  },
+  removeItem(key: string): void {
+    const data = readStorageMap()
+    delete data[key]
+    writeStorageMap(data)
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Supabase Client
+// ─────────────────────────────────────────────────────────────
 export let supabase: SupabaseClient | null = null
 
 if (supabaseUrl && supabaseAnonKey) {
@@ -87,14 +95,19 @@ if (supabaseUrl && supabaseAnonKey) {
       storage: secureStorage,
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false
+      detectSessionInUrl: false,
+      flowType: 'pkce'
     }
   })
 } else {
-  console.warn('[Supabase] Missing keys. Auth functions will fallback to stub guest mode.')
+  console.warn('[Supabase] Missing keys. Auth functions will fallback to guest mode.')
 }
 
-// Helper to broadcast auth changes to all active windows
+// ─────────────────────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────────────────────
+
+/** Broadcast auth state changes to all active renderer windows */
 export function broadcastAuthChange(session: any, profile: any): void {
   for (const w of BrowserWindow.getAllWindows()) {
     if (!w.isDestroyed()) {
@@ -103,7 +116,7 @@ export function broadcastAuthChange(session: any, profile: any): void {
   }
 }
 
-// Fetch user profile from Postgres public.profiles
+/** Fetch user profile row from public.profiles */
 export async function fetchUserProfile(userId: string): Promise<any> {
   if (!supabase) return null
   const { data, error } = await supabase
@@ -119,19 +132,14 @@ export async function fetchUserProfile(userId: string): Promise<any> {
   return data
 }
 
-// Establish session from parsed deep-link tokens
-export async function establishSupabaseSession(accessToken: string, refreshToken: string): Promise<void> {
+/** Exchange an OAuth authorization code (PKCE) for a full session */
+export async function exchangeCodeForSession(code: string): Promise<void> {
   if (!supabase) return
-  const { data, error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken
-  })
-
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
-    console.error('[Supabase] setSession error:', error)
+    console.error('[Supabase] exchangeCodeForSession error:', error)
     return
   }
-
   if (data.user) {
     const profile = await fetchUserProfile(data.user.id)
     broadcastAuthChange(data.session, profile)

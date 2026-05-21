@@ -132,13 +132,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
   }
 }))
 
-// Auto-subscribe to token session changes broadcasted by Main Process
+// Auto-subscribe to auth state changes broadcasted from Main Process
 window.frame.auth.onAuthChange((payload) => {
   if (payload?.profile) {
     useAuthStore.setState({
       profile: payload.profile,
       isAuthenticated: true,
-      isLoading: false
+      isLoading: false,
+      showAuthModal: false,  // ← close modal automatically on successful auth
+      error: null
     })
   } else {
     useAuthStore.setState({

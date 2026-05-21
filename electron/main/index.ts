@@ -6,7 +6,6 @@ import { registerExportHandlers } from './ipc/export'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerProjectHandlers } from './ipc/projects'
 import { registerAuthHandlers } from './ipc/auth'
-import { establishSupabaseSession } from './supabase'
 import type { FileOpenResult, AppAppearance, EditorUiPreferences, OpenHomeView, ProjectFile } from '@shared/types'
 
 // Single instance lock for deep-link protocol redirection handling
@@ -24,37 +23,10 @@ if (!gotTheLock) {
       editorWindow.focus()
     }
 
-    // Intercept deep link URL
-    const url = commandLine.find(arg => arg.startsWith('frescava://'))
-    if (url) {
-      void handleDeepLink(url)
-    }
+    // Focus the app window when user returns from browser after OAuth
+    // (token exchange is handled by the local HTTP server in ipc/auth.ts)
   })
 }
-
-// OS-specific deep link handler
-async function handleDeepLink(urlStr: string): Promise<void> {
-  try {
-    // Replace hash component with search component so URLSearchParams parses properly
-    const formattedUrl = urlStr.replace('#', '?')
-    const parsed = new URL(formattedUrl)
-    if (parsed.host === 'auth-callback') {
-      const accessToken = parsed.searchParams.get('access_token')
-      const refreshToken = parsed.searchParams.get('refresh_token')
-      if (accessToken && refreshToken) {
-        await establishSupabaseSession(accessToken, refreshToken)
-      }
-    }
-  } catch (e) {
-    console.error('[DeepLink] Parse failed:', e)
-  }
-}
-
-// macOS protocol event listener
-app.on('open-url', (event, url) => {
-  event.preventDefault()
-  void handleDeepLink(url)
-})
 
 // Register deep link scheme 'frescava://'
 // Works correctly in both dev (electron-vite) and production (packaged) on Windows
