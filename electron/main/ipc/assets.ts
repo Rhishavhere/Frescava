@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { join } from 'path'
-import { readFileSync, readdirSync, existsSync, statSync } from 'fs'
+import { readFileSync, readdirSync, existsSync, statSync, mkdirSync, writeFileSync } from 'fs'
 import type { Preset, PresetDef, LUTData } from '../../src/shared/types'
 
 // Assets root — two levels up from out/main/index.js
@@ -41,6 +41,12 @@ function normalizePreset(raw: PresetDef, folderName: string): Preset {
       textureFile: raw.grain.textureFile ?? null,
       opacity: raw.grain.opacity ?? 0.5,
       blendMode: raw.grain.blendMode ?? 'overlay',
+      type: raw.grain.type ?? 'medium',
+      intensity: raw.grain.intensity ?? 0,
+      size: raw.grain.size ?? 1.0,
+      roughness: raw.grain.roughness ?? 0.5,
+      luminosityMode: raw.grain.luminosityMode ?? false,
+      highlightReduction: raw.grain.highlightReduction ?? 0.5,
     }
   }
 
@@ -228,5 +234,37 @@ export function registerAssetHandlers(): void {
     }
 
     return presets.sort((a, b) => a.name.localeCompare(b.name))
+  })
+
+  // ── List all LUT files (.cube) ──────────────────────────────────────────
+  ipcMain.handle('assets:listLUTFiles', async (): Promise<string[]> => {
+    const lutsDir = join(ASSETS_ROOT, 'luts', 'free')
+    if (!existsSync(lutsDir)) return []
+    try {
+      const files = readdirSync(lutsDir)
+      return files.filter(f => f.toLowerCase().endsWith('.cube'))
+    } catch (e) {
+      console.error('[Assets] Failed to list LUT files:', e)
+      return []
+    }
+  })
+
+  // ── Save a preset (PresetDef) to assets/presets/{id}/preset.json ────────
+  ipcMain.handle('assets:savePreset', async (_event, preset: PresetDef): Promise<{ success: boolean; path: string }> => {
+    try {
+      if (!preset.id) {
+        throw new Error('Preset ID is required')
+      }
+      const presetDir = join(ASSETS_ROOT, 'presets', preset.id)
+      if (!existsSync(presetDir)) {
+        mkdirSync(presetDir, { recursive: true })
+      }
+      const presetPath = join(presetDir, 'preset.json')
+      writeFileSync(presetPath, JSON.stringify(preset, null, 2), 'utf-8')
+      return { success: true, path: presetPath }
+    } catch (e: any) {
+      console.error('[Assets] Failed to save preset:', e)
+      throw new Error(`Failed to save preset: ${e.message}`)
+    }
   })
 }

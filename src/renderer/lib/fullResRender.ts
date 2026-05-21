@@ -9,6 +9,7 @@
 
 import { RenderPipeline } from './RenderPipeline'
 import type { EditState } from '@shared/types'
+import { usePresetStore } from '../store/presetStore'
 
 export interface FullResRenderOptions {
   /** Original source file path — will be loaded at full resolution */
@@ -73,8 +74,13 @@ export async function renderFullRes(opts: FullResRenderOptions): Promise<FullRes
     ...params,
   }
 
+  // Look up presetLutIntensity from the store
+  const presetLutIntensity = params.presetId
+    ? usePresetStore.getState().getPresetById(params.presetId)?.lutIntensity ?? 1.0
+    : 1.0
+
   // 7. Render — same WebGL pipeline as the preview
-  pipeline.render(fullState)
+  pipeline.render({ ...fullState, presetLutIntensity } as any)
 
   // 8. Read pixels from the canvas into a JPEG data URL
   const dataURL = canvas.toDataURL('image/jpeg', (opts.quality ?? 95) / 100)

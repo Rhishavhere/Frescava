@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useUIStore } from '../store/uiStore'
 import { useEditStore } from '../store/editStore'
 import { useSessionStore } from '../store/tabStore'
+import { useAuthStore } from '../store/authStore'
 import { loadProjectIntoEditor } from '../lib/hydrateProject'
 import ImageCanvas from '../components/editor/ImageCanvas'
 import EditorLeftPanel from '../components/editor/EditorLeftPanel'
@@ -50,10 +51,12 @@ export default function Editor() {
   const imagePath = useEditStore(s => s.imagePath)
   const imageDataURL = useEditStore(s => s.imageDataURL)
   const presetId = useEditStore(s => s.params.presetId)
+  const { profile } = useAuthStore()
 
   const hasImage = !!imagePath && !!imageDataURL
   const showPresetDock = hasImage && !!presetId
   const isMainWorkspace = editorWorkspace === 'main'
+  const isAdmin = profile?.role === 'admin' || import.meta.env.DEV
 
   return (
     <>
@@ -81,7 +84,7 @@ export default function Editor() {
                 </div>
               )}
               {showPresetDock && isMainWorkspace && (
-                <div className="absolute left-3 top-24 z-20 w-[140px] max-w-[calc(100%-1.5rem)] rounded-xl border border-border/80 dark:border-zinc-700/70 bg-white/95 dark:bg-zinc-950/90 shadow-xl backdrop-blur-sm overflow-visible">
+                <div className={`absolute left-3 top-24 z-20 ${isAdmin ? 'w-[320px]' : 'w-[140px]'} max-w-[calc(100%-1.5rem)] rounded-xl border border-border/80 dark:border-zinc-700/70 bg-white/95 dark:bg-zinc-950/90 shadow-xl backdrop-blur-sm overflow-visible`}>
                   <PresetSettingsPanel />
                 </div>
               )}

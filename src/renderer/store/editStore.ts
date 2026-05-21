@@ -169,6 +169,9 @@ export const useEditStore = create<EditStore>()(
 
     setPresetFilterParam: (effectKey, paramKey, value) => {
       set(state => {
+        if (!state.params.presetFilters[effectKey]) {
+          state.params.presetFilters[effectKey] = deepClone(DEFAULT_EDIT_STATE[effectKey]) as any
+        }
         const filter = state.params.presetFilters[effectKey]
         if (filter) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,6 +206,10 @@ export const useEditStore = create<EditStore>()(
           if (key in presetParams && presetParams[key] !== undefined) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(state.params.presetFilters as any)[key] = JSON.parse(JSON.stringify((presetParams as any)[key]))
+          } else if (presetId === 'new-preset') {
+            const defEffect = deepClone(DEFAULT_EDIT_STATE[key]) as any
+            defEffect.enabled = false
+            ;(state.params.presetFilters as any)[key] = defEffect
           }
         }
       })

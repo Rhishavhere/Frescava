@@ -20,6 +20,8 @@ const api = {
     loadLUT: (filename: string) => ipcRenderer.invoke('assets:loadLUT', filename),
     loadTexture: (filename: string) => ipcRenderer.invoke('assets:loadTexture', filename),
     listPresets: () => ipcRenderer.invoke('assets:listPresets'),
+    listLUTFiles: () => ipcRenderer.invoke('assets:listLUTFiles'),
+    savePreset: (preset: any) => ipcRenderer.invoke('assets:savePreset', preset),
   },
   projects: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type UserRole = 'free' | 'pro' | 'beta_tester'
+export type UserRole = 'free' | 'pro' | 'beta_tester' | 'admin'
 
 export interface UserProfile {
   id: string

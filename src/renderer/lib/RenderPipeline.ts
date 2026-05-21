@@ -341,7 +341,8 @@ export class RenderPipeline {
     if (state.presetId) {
       // 1. LUT
       if (this.lutTexture && state.presetIntensity > 0) {
-        current = this.runLUT(current, state.presetIntensity)
+        const lutIntensity = (state as any).presetLutIntensity ?? 1.0
+        current = this.runLUT(current, state.presetIntensity * lutIntensity)
       }
 
       // 2. Preset Fade
@@ -397,15 +398,19 @@ export class RenderPipeline {
         })
       }
 
-      // 10. Preset Grain (TEXTURE OVERLAY)
-      if (pf.grain?.enabled && (pf.grain.opacity ?? 0) > 0 && this.overlayTextures.has('presetGrain')) {
-        current = this.runOverlay(current, this.overlayTextures.get('presetGrain')!, {
-          opacity: pf.grain.opacity ?? 0.5,
-          blendMode: pf.grain.blendMode ?? 'overlay',
-          tintColor: '#FFFFFF',
-          tintStrength: 0,
-          offset: [0, 0]
-        })
+      // 10. Preset Grain (TEXTURE OVERLAY or PROCEDURAL)
+      if (pf.grain?.enabled) {
+        if (!pf.grain.textureFile && (pf.grain.intensity ?? 0) > 0) {
+          current = this.runGrain(current, { grain: pf.grain } as EditState)
+        } else if (pf.grain.textureFile && (pf.grain.opacity ?? 0) > 0 && this.overlayTextures.has('presetGrain')) {
+          current = this.runOverlay(current, this.overlayTextures.get('presetGrain')!, {
+            opacity: pf.grain.opacity ?? 0.5,
+            blendMode: pf.grain.blendMode ?? 'overlay',
+            tintColor: '#FFFFFF',
+            tintStrength: 0,
+            offset: [0, 0]
+          })
+        }
       }
 
       // 11. Preset Border
@@ -632,10 +637,10 @@ export class RenderPipeline {
     const prog = this.progGrain
     this.bindProgram(prog, input, fbo)
     const u = (n: string) => gl.getUniformLocation(prog, n)
-    gl.uniform1f(u('u_intensity'), s.grain.intensity)
-    gl.uniform1f(u('u_size'), s.grain.size)
+    gl.uniform1f(u('u_intensity'), s.grain.intensity ?? 0)
+    gl.uniform1f(u('u_size'), s.grain.size ?? 1.0)
     gl.uniform1f(u('u_seed'), (Math.random() * 1000) | 0)
-    gl.uniform1i(u('u_type'), ['fine','medium','coarse','film'].indexOf(s.grain.type))
+    gl.uniform1i(u('u_type'), ['fine','medium','coarse','film'].indexOf(s.grain.type ?? 'medium'))
     gl.uniform1f(u('u_roughness'), s.grain.roughness ?? 0.5)
     gl.uniform1i(u('u_luminosityMode'), (s.grain.luminosityMode ?? true) ? 1 : 0)
     gl.uniform1f(u('u_highlightReduction'), s.grain.highlightReduction ?? 0.4)

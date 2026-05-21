@@ -23,7 +23,7 @@ export default function ImageCanvas() {
     if (!session?.activeImageId) return false
     return session.images.find(i => i.id === session.activeImageId)?.isDirty ?? false
   }, [session])
-  const { getPresetById } = usePresetStore()
+  const { presets, getPresetById } = usePresetStore()
 
   const activeFileLabel = imagePath ? imagePath.replace(/^.*[\\/]/, '') : ''
   const activeFileLabelShort = useMemo(() => {
@@ -140,6 +140,8 @@ export default function ImageCanvas() {
     }
   }, [imageDataURL, compareMode])
 
+  const preset = useMemo(() => params.presetId ? getPresetById(params.presetId) : null, [params.presetId, presets, getPresetById])
+
   // ── Load LUT when preset changes ───────────────────────────────────────────
   useEffect(() => {
     const presetId = params.presetId
@@ -152,7 +154,6 @@ export default function ImageCanvas() {
       return
     }
 
-    const preset = getPresetById(presetId)
     if (!preset?.lutFile) {
       pipelineRef.current.clearLUT()
       currentLUTRef.current = null
@@ -172,7 +173,7 @@ export default function ImageCanvas() {
     }).catch(e => {
       console.error('[Canvas] LUT load failed:', e)
     })
-  }, [params.presetId, getPresetById, showOriginal, compareMode])
+  }, [params.presetId, preset?.lutFile, showOriginal, compareMode])
 
   // ── Load Textures when preset changes ──────────────────────────────────────
   const currentTexturePresetRef = useRef<string | null>(null)
@@ -187,9 +188,6 @@ export default function ImageCanvas() {
       return
     }
 
-    if (currentTexturePresetRef.current === presetId) return // already loaded
-
-    const preset = getPresetById(presetId)
     if (!preset) return
 
     pipelineRef.current.clearOverlayTextures()
@@ -224,7 +222,15 @@ export default function ImageCanvas() {
     if (preset.defaults.border?.textureFile) {
       loadTex('border', preset.defaults.border.textureFile)
     }
-  }, [params.presetId, getPresetById, showOriginal, compareMode])
+  }, [
+    params.presetId,
+    preset?.defaults.lightLeak?.textureFile,
+    preset?.defaults.dustScratches?.textureFile,
+    preset?.defaults.grain?.textureFile,
+    preset?.defaults.border?.textureFile,
+    showOriginal,
+    compareMode
+  ])
 
   // ── Re-render whenever params change ──────────────────────────────────────
   const requestRender = useCallback(() => {
@@ -256,18 +262,25 @@ export default function ImageCanvas() {
         imageWidth: editState.imageWidth,
         imageHeight: editState.imageHeight,
         ...state,
-      })
+        presetLutIntensity: preset?.lutIntensity ?? 1.0,
+      } as any)
       window.dispatchEvent(new CustomEvent('frescava-canvas-repaint'))
     })
-  }, [showOriginal, compareMode])
+  }, [showOriginal, compareMode, preset?.lutIntensity])
 
   // Subscribe to store changes for re-rendering
   useEffect(() => {
-    const stateKey = JSON.stringify({ params, showOriginal, compareMode })
+    const stateKey = JSON.stringify({
+      params,
+      showOriginal,
+      compareMode,
+      lutFile: preset?.lutFile,
+      lutIntensity: preset?.lutIntensity,
+    })
     if (stateKey === lastEditRef.current) return
     lastEditRef.current = stateKey
     requestRender()
-  }, [params, showOriginal, compareMode, requestRender])
+  }, [params, showOriginal, compareMode, preset?.lutFile, preset?.lutIntensity, requestRender])
 
   // ── Container resize observer ──────────────────────────────────────────────
   useEffect(() => {

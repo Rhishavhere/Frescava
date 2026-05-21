@@ -219,7 +219,7 @@ export interface PresetDef {
 
   // Per-effect overrides (applied when the preset is loaded)
   fade: Partial<FadeParams>
-  grain: Partial<DustScratchesParams> // Presets use texture-based grain
+  grain: Partial<DustScratchesParams & GrainParams>
   vignette: Partial<VignetteParams>
   halation: Partial<HalationParams>
   chromaticAberration: Partial<CaParams>
@@ -266,8 +266,10 @@ export interface Preset {
 
   /** Full effect defaults to apply when this preset is selected */
   defaults: Partial<Omit<EditState,
-    'imagePath' | 'imageWidth' | 'imageHeight' | 'presetId' | 'presetIntensity'
-  >>
+    'imagePath' | 'imageWidth' | 'imageHeight' | 'presetId' | 'presetIntensity' | 'grain'
+  > & {
+    grain?: Partial<DustScratchesParams & GrainParams>
+  }>
 
   /** UI metadata */
   ui: PresetDef['ui']
@@ -350,6 +352,8 @@ export interface FrescavaAPI {
      *  e.g. "presets/kodak-portra-400/dust.png" */
     loadTexture: (relativePath: string) => Promise<ArrayBuffer>
     listPresets: () => Promise<Preset[]>
+    listLUTFiles: () => Promise<string[]>
+    savePreset: (preset: PresetDef) => Promise<{ success: boolean; path: string }>
   }
   projects: {
     save: (project: ProjectFile) => Promise<{ path: string }>
