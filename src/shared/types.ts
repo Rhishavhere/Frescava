@@ -55,6 +55,8 @@ export interface EditState {
   dustScratches: DustScratchesParams
   border: BorderParams
   blur: BlurParams
+  textLayers: TextLayer[]
+  activeTextId: string | null
 }
 
 // ── Shared Preset Effect block (Layer 1) ────────────────────────────────────
@@ -448,3 +450,29 @@ export interface LUTData {
 
 export type HueRange = 'red' | 'orange' | 'yellow' | 'green' | 'aqua' | 'blue' | 'purple' | 'magenta'
 export interface CurvePoint { x: number; y: number }
+
+export interface TextLayer {
+  id: string
+  text: string
+  fontFamily: string
+  fontSize: number       // In percentage of image height/width to ensure scale independence, e.g. 5 (for 5%)
+  fontWeight: string     // "300", "400", "500", "700", "900"
+  fontStyle: 'normal' | 'italic'
+  color: string          // Hex
+  opacity: number        // 0..1
+  letterSpacing: number  // tracking in em
+  lineHeight: number     // em leading
+  alignment: 'left' | 'center' | 'right'
+  position: { x: number; y: number } // % relative to image canvas bounds [0..100]
+  textCase: 'none' | 'uppercase' | 'lowercase'
+  border?: {
+    enabled: boolean
+    type: 'pill' | 'oval' | 'rect'
+    paddingX: number // % of image dimensions
+    paddingY: number // % of image dimensions
+    color: string
+    width: number
+  }
+  decoLeftRight?: 'star' | 'none'
+}
+

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import type { EditState } from '@shared/types'
+import type { EditState, TextLayer } from '@shared/types'
 
 // ─── Default edit state ───────────────────────────────────────────────────────
 
@@ -76,6 +76,8 @@ export const DEFAULT_EDIT_STATE: Omit<EditState, 'imagePath' | 'imageWidth' | 'i
   dustScratches: { enabled: false, textureFile: null, opacity: 0.3, blendMode: 'screen' },
   border: { enabled: false, type: null, textureFile: null, color: '#FFFFFF', width: 0.04, bottomWeight: 1, cornerRadius: 0, expandCanvas: false },
   blur: { enabled: false, type: 'gaussian', radius: 20 },
+  textLayers: [],
+  activeTextId: null,
 }
 
 // ─── Store types ──────────────────────────────────────────────────────────────
@@ -126,6 +128,11 @@ interface EditStore {
   setShowOriginal: (show: boolean) => void
   setCompareMode: (enabled: boolean) => void
   pushHistory: () => void
+  addTextLayer: (layer: Omit<TextLayer, 'id'>) => void
+  updateTextLayer: (id: string, updates: Partial<Omit<TextLayer, 'id'>>) => void
+  removeTextLayer: (id: string) => void
+  applyTypographyTemplate: (layers: TextLayer[]) => void
+  setActiveTextId: (id: string | null) => void
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -291,6 +298,76 @@ export const useEditStore = create<EditStore>()(
 
     setCompareMode: (enabled) => {
       set(state => { state.compareMode = enabled })
+    },
+
+    addTextLayer: (layer) => {
+      set(state => {
+        // Push current state to history
+        const entry: HistoryEntry = {
+          params: JSON.parse(JSON.stringify(state.params))
+        }
+        state.history.splice(state.historyIndex + 1)
+        state.history.push(entry)
+        state.historyIndex = state.history.length - 1
+
+        const newLayer: TextLayer = {
+          ...layer,
+          id: 'text-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9)
+        }
+        state.params.textLayers.push(newLayer)
+        state.params.activeTextId = newLayer.id
+      })
+    },
+
+    updateTextLayer: (id, updates) => {
+      set(state => {
+        const layer = state.params.textLayers.find(l => l.id === id)
+        if (layer) {
+          Object.assign(layer, updates)
+        }
+      })
+    },
+
+    removeTextLayer: (id) => {
+      set(state => {
+        // Push current state to history
+        const entry: HistoryEntry = {
+          params: JSON.parse(JSON.stringify(state.params))
+        }
+        state.history.splice(state.historyIndex + 1)
+        state.history.push(entry)
+        state.historyIndex = state.history.length - 1
+
+        state.params.textLayers = state.params.textLayers.filter(l => l.id !== id)
+        if (state.params.activeTextId === id) {
+          state.params.activeTextId = state.params.textLayers[0]?.id ?? null
+        }
+      })
+    },
+
+    applyTypographyTemplate: (layers) => {
+      set(state => {
+        // Push current state to history
+        const entry: HistoryEntry = {
+          params: JSON.parse(JSON.stringify(state.params))
+        }
+        state.history.splice(state.historyIndex + 1)
+        state.history.push(entry)
+        state.historyIndex = state.history.length - 1
+
+        // Replace all current text layers with the template layers
+        state.params.textLayers = layers.map(l => ({
+          ...l,
+          id: 'text-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9)
+        }))
+        state.params.activeTextId = state.params.textLayers[0]?.id ?? null
+      })
+    },
+
+    setActiveTextId: (id) => {
+      set(state => {
+        state.params.activeTextId = id
+      })
     },
   }))
 )
