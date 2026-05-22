@@ -82,7 +82,24 @@ function SecondColumn() {
         />
       )
     case 'text':
-      return <LeftDockPlaceholder title="Text" hint="Type layers, captions, and text styles (coming soon)." />
+      return (
+        <div className="h-full flex flex-col justify-between p-4 panel-slide-right">
+          <div className="flex flex-col items-center justify-center text-center py-12">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted dark:text-zinc-500 mb-2">Text Workspace</p>
+            <p className="text-xs text-text-secondary dark:text-zinc-400 leading-relaxed max-w-[12rem] mb-4">
+              Add premium typography compositions and stylized type layers to your image.
+            </p>
+            <button
+              onClick={() => {
+                useUIStore.getState().setEditorWorkspace('text')
+              }}
+              className="px-4 py-2 rounded-lg bg-text-primary text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:opacity-90 active:scale-95 transition-all shadow-sm"
+            >
+              Open Text Workspace
+            </button>
+          </div>
+        </div>
+      )
     case 'brush':
       return <LeftDockPlaceholder title="Brush" hint="Dodge, burn, and local paint (coming soon)." />
     case 'more':
