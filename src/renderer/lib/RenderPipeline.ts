@@ -571,8 +571,8 @@ export class RenderPipeline {
     const { fbo, tex } = this.getNextFBO()
     this.bindProgram(this.progFade, input, fbo)
     const u = (n: string) => gl.getUniformLocation(this.progFade, n)
-    gl.uniform1f(u('u_blackLift'), s.fade.blackLift)
-    gl.uniform1f(u('u_whiteCeiling'), s.fade.whiteCeiling)
+    gl.uniform1f(u('u_blackLift'), s.fade?.blackLift ?? 0.05)
+    gl.uniform1f(u('u_whiteCeiling'), s.fade?.whiteCeiling ?? 0.97)
     this.draw()
     return tex
   }
@@ -733,45 +733,65 @@ export class RenderPipeline {
 
   private runGrain(input: WebGLTexture, s: EditState): WebGLTexture {
     const gl = this.gl
+    const grain = s.grain ?? {}
+    const intensity = grain.intensity ?? 0.3
+    const size = grain.size ?? 1.0
+    const grainType = grain.type ?? 'medium'
+    const roughness = grain.roughness ?? 0.5
+    const luminosityMode = grain.luminosityMode ?? true
+    const highlightReduction = grain.highlightReduction ?? 0.4
+
     const { fbo, tex } = this.getNextFBO()
     const prog = this.progGrain
     this.bindProgram(prog, input, fbo)
     const u = (n: string) => gl.getUniformLocation(prog, n)
-    gl.uniform1f(u('u_intensity'), s.grain.intensity ?? 0)
-    gl.uniform1f(u('u_size'), s.grain.size ?? 1.0)
+    gl.uniform1f(u('u_intensity'), intensity)
+    gl.uniform1f(u('u_size'), size)
     gl.uniform1f(u('u_seed'), (Math.random() * 1000) | 0)
-    gl.uniform1i(u('u_type'), ['fine','medium','coarse','film'].indexOf(s.grain.type ?? 'medium'))
-    gl.uniform1f(u('u_roughness'), s.grain.roughness ?? 0.5)
-    gl.uniform1i(u('u_luminosityMode'), (s.grain.luminosityMode ?? true) ? 1 : 0)
-    gl.uniform1f(u('u_highlightReduction'), s.grain.highlightReduction ?? 0.4)
+    gl.uniform1i(u('u_type'), ['fine','medium','coarse','film'].indexOf(grainType))
+    gl.uniform1f(u('u_roughness'), roughness)
+    gl.uniform1i(u('u_luminosityMode'), luminosityMode ? 1 : 0)
+    gl.uniform1f(u('u_highlightReduction'), highlightReduction)
     this.draw()
     return tex
   }
 
   private runVignette(input: WebGLTexture, s: EditState): WebGLTexture {
     const gl = this.gl
+    const vignette = s.vignette ?? {}
+    const strength = vignette.strength ?? 0.5
+    const feather = vignette.feather ?? 0.5
+    const midpoint = vignette.midpoint ?? 0.7
+    const shape = vignette.shape ?? 'oval'
+    const exposure = vignette.exposure ?? 0
+
     const { fbo, tex } = this.getNextFBO()
     const prog = this.progVignette
     this.bindProgram(prog, input, fbo)
     const u = (n: string) => gl.getUniformLocation(prog, n)
-    gl.uniform1f(u('u_strength'), s.vignette.strength)
-    gl.uniform1f(u('u_feather'), s.vignette.feather)
-    gl.uniform1f(u('u_midpoint'), s.vignette.midpoint)
-    gl.uniform1i(u('u_shape'), s.vignette.shape === 'oval' ? 0 : 1)
+    gl.uniform1f(u('u_strength'), strength)
+    gl.uniform1f(u('u_feather'), feather)
+    gl.uniform1f(u('u_midpoint'), midpoint)
+    gl.uniform1i(u('u_shape'), shape === 'oval' ? 0 : 1)
     gl.uniform1f(u('u_aspectRatio'), this.width / this.height)
-    gl.uniform1f(u('u_exposureShift'), s.vignette.exposure ?? 0)
+    gl.uniform1f(u('u_exposureShift'), exposure)
     this.draw()
     return tex
   }
 
   private runHalation(input: WebGLTexture, s: EditState): WebGLTexture {
     const gl = this.gl
-    const { color, radius, threshold, intensity } = s.halation
+    const halation = s.halation ?? {}
+    const color = halation.color ?? '#FF4422'
+    const radius = halation.radius ?? 40
+    const threshold = halation.threshold ?? 0.75
+    const intensity = halation.intensity ?? 0.4
 
-    // Parse color
-    const r = parseInt(color.slice(1, 3), 16) / 255
-    const g = parseInt(color.slice(3, 5), 16) / 255
-    const b = parseInt(color.slice(5, 7), 16) / 255
+    // Parse color safely
+    const c = color.startsWith('#') ? color : '#' + color
+    const r = parseInt(c.slice(1, 3), 16) / 255 || 0
+    const g = parseInt(c.slice(3, 5), 16) / 255 || 0
+    const b = parseInt(c.slice(5, 7), 16) / 255 || 0
 
     // Pass 1: extract highlights → halFBO
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.halFBO)
@@ -832,7 +852,11 @@ export class RenderPipeline {
 
   private runBloom(input: WebGLTexture, bloom: EditState['bloom']): WebGLTexture {
     const gl = this.gl
-    const { threshold, intensity, radius, character } = bloom
+    const bParams = bloom ?? {}
+    const threshold = bParams.threshold ?? 0.75
+    const intensity = bParams.intensity ?? 0.3
+    const radius = bParams.radius ?? 15
+    const character = bParams.character ?? 'soft'
 
     // Pass 1: extract bright highlights with neutral white color.
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.halFBO)
@@ -894,10 +918,14 @@ export class RenderPipeline {
 
   private runCA(input: WebGLTexture, ca: EditState['chromaticAberration']): WebGLTexture {
     const gl = this.gl
+    const caParams = ca ?? {}
+    const amount = caParams.amount ?? 3
+    const radialFalloff = caParams.radialFalloff ?? true
+
     const { fbo, tex } = this.getNextFBO()
     this.bindProgram(this.progCA, input, fbo)
-    gl.uniform1f(gl.getUniformLocation(this.progCA, 'u_amount'), ca.amount)
-    gl.uniform1i(gl.getUniformLocation(this.progCA, 'u_radialFalloff'), (ca.radialFalloff ?? true) ? 1 : 0)
+    gl.uniform1f(gl.getUniformLocation(this.progCA, 'u_amount'), amount)
+    gl.uniform1i(gl.getUniformLocation(this.progCA, 'u_radialFalloff'), radialFalloff ? 1 : 0)
     this.draw()
     return tex
   }
@@ -927,9 +955,10 @@ export class RenderPipeline {
     if (params.blendMode === 'normal') blendIndex = 4
     gl.uniform1i(u('u_blendMode'), blendIndex)
 
-    const r = parseInt(params.tintColor.slice(1,3), 16)/255 || 0
-    const g = parseInt(params.tintColor.slice(3,5), 16)/255 || 0
-    const b = parseInt(params.tintColor.slice(5,7), 16)/255 || 0
+    const c = params.tintColor && params.tintColor.startsWith('#') ? params.tintColor : '#FFFFFF'
+    const r = parseInt(c.slice(1,3), 16)/255 || 0
+    const g = parseInt(c.slice(3,5), 16)/255 || 0
+    const b = parseInt(c.slice(5,7), 16)/255 || 0
     gl.uniform3f(u('u_tintColor'), r, g, b)
     gl.uniform1f(u('u_tintStrength'), params.tintStrength)
     gl.uniform2f(u('u_offset'), params.offset[0] ?? 0, params.offset[1] ?? 0)
@@ -943,9 +972,10 @@ export class RenderPipeline {
 
   private runLensDist(input: WebGLTexture, s: EditState): WebGLTexture {
     const gl = this.gl
+    const amount = s.lensDistortion?.amount ?? 0
     const { fbo, tex } = this.getNextFBO()
     this.bindProgram(this.progLensDist, input, fbo)
-    gl.uniform1f(gl.getUniformLocation(this.progLensDist, 'u_amount'), s.lensDistortion.amount)
+    gl.uniform1f(gl.getUniformLocation(this.progLensDist, 'u_amount'), amount)
     gl.uniform1f(gl.getUniformLocation(this.progLensDist, 'u_aspectRatio'), this.width / this.height)
     this.draw()
     return tex
