@@ -329,6 +329,30 @@ export class RenderPipeline {
     this.overlayTextures.clear()
   }
 
+  // ── Text overlay texture management ────────────────────────────────────────
+  private textTexture: WebGLTexture | null = null
+
+  uploadTextTexture(canvas: HTMLCanvasElement): WebGLTexture {
+    const gl = this.gl
+    if (!this.textTexture) {
+      this.textTexture = gl.createTexture()!
+    }
+    gl.bindTexture(gl.TEXTURE_2D, this.textTexture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    return this.textTexture
+  }
+
+  clearTextTexture(): void {
+    if (this.textTexture) {
+      this.gl.deleteTexture(this.textTexture)
+      this.textTexture = null
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   render(state: EditState, textTexture?: WebGLTexture | null): void {
@@ -1021,5 +1045,6 @@ export class RenderPipeline {
     this.fbos.forEach(f => gl.deleteFramebuffer(f))
     if (this.halFBO) gl.deleteFramebuffer(this.halFBO)
     if (this.halFBO2) gl.deleteFramebuffer(this.halFBO2)
+    this.clearTextTexture()
   }
 }
