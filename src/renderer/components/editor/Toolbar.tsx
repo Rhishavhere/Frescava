@@ -17,8 +17,8 @@ declare global {
 
 const WORKSPACE_TABS: { id: EditorWorkspace; label: string; soon?: boolean }[] = [
   { id: 'main', label: 'Editor' },
-  { id: 'text', label: 'Text', soon: true },
-  { id: 'templates', label: 'Templates', soon: true },
+  { id: 'text', label: 'Text' },
+  { id: 'templates', label: 'Templates' },
 ]
 
 interface ToolbarProps {
