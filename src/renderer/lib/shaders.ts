@@ -833,3 +833,22 @@ void main() {
 }
 `
 
+// ─── Text Overlay Blending ────────────────────────────────────────────────────
+export const TEXT_COMPOSITE_FRAG = /* glsl */`#version 300 es
+precision mediump float;
+uniform sampler2D u_image;
+uniform sampler2D u_text;
+uniform float u_opacity;
+in vec2 v_texCoord;
+out vec4 fragColor;
+
+void main() {
+  vec4 baseColor = texture(u_image, v_texCoord);
+  vec4 textColor = texture(u_text, v_texCoord);
+  float alpha = textColor.a * u_opacity;
+  vec3 blended = mix(baseColor.rgb, textColor.rgb, alpha);
+  fragColor = vec4(blended, baseColor.a);
+}
+`
+
+

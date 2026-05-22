@@ -15,6 +15,7 @@ import {
   PASSTHROUGH_FRAG,
   OVERLAY_FRAG,
   ZOOM_BLUR_FRAG,
+  TEXT_COMPOSITE_FRAG,
 } from './shaders'
 import type { ColorBalanceState, CurvesState, EditState, HslMixerState, SplitToningState } from '@shared/types'
 import { buildCurveLutRGBA8, CURVE_LUT_WIDTH, defaultIdentityCurves } from '@shared/curveMath'
@@ -123,6 +124,7 @@ export class RenderPipeline {
   private progPassthrough: WebGLProgram
   private progOverlay: WebGLProgram
   private progZoomBlur: WebGLProgram
+  private progTextComposite: WebGLProgram
 
   // VAOs
   private vaos: Map<WebGLProgram, WebGLVertexArrayObject> = new Map()
@@ -177,6 +179,7 @@ export class RenderPipeline {
     this.progPassthrough = createProgram(gl, PASSTHROUGH_FRAG)
     this.progOverlay = createProgram(gl, OVERLAY_FRAG)
     this.progZoomBlur = createProgram(gl, ZOOM_BLUR_FRAG)
+    this.progTextComposite = createProgram(gl, TEXT_COMPOSITE_FRAG)
 
     // Setup VAOs for each program
     const programs = [
@@ -184,6 +187,7 @@ export class RenderPipeline {
       this.progAdjust, this.progLUT, this.progGrain, this.progVignette,
       this.progHalExtract, this.progBlurH, this.progBlurV, this.progLensBlurComp, this.progHalComposite,
       this.progCA, this.progLensDist, this.progPassthrough, this.progOverlay, this.progZoomBlur,
+      this.progTextComposite,
     ]
     for (const prog of programs) {
       this.vaos.set(prog, setupQuad(gl, prog))
@@ -327,7 +331,7 @@ export class RenderPipeline {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  render(state: EditState): void {
+  render(state: EditState, textTexture?: WebGLTexture | null): void {
     if (!this.sourceTexture) return
     const gl = this.gl
 
@@ -503,6 +507,11 @@ export class RenderPipeline {
     // User Grain (Mathematical noise algorithm)
     if (state.grain.enabled && state.grain.intensity > 0) {
       current = this.runGrain(current, state)
+    }
+
+    // Final text composite pass (Layer 4)
+    if (textTexture) {
+      current = this.runTextComposite(current, textTexture, 1.0)
     }
 
     // Final: display to screen
@@ -923,6 +932,19 @@ export class RenderPipeline {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     this.bindProgram(this.progPassthrough, input, null)
     this.draw()
+  }
+
+  private runTextComposite(input: WebGLTexture, textTex: WebGLTexture, opacity: number): WebGLTexture {
+    const gl = this.gl
+    const { fbo, tex } = this.getNextFBO()
+    this.bindProgram(this.progTextComposite, input, fbo)
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, textTex)
+    gl.uniform1i(gl.getUniformLocation(this.progTextComposite, 'u_text'), 1)
+    gl.uniform1f(gl.getUniformLocation(this.progTextComposite, 'u_opacity'), opacity)
+    this.draw()
+    gl.activeTexture(gl.TEXTURE0)
+    return tex
   }
 
   // ── Capture the current canvas as a data URL (Option A export parity) ──────
