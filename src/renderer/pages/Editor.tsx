@@ -10,6 +10,8 @@ import AdjustmentPanel from '../components/editor/AdjustmentPanel'
 import EffectsPanel from '../components/editor/EffectsPanel'
 import PresetSettingsPanel from '../components/editor/PresetSettingsPanel'
 import AdjustmentHistogram from '../components/editor/AdjustmentHistogram'
+import TextLeftPanel from '../components/editor/TextLeftPanel'
+import TextSettingsPanel from '../components/editor/TextSettingsPanel'
 import { PresetColumnStub, InspectorColumnStub } from '../components/editor/EditorWorkspaceStubs'
 import DropZone from '../components/editor/DropZone'
 import Toolbar from '../components/editor/Toolbar'
@@ -69,7 +71,11 @@ export default function Editor() {
               isMainWorkspace ? '' : 'bg-surface-50 dark:bg-zinc-950/90'
             }`}
           >
-            {isMainWorkspace ? <EditorLeftPanel /> : <PresetColumnStub mode={editorWorkspace} />}
+            {isMainWorkspace ? (
+              <EditorLeftPanel />
+            ) : (
+              <TextLeftPanel mode={editorWorkspace} />
+            )}
           </aside>
 
           {/* Center: same canvas + batch for all in-editor modes; toolbar switches workspace panels */}
@@ -127,7 +133,15 @@ export default function Editor() {
                 </div>
               </>
             ) : (
-              <InspectorColumnStub mode={editorWorkspace} />
+              <div className="flex-1 flex flex-col min-h-0">
+                {!hasImage ? (
+                  <div className="flex flex-1 items-center justify-center text-text-muted dark:text-zinc-500 overflow-y-auto right-panel-scroll">
+                    <p className="text-xs text-center px-6">Open a photo to start editing</p>
+                  </div>
+                ) : (
+                  <TextSettingsPanel />
+                )}
+              </div>
             )}
           </aside>
         </div>
