@@ -6,9 +6,6 @@ type RightPanelTab = 'light' | 'detail' | 'effects'
 
 export type EditorWorkspace = 'main' | 'text' | 'templates'
 
-/** Left dock tool rail (first column); second column shows that category. */
-export type LeftDockTool = 'effects' | 'filters' | 'text' | 'brush' | 'more'
-
 interface ConfirmOptions {
   title: string
   message: string
@@ -39,17 +36,9 @@ interface UIStore {
   editorWorkspace: EditorWorkspace
   setEditorWorkspace: (w: EditorWorkspace) => void
 
-  /** Left column tool selection (main workspace only) */
-  leftDockTool: LeftDockTool
-  setLeftDockTool: (t: LeftDockTool) => void
-
   // Right inspector tab (main workspace)
   rightPanelTab: RightPanelTab
   setRightPanelTab: (tab: RightPanelTab) => void
-
-  // Panels visibility
-  showPresetsPanel: boolean
-  togglePresetsPanel: () => void
 
   // Loading states
   isExporting: boolean
@@ -86,14 +75,8 @@ export const useUIStore = create<UIStore>((set, get) => ({
   editorWorkspace: 'main' as EditorWorkspace,
   setEditorWorkspace: (w) => set({ editorWorkspace: w }),
 
-  leftDockTool: 'effects' as LeftDockTool,
-  setLeftDockTool: (t) => set({ leftDockTool: t }),
-
   rightPanelTab: 'light',
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
-
-  showPresetsPanel: true,
-  togglePresetsPanel: () => set((s) => ({ showPresetsPanel: !s.showPresetsPanel })),
 
   isExporting: false,
   setIsExporting: (v) => set({ isExporting: v }),

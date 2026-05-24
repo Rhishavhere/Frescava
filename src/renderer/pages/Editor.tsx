@@ -5,14 +5,13 @@ import { useSessionStore } from '../store/tabStore'
 import { useAuthStore } from '../store/authStore'
 import { loadProjectIntoEditor } from '../lib/hydrateProject'
 import ImageCanvas from '../components/editor/ImageCanvas'
-import EditorLeftPanel from '../components/editor/EditorLeftPanel'
 import AdjustmentPanel from '../components/editor/AdjustmentPanel'
 import EffectsPanel from '../components/editor/EffectsPanel'
 import PresetSettingsPanel from '../components/editor/PresetSettingsPanel'
 import AdjustmentHistogram from '../components/editor/AdjustmentHistogram'
 import TextLeftPanel from '../components/editor/TextLeftPanel'
 import TextSettingsPanel from '../components/editor/TextSettingsPanel'
-import { PresetColumnStub, InspectorColumnStub } from '../components/editor/EditorWorkspaceStubs'
+import PresetStrip from '../components/editor/PresetStrip'
 import DropZone from '../components/editor/DropZone'
 import Toolbar from '../components/editor/Toolbar'
 import BatchStrip from '../components/editor/BatchStrip'
@@ -65,18 +64,15 @@ export default function Editor() {
       <EditorWindowSessionBootstrap />
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 flex overflow-hidden min-h-0">
-          {/* Left: tool rail + category (Effects hosts preset library) — stub for Text / Templates workspace */}
-          <aside
-            className={`w-60 sm:w-64 shrink-0 flex flex-col border-r border-border dark:border-zinc-800/60 overflow-hidden min-h-0 ${
-              isMainWorkspace ? '' : 'bg-surface-50 dark:bg-zinc-950/90'
-            }`}
-          >
-            {isMainWorkspace ? (
-              <EditorLeftPanel />
-            ) : (
+          {isMainWorkspace ? (
+            <aside className="w-60 sm:w-64 shrink-0 flex flex-col border-r border-border dark:border-zinc-800/60 overflow-hidden min-h-0 bg-surface-50/70 dark:bg-zinc-950/75">
+              <PresetStrip />
+            </aside>
+          ) : (
+            <aside className="w-60 sm:w-64 shrink-0 flex flex-col border-r border-border dark:border-zinc-800/60 overflow-hidden min-h-0 bg-surface-50 dark:bg-zinc-950/90">
               <TextLeftPanel mode={editorWorkspace} />
-            )}
-          </aside>
+            </aside>
+          )}
 
           {/* Center: same canvas + batch for all in-editor modes; toolbar switches workspace panels */}
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">

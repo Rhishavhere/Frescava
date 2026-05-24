@@ -50,7 +50,7 @@
   "build": {
     "appId": "co.frescava.desktop",
     "productName": "Frescava",
-    "copyright": "Copyright © 2025 Frescava",
+    "copyright": "Copyright © 2026 Frescava",
     "icon": "src/assets/Logo.png",
     "directories": {
       "output": "dist-app"
@@ -75,15 +75,13 @@
       ],
       "category": "public.app-category.photography",
       "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "frame": false
+      "gatekeeperAssess": false
     },
     "win": {
       "icon": "Logo.ico",
       "target": [
         "nsis"
-      ],
-      "frame": false
+      ]
     },
     "publish": {
       "provider": "github",
