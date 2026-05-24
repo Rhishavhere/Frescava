@@ -291,6 +291,87 @@ export default function ImageCanvas() {
 
   const preset = useMemo(() => params.presetId ? getPresetById(params.presetId) : null, [params.presetId, presets, getPresetById])
 
+  // ── Re-render whenever params change ──────────────────────────────────────
+  const requestRender = useCallback(() => {
+    cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(() => {
+      const pipeline = pipelineRef.current
+      const originalPipeline = originalPipelineRef.current
+      const img = currentImageRef.current
+      const canvas = canvasRef.current
+      if (!pipeline || !img || !canvas) return
+
+      try {
+        const editState = useEditStore.getState()
+        const state = showOriginal && !compareMode
+          ? { ...DEFAULT_EDIT_STATE, presetId: null, presetIntensity: 1, textLayers: [] }
+          : editState.params
+
+        if (compareMode && originalPipeline) {
+          originalPipeline.render({
+            imagePath: editState.imagePath ?? '',
+            imageWidth: editState.imageWidth,
+            imageHeight: editState.imageHeight,
+            ...DEFAULT_EDIT_STATE,
+            presetId: null,
+            presetIntensity: 1,
+            textLayers: [],
+          } as any)
+        }
+
+        // Rasterize text layers onto offscreen canvas if present
+        let textTexture: WebGLTexture | null = null
+        if (state.textLayers && state.textLayers.length > 0) {
+          if (!textCanvasRef.current) {
+            textCanvasRef.current = document.createElement('canvas')
+          }
+          const textCanvas = textCanvasRef.current
+          textCanvas.width = canvas.width
+          textCanvas.height = canvas.height
+
+          const ctx2d = textCanvas.getContext('2d')
+          if (ctx2d) {
+            const newBoundsMap: Record<string, { x: number; y: number; w: number; h: number }> = {}
+            drawTextLayers(ctx2d, state.textLayers, textCanvas.width, textCanvas.height, (b) => {
+              newBoundsMap[b.id] = { x: b.x, y: b.y, w: b.w, h: b.h }
+            })
+
+            const boundsStr = JSON.stringify(newBoundsMap)
+            if (boundsStr !== prevBoundsStrRef.current) {
+              prevBoundsStrRef.current = boundsStr
+              boundsMapRef.current = newBoundsMap
+              setTimeout(() => {
+                setBoundsMap(newBoundsMap)
+              }, 0)
+            }
+          }
+          textTexture = pipeline.uploadTextTexture(textCanvas)
+        } else {
+          pipeline.clearTextTexture()
+          if (Object.keys(boundsMapRef.current).length > 0) {
+            boundsMapRef.current = {}
+            prevBoundsStrRef.current = ''
+            setTimeout(() => {
+              setBoundsMap({})
+            }, 0)
+          }
+        }
+
+        pipeline.render({
+          imagePath: editState.imagePath ?? '',
+          imageWidth: editState.imageWidth,
+          imageHeight: editState.imageHeight,
+          ...state,
+          presetLutIntensity: preset?.lutIntensity ?? 1.0,
+        } as any, textTexture)
+
+        window.dispatchEvent(new CustomEvent('frescava-canvas-repaint'))
+      } catch (err) {
+        console.error('[Canvas] Render execution failed:', err)
+      }
+    })
+  }, [showOriginal, compareMode, preset?.lutIntensity])
+
   // ── Load LUT when preset changes ───────────────────────────────────────────
   useEffect(() => {
     const presetId = params.presetId
@@ -410,87 +491,6 @@ export default function ImageCanvas() {
       })
     }
   }, [params.textLayers, showOriginal, requestRender])
-
-  // ── Re-render whenever params change ──────────────────────────────────────
-  const requestRender = useCallback(() => {
-    cancelAnimationFrame(rafRef.current)
-    rafRef.current = requestAnimationFrame(() => {
-      const pipeline = pipelineRef.current
-      const originalPipeline = originalPipelineRef.current
-      const img = currentImageRef.current
-      const canvas = canvasRef.current
-      if (!pipeline || !img || !canvas) return
-
-      try {
-        const editState = useEditStore.getState()
-        const state = showOriginal && !compareMode
-          ? { ...DEFAULT_EDIT_STATE, presetId: null, presetIntensity: 1, textLayers: [] }
-          : editState.params
-
-        if (compareMode && originalPipeline) {
-          originalPipeline.render({
-            imagePath: editState.imagePath ?? '',
-            imageWidth: editState.imageWidth,
-            imageHeight: editState.imageHeight,
-            ...DEFAULT_EDIT_STATE,
-            presetId: null,
-            presetIntensity: 1,
-            textLayers: [],
-          } as any)
-        }
-
-        // Rasterize text layers onto offscreen canvas if present
-        let textTexture: WebGLTexture | null = null
-        if (state.textLayers && state.textLayers.length > 0) {
-          if (!textCanvasRef.current) {
-            textCanvasRef.current = document.createElement('canvas')
-          }
-          const textCanvas = textCanvasRef.current
-          textCanvas.width = canvas.width
-          textCanvas.height = canvas.height
-          
-          const ctx2d = textCanvas.getContext('2d')
-          if (ctx2d) {
-            const newBoundsMap: Record<string, { x: number; y: number; w: number; h: number }> = {}
-            drawTextLayers(ctx2d, state.textLayers, textCanvas.width, textCanvas.height, (b) => {
-              newBoundsMap[b.id] = { x: b.x, y: b.y, w: b.w, h: b.h }
-            })
-            
-            const boundsStr = JSON.stringify(newBoundsMap)
-            if (boundsStr !== prevBoundsStrRef.current) {
-              prevBoundsStrRef.current = boundsStr
-              boundsMapRef.current = newBoundsMap
-              setTimeout(() => {
-                setBoundsMap(newBoundsMap)
-              }, 0)
-            }
-          }
-          textTexture = pipeline.uploadTextTexture(textCanvas)
-        } else {
-          pipeline.clearTextTexture()
-          if (Object.keys(boundsMapRef.current).length > 0) {
-            boundsMapRef.current = {}
-            prevBoundsStrRef.current = ''
-            setTimeout(() => {
-              setBoundsMap({})
-            }, 0)
-          }
-        }
-
-        pipeline.render({
-          imagePath: editState.imagePath ?? '',
-          imageWidth: editState.imageWidth,
-          imageHeight: editState.imageHeight,
-          ...state,
-          presetLutIntensity: preset?.lutIntensity ?? 1.0,
-        } as any, textTexture)
-
-        window.dispatchEvent(new CustomEvent('frescava-canvas-repaint'))
-      } catch (err) {
-        console.error('[Canvas] Render execution failed:', err)
-      }
-    })
-  }, [showOriginal, compareMode, preset?.lutIntensity])
 
   // Subscribe to store changes for re-rendering
   useEffect(() => {

@@ -1,12 +1,4 @@
-import type { TextLayer } from '@shared/types'
-
-export interface TypographyTemplate {
-  id: string
-  name: string
-  thumbnailText: string
-  thumbnailStyle?: string // CSS style string or font-family to display nicely in UI
-  layers: Omit<TextLayer, 'id'>[]
-}
+import type { TypographyTemplate } from '@shared/types'
 
 export const TYPOGRAPHY_TEMPLATES: TypographyTemplate[] = [
   {

@@ -22,6 +22,8 @@ const api = {
     listPresets: () => ipcRenderer.invoke('assets:listPresets'),
     listLUTFiles: () => ipcRenderer.invoke('assets:listLUTFiles'),
     savePreset: (preset: any) => ipcRenderer.invoke('assets:savePreset', preset),
+    listTextTemplates: () => ipcRenderer.invoke('assets:listTextTemplates'),
+    saveTextTemplate: (template: any) => ipcRenderer.invoke('assets:saveTextTemplate', template),
   },
   projects: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,7 +99,7 @@ const api = {
     getProfile: () => ipcRenderer.invoke('auth:getProfile'),
     updateProfile: (name) => ipcRenderer.invoke('auth:updateProfile', name),
     onAuthChange: (cb) => {
-      const handler = (_e: IpcRendererEvent, payload: { session: any; profile: any }) => {
+      const handler = (_e: IpcRendererEvent, payload: { session: any; user?: any; profile: any }) => {
         cb(payload)
       }
       ipcRenderer.on('auth:changed', handler)

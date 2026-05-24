@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { join } from 'path'
 import { readFileSync, readdirSync, existsSync, statSync, mkdirSync, writeFileSync } from 'fs'
-import type { Preset, PresetDef, LUTData } from '../../src/shared/types'
+import type { Preset, PresetDef, LUTData, TypographyTemplate } from '../../src/shared/types'
 
 // Assets root — two levels up from out/main/index.js
 const ASSETS_ROOT = join(__dirname, '../..', 'assets')
@@ -15,6 +15,27 @@ function hexToRgb(hex: string) {
     parseInt(h.slice(2, 4), 16) / 255,
     parseInt(h.slice(4, 6), 16) / 255,
   ]
+}
+
+function slugify(value: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return slug || `text-template-${Date.now()}`
+}
+
+function normalizeTextTemplate(raw: TypographyTemplate, fallbackId: string): TypographyTemplate {
+  const id = slugify(raw.id || fallbackId || raw.name || 'text-template')
+  const layers = Array.isArray(raw.layers) ? raw.layers : []
+  return {
+    id,
+    name: raw.name || id,
+    thumbnailText: raw.thumbnailText || raw.name || id,
+    thumbnailStyle: raw.thumbnailStyle,
+    layers,
+  }
 }
 
 /** Normalize a raw PresetDef JSON into the Preset shape the renderer uses */
@@ -273,6 +294,47 @@ export function registerAssetHandlers(): void {
     } catch (e: any) {
       console.error('[Assets] Failed to save preset:', e)
       throw new Error(`Failed to save preset: ${e.message}`)
+    }
+  })
+
+  // ── List user-created text templates from assets/text-templates/*.json ──
+  ipcMain.handle('assets:listTextTemplates', async (): Promise<TypographyTemplate[]> => {
+    const templatesDir = join(ASSETS_ROOT, 'text-templates')
+    if (!existsSync(templatesDir)) return []
+
+    try {
+      return readdirSync(templatesDir)
+        .filter(f => f.toLowerCase().endsWith('.json'))
+        .map(file => {
+          const raw = JSON.parse(readFileSync(join(templatesDir, file), 'utf-8')) as TypographyTemplate
+          return normalizeTextTemplate(raw, file.replace(/\.json$/i, ''))
+        })
+        .sort((a, b) => a.name.localeCompare(b.name))
+    } catch (e) {
+      console.error('[Assets] Failed to list text templates:', e)
+      return []
+    }
+  })
+
+  // ── Save a text template to assets/text-templates/{id}.json ─────────────
+  ipcMain.handle('assets:saveTextTemplate', async (_event, template: TypographyTemplate): Promise<{ success: boolean; path: string }> => {
+    try {
+      const normalized = normalizeTextTemplate(template, template.name)
+      if (!normalized.layers.length) {
+        throw new Error('At least one text layer is required')
+      }
+
+      const templatesDir = join(ASSETS_ROOT, 'text-templates')
+      if (!existsSync(templatesDir)) {
+        mkdirSync(templatesDir, { recursive: true })
+      }
+
+      const templatePath = join(templatesDir, `${normalized.id}.json`)
+      writeFileSync(templatePath, JSON.stringify(normalized, null, 2), 'utf-8')
+      return { success: true, path: templatePath }
+    } catch (e: any) {
+      console.error('[Assets] Failed to save text template:', e)
+      throw new Error(`Failed to save text template: ${e.message}`)
     }
   })
 }

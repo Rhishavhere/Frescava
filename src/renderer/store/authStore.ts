@@ -10,6 +10,35 @@ export interface UserProfile {
   updated_at: string
 }
 
+function isUserRole(value: unknown): value is UserRole {
+  return value === 'free' || value === 'pro' || value === 'beta_tester' || value === 'admin'
+}
+
+function profileFromAuthUser(user: any): UserProfile | null {
+  if (!user?.id) return null
+  const metadata = user.user_metadata ?? {}
+  const appMetadata = user.app_metadata ?? {}
+  const now = new Date().toISOString()
+  const name =
+    metadata.name ??
+    metadata.full_name ??
+    metadata.display_name ??
+    (typeof user.email === 'string' ? user.email.split('@')[0] : null) ??
+    'Creator'
+
+  return {
+    id: user.id,
+    name,
+    role: isUserRole(appMetadata.role) ? appMetadata.role : 'free',
+    created_at: user.created_at ?? now,
+    updated_at: user.updated_at ?? user.created_at ?? now,
+  }
+}
+
+function resolveProfile(profile: UserProfile | null | undefined, user: any): UserProfile | null {
+  return profile ?? profileFromAuthUser(user)
+}
+
 interface AuthStore {
   profile: UserProfile | null
   isAuthenticated: boolean
@@ -40,11 +69,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
   checkSession: async () => {
     set({ isLoading: true, error: null })
     try {
-      const { profile, error } = await window.frame.auth.getProfile()
+      const { profile, user, error } = await window.frame.auth.getProfile()
+      const resolvedProfile = resolveProfile(profile, user)
       if (error) {
         set({ error, profile: null, isAuthenticated: false, isLoading: false })
-      } else if (profile) {
-        set({ profile, isAuthenticated: true, isLoading: false })
+      } else if (user) {
+        set({ profile: resolvedProfile, isAuthenticated: true, isLoading: false })
       } else {
         set({ profile: null, isAuthenticated: false, isLoading: false })
       }
@@ -63,7 +93,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     try {
       const res = await window.frame.auth.signIn(email, password)
       if (res.success) {
-        set({ profile: res.profile, isAuthenticated: true, isLoading: false })
+        set({ profile: resolveProfile(res.profile, res.user), isAuthenticated: true, isLoading: false })
         return { success: true }
       } else {
         set({ error: res.error || 'Login failed.', isLoading: false })
@@ -81,7 +111,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     try {
       const res = await window.frame.auth.signUp(email, password, name)
       if (res.success) {
-        set({ profile: res.profile, isAuthenticated: true, isLoading: false })
+        set({ profile: resolveProfile(res.profile, res.user), isAuthenticated: true, isLoading: false })
         return { success: true }
       } else {
         set({ error: res.error || 'Signup failed.', isLoading: false })
@@ -134,9 +164,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
 // Auto-subscribe to auth state changes broadcasted from Main Process
 window.frame.auth.onAuthChange((payload) => {
-  if (payload?.profile) {
+  const user = payload?.session?.user ?? payload?.user
+  const profile = resolveProfile(payload?.profile, user)
+  if (user) {
     useAuthStore.setState({
-      profile: payload.profile,
+      profile,
       isAuthenticated: true,
       isLoading: false,
       showAuthModal: false,  // ← close modal automatically on successful auth

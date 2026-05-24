@@ -1,0 +1,41 @@
+{
+  "id": "love",
+  "name": "Love",
+  "thumbnailText": "Be mine",
+  "layers": [
+    {
+      "text": "Be mine",
+      "fontFamily": "Playfair Display",
+      "fontSize": 7.5,
+      "fontWeight": "700",
+      "fontStyle": "normal",
+      "color": "#F5F5DC",
+      "opacity": 1,
+      "letterSpacing": 0.1,
+      "lineHeight": 1.2,
+      "alignment": "center",
+      "position": {
+        "x": 51.28617363344051,
+        "y": 69.30471584038693
+      },
+      "textCase": "uppercase"
+    },
+    {
+      "text": "Love you forever",
+      "fontFamily": "Cormorant Garamond",
+      "fontSize": 4,
+      "fontWeight": "400",
+      "fontStyle": "italic",
+      "color": "#E4E4E7",
+      "opacity": 0.9,
+      "letterSpacing": 0.05,
+      "lineHeight": 1.2,
+      "alignment": "center",
+      "position": {
+        "x": 49.51768488745981,
+        "y": 73.01692865779927
+      },
+      "textCase": "none"
+    }
+  ]
+}

@@ -160,10 +160,11 @@ export function registerAuthHandlers(): void {
   ipcMain.handle('auth:getProfile', async () => {
     if (!supabase) return { profile: null }
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return { profile: null }
       const profile = await fetchUserProfile(user.id)
-      return { profile }
+      return { session, user, profile }
     } catch (err) {
       console.error('[Supabase] getProfile error:', err)
       return { profile: null }

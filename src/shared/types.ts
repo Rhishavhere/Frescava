@@ -367,6 +367,8 @@ export interface FrescavaAPI {
     listPresets: () => Promise<Preset[]>
     listLUTFiles: () => Promise<string[]>
     savePreset: (preset: PresetDef) => Promise<{ success: boolean; path: string }>
+    listTextTemplates: () => Promise<TypographyTemplate[]>
+    saveTextTemplate: (template: TypographyTemplate) => Promise<{ success: boolean; path: string }>
   }
   projects: {
     save: (project: ProjectFile) => Promise<{ path: string }>
@@ -421,9 +423,9 @@ export interface FrescavaAPI {
     signIn: (email: string, password: string) => Promise<{ success: boolean; user?: any; profile?: any; error?: string }>
     signInWithGoogle: () => Promise<{ success: boolean; error?: string }>
     signOut: () => Promise<{ success: boolean; error?: string }>
-    getProfile: () => Promise<{ profile?: any; error?: string }>
+    getProfile: () => Promise<{ session?: any; user?: any; profile?: any; error?: string }>
     updateProfile: (name: string) => Promise<{ success: boolean; profile?: any; error?: string }>
-    onAuthChange: (cb: (payload: { session: any; profile: any }) => void) => () => void
+    onAuthChange: (cb: (payload: { session: any; user?: any; profile: any }) => void) => () => void
   }
 }
 
@@ -474,5 +476,13 @@ export interface TextLayer {
     width: number
   }
   decoLeftRight?: 'star' | 'none'
+}
+
+export interface TypographyTemplate {
+  id: string
+  name: string
+  thumbnailText: string
+  thumbnailStyle?: string
+  layers: Omit<TextLayer, 'id'>[]
 }
 
