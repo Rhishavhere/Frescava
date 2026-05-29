@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useEditStore } from '../../store/editStore'
 import { useUIStore, type EditorWorkspace } from '../../store/uiStore'
 import { useProjectStore } from '../../store/projectStore'
@@ -55,7 +55,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [exportMode, setExportMode] = useState<'canvas' | 'full-res'>('canvas')
 
-  // Compare mode and “before” are mutually exclusive: never show original while compare is on
+  // Compare mode and ΓÇ£beforeΓÇ¥ are mutually exclusive: never show original while compare is on
   useEffect(() => {
     if (compareMode) setShowOriginal(false)
   }, [compareMode, setShowOriginal])
@@ -174,8 +174,8 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
     `btn-icon ${active ? 'bg-surface-200 text-text-primary dark:bg-zinc-800 dark:text-zinc-100' : ''}`
 
   return (
-    <div className="relative flex items-center gap-1 px-2 py-1.5 border-b border-border dark:border-zinc-800/60 bg-white dark:bg-zinc-950/80 shrink-0 min-h-11">
-      {/* ── Left: icon-only tools (batch count stays visible on the left) ── */}
+    <div className="relative flex items-center gap-1.5 px-3 py-2 bg-surface-50 dark:bg-zinc-950 border-b border-border dark:border-zinc-800/60 shrink-0 min-h-11">
+      {/* ΓöÇΓöÇ Left: icon-only tools (batch count stays visible on the left) ΓöÇΓöÇ */}
       <div className="flex items-center gap-0.5 shrink-0 no-drag">
         <button className="btn-icon" type="button" onClick={handleOpen} title="Add images" aria-label="Add images">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -266,16 +266,16 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
               title="Reset all"
               aria-label="Reset all"
             >
-              <span className="text-sm leading-none font-mono">↺</span>
+              <span className="text-sm leading-none font-mono">Γå║</span>
             </button>
           </>
         )}
       </div>
 
-      {/* ── Center: Editor / Text / Templates (in-editor workspace) ── */}
+      {/* ΓöÇΓöÇ Center: Editor / Text / Templates (in-editor workspace) ΓöÇΓöÇ */}
       <div className="flex-1 flex justify-center min-w-0 px-2 no-drag">
         <div
-          className="inline-flex rounded-lg p-0.5 bg-surface-100 dark:bg-zinc-900/80 border border-border dark:border-zinc-800/80"
+          className="segment-control inline-flex"
           role="tablist"
           aria-label="Editor workspace"
         >
@@ -288,10 +288,8 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setEditorWorkspace(t.id)}
-                className={`px-2.5 sm:px-3 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-colors whitespace-nowrap ${
-                  active
-                    ? 'bg-white text-text-primary shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                    : 'text-text-muted dark:text-zinc-500 hover:text-text-primary dark:hover:text-zinc-200'
+                className={`tab-item px-2.5 sm:px-3 whitespace-nowrap ${
+                  active ? 'active' : ''
                 }`}
               >
                 {t.label}
@@ -302,9 +300,9 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
         </div>
       </div>
 
-      {/* ── Right: labels for Save + Export only ── */}
+      {/* ΓöÇΓöÇ Right: labels for Save + Export only ΓöÇΓöÇ */}
       <div className="flex items-center gap-1.5 shrink-0 no-drag">
-        {showExportSuccess && <span className="text-xs text-green-600 dark:text-emerald-400 font-medium hidden sm:inline">✓</span>}
+        {showExportSuccess && <span className="text-xs text-success font-medium hidden sm:inline">✓</span>}
         {hasImage && (
           <div className="relative group">
             <Button
@@ -329,7 +327,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
               onClick={handleSaveAs}
               className="absolute right-0 top-full mt-0.5 whitespace-nowrap bg-white border border-border rounded shadow-md px-2.5 py-1.5 text-[11px] text-text-secondary dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 hover:bg-surface-50 dark:hover:bg-zinc-800 z-40 hidden group-hover:block"
             >
-              Save As…
+              Save AsΓÇª
             </button> */}
           </div>
         )}
@@ -341,22 +339,20 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
             onClick={() => setShowExportMenu(v => !v)}
             loading={isExporting}
           >
-            Export ▾
+            Export Γû╛
           </Button>
           {showExportMenu && (
-            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-lg shadow-xl z-50 overflow-hidden py-1 dark:bg-zinc-900 dark:border-zinc-700">
+            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-md shadow-panel-lg z-50 overflow-hidden py-1 dark:bg-zinc-950 dark:border-zinc-800">
               <div className="px-3 py-2 border-b border-border dark:border-zinc-800">
                 <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Resolution</p>
-                <div className="flex gap-1">
+                <div className="segment-control flex gap-0 w-full">
                   {(['canvas', 'full-res'] as const).map(mode => (
                     <button
                       key={mode}
                       type="button"
                       onClick={() => setExportMode(mode)}
-                      className={`flex-1 py-1 px-2 rounded text-[10px] font-medium transition-colors ${
-                        exportMode === mode
-                          ? 'bg-text-primary text-white dark:bg-zinc-100 dark:text-zinc-900'
-                          : 'bg-surface-100 text-text-muted dark:bg-zinc-800/80 dark:text-zinc-400 hover:bg-surface-200 dark:hover:bg-zinc-800'
+                      className={`tab-item flex-1 text-center text-[10px] ${
+                        exportMode === mode ? 'active' : ''
                       }`}
                     >
                       {mode === 'canvas' ? 'Preview match' : 'Full-res'}
@@ -364,13 +360,13 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                   ))}
                 </div>
                 <p className="text-[9px] text-text-muted dark:text-zinc-500 mt-1">
-                  {exportMode === 'canvas' ? 'Exact preview · canvas capture' : 'Full resolution from source file'}
+                  {exportMode === 'canvas' ? 'Exact preview ┬╖ canvas capture' : 'Full resolution from source file'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleExportCurrent}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 dark:hover:bg-zinc-800/80 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-100 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors duration-150"
               >
                 <svg
                   className="w-3.5 h-3.5 text-text-muted dark:text-zinc-500 shrink-0"
@@ -391,7 +387,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                 <button
                   type="button"
                   onClick={handleExportAll}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 dark:hover:bg-zinc-800/80 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-100 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors duration-150"
                 >
                   <svg
                     className="w-3.5 h-3.5 text-text-muted dark:text-zinc-500 shrink-0"
@@ -416,7 +412,7 @@ export default function Toolbar({ hasImage }: ToolbarProps) {
                     setShowExportMenu(false)
                     void handleSaveAs()
                   }}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-50 dark:hover:bg-zinc-800/80 flex items-center gap-2 text-text-muted dark:text-zinc-500"
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-surface-100 dark:hover:bg-zinc-800 flex items-center gap-2 text-text-muted dark:text-zinc-500 transition-colors duration-150"
                 >
                   <svg
                     className="w-3.5 h-3.5 shrink-0"

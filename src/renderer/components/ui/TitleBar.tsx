@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import logoPng from '../../../assets/Logo.png'
 
 type HomeTab = 'home' | 'templates' | 'canvas' | 'explore' | 'settings'
@@ -47,7 +47,7 @@ export default function TitleBar(props: TitleBarProps) {
   if (props.variant === 'editor') {
     return (
       <header
-        className="drag-region flex items-center h-8 border-b border-border bg-white dark:bg-zinc-950/90 dark:border-zinc-800/70 shrink-0"
+        className="drag-region flex items-center h-8 border-b border-border dark:border-zinc-800/70 bg-surface-50 dark:bg-zinc-950 shrink-0"
         style={{ minHeight: 32 }}
       >
         {isMac && <div className="no-drag w-[72px] shrink-0" />}
@@ -64,21 +64,21 @@ export default function TitleBar(props: TitleBarProps) {
           </div>
         )}
 
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted dark:text-zinc-500 no-drag pr-1">
+        <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-accent no-drag pr-1">
           Editor
         </span>
-        <div className="no-drag flex items-center gap-1.5">
+        <div className="no-drag flex items-center gap-1">
           <button
             type="button"
             onClick={handleOpenHome}
-            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/80 transition-colors"
+            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/80 transition-colors"
           >
             Library
           </button>
           <button
             type="button"
             onClick={handleOpenSettings}
-            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/80 transition-colors"
+            className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/80 transition-colors"
             title="Settings"
           >
             Settings
@@ -115,7 +115,7 @@ export default function TitleBar(props: TitleBarProps) {
             </button>
             <button
               onClick={handleClose}
-              className="flex items-center justify-center w-11 h-8 text-text-muted hover:bg-red-500 hover:text-white transition-colors"
+              className="flex items-center justify-center w-11 h-8 text-text-muted hover:bg-red-500 hover:text-white transition-colors duration-150"
               title="Close"
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">

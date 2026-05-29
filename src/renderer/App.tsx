@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+﻿import { useEffect, useCallback } from 'react'
 import { useUIStore } from './store/uiStore'
 import { useEditStore } from './store/editStore'
 import { usePresetStore } from './store/presetStore'
@@ -33,8 +33,8 @@ function TemplatesStub() {
   return (
     <div className="flex-1 flex items-center justify-center" style={{ background: '#F6F2EC' }}>
       <div className="text-center">
-        <div className="text-5xl mb-4" style={{ fontFamily: 'Georgia, serif' }}>◫</div>
-        <p className="text-sm font-semibold" style={{ fontFamily: 'Georgia, serif' }}>Templates — coming in v0.3</p>
+        <div className="text-5xl mb-4" style={{ fontFamily: 'Georgia, serif' }}>Γù½</div>
+        <p className="text-sm font-semibold" style={{ fontFamily: 'Georgia, serif' }}>Templates ΓÇö coming in v0.3</p>
         <p className="text-xs font-mono text-black/40 mt-2">Editorial layouts, film strips, poster compositions</p>
       </div>
     </div>
@@ -45,8 +45,8 @@ function CanvasStub() {
   return (
     <div className="flex-1 flex items-center justify-center" style={{ background: '#F6F2EC' }}>
       <div className="text-center">
-        <div className="text-5xl mb-4" style={{ fontFamily: 'Georgia, serif' }}>∞</div>
-        <p className="text-sm font-semibold" style={{ fontFamily: 'Georgia, serif' }}>Canvas — coming in v0.5</p>
+        <div className="text-5xl mb-4" style={{ fontFamily: 'Georgia, serif' }}>Γê₧</div>
+        <p className="text-sm font-semibold" style={{ fontFamily: 'Georgia, serif' }}>Canvas ΓÇö coming in v0.5</p>
         <p className="text-xs font-mono text-black/40 mt-2">Infinite moodboard workspace</p>
       </div>
     </div>
@@ -57,7 +57,7 @@ function ExploreStub() {
   return (
     <div className="flex-1 flex items-center justify-center bg-[#F6F2EC] text-black">
       <div className="text-center">
-        <div className="text-5xl mb-4 opacity-50">✧</div>
+        <div className="text-5xl mb-4 opacity-50">Γ£º</div>
         <p className="text-sm font-mono tracking-widest uppercase">Explore (Coming Soon)</p>
         <p className="text-xs font-mono text-black/40 mt-2">Discover curated film stocks and templates</p>
       </div>
@@ -65,7 +65,7 @@ function ExploreStub() {
   )
 }
 
-/** Home / startup hub: fixed warm aesthetic — no app-wide dark/light theme. */
+/** Home / startup hub: fixed warm aesthetic ΓÇö no app-wide dark/light theme. */
 function FrescavaHomeShell() {
   const { activeTab, setActiveTab } = useUIStore()
 
@@ -98,7 +98,7 @@ function FrescavaHomeShell() {
   )
 }
 
-/** Editor window: theme (light/dark) here only; accent is hardcoded monochrome in CSS. */
+/** Editor window: Chroma Studio theme (light/dark) scoped to .frescava-editor. */
 function FrescavaEditorShell() {
   const { setShowOriginal } = useEditStore()
   const { loadPresets } = usePresetStore()
@@ -137,8 +137,8 @@ function FrescavaEditorShell() {
     <div
       className={
         isDark
-          ? 'frescava-editor dark flex flex-col h-screen overflow-hidden bg-[#19191b] text-zinc-100 antialiased'
-          : 'frescava-editor flex flex-col h-screen overflow-hidden bg-[#f5f5f5] text-text-primary antialiased'
+          ? 'frescava-editor dark flex flex-col h-screen overflow-hidden bg-zinc-950 text-zinc-100 antialiased'
+          : 'frescava-editor flex flex-col h-screen overflow-hidden bg-surface-50 text-text-primary antialiased'
       }
     >
       <TitleBar variant="editor" />
