@@ -3,30 +3,38 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
 import { join } from 'path'
 
-// Helper to manually load .env file in root directory as fallback
-function loadEnv(): void {
-  try {
-    const envPath = join(app.getAppPath(), '.env')
-    if (fs.existsSync(envPath)) {
-      const content = fs.readFileSync(envPath, 'utf8')
-      for (const line of content.split('\n')) {
-        const trimmed = line.trim()
-        if (!trimmed || trimmed.startsWith('#')) continue
-        const index = trimmed.indexOf('=')
-        if (index > 0) {
-          const key = trimmed.slice(0, index).trim()
-          let val = trimmed.slice(index + 1).trim()
-          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-            val = val.slice(1, -1)
-          }
-          if (!process.env[key]) {
-            process.env[key] = val
-          }
-        }
+function parseEnvFile(content: string): void {
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const index = trimmed.indexOf('=')
+    if (index > 0) {
+      const key = trimmed.slice(0, index).trim()
+      let val = trimmed.slice(index + 1).trim()
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1)
+      }
+      if (!process.env[key]) {
+        process.env[key] = val
       }
     }
-  } catch (err) {
-    console.error('Failed to parse local .env file:', err)
+  }
+}
+
+/** Load .env from app bundle (dev project root or packaged app.asar). */
+function loadEnv(): void {
+  const candidates = [
+    join(app.getAppPath(), '.env'),
+    join(process.resourcesPath, '.env'),
+  ]
+  for (const envPath of candidates) {
+    try {
+      if (!fs.existsSync(envPath)) continue
+      parseEnvFile(fs.readFileSync(envPath, 'utf8'))
+      return
+    } catch (err) {
+      console.error(`Failed to parse .env at ${envPath}:`, err)
+    }
   }
 }
 

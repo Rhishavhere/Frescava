@@ -58,7 +58,8 @@
     "files": [
       "out/**/*",
       "assets/**/*",
-      "Logo.ico"
+      "Logo.ico",
+      ".env"
     ],
     "asarUnpack": [
       "assets/models/**/*"
